@@ -3,10 +3,12 @@ import main/args
 import main/args_update
 import config_merge
 import config_values
+import generated_config_model
 
 type
   LoadedConfig* = object
     values*: FlatConfig
+    model*: ConfigModel
     stats*: ConfigMergeStats
     configPaths*: seq[string]
 
@@ -58,8 +60,8 @@ proc loadConfigCompatibility*(a: Args): tuple[ok: bool, err: string, cfg: Loaded
     "",
     LoadedConfig(
       values: updated.values,
+      model: fromFlatConfig(updated.values),
       stats: updated.stats,
       configPaths: paths,
     ),
   )
-

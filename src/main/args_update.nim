@@ -14,7 +14,7 @@ proc applyOptionOverrides(
     if key.len == 0:
       return (false, "Missing key= in -O/--option: \"" & option & "\"")
 
-    let valueRaw = option[eq + 1 .. ^1]
+    let valueRaw = if eq + 1 <= option.high: option[eq + 1 .. ^1] else: ""
     if valueRaw.len == 0:
       return (false, "Missing =val in -O/--option: \"" & option & "\"")
 
@@ -51,4 +51,3 @@ proc applyArgsUpdate*(
     return (false, opts.err, initFlatConfig(), ConfigMergeStats())
 
   (true, "", merged, outStats)
-

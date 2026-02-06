@@ -1,4 +1,5 @@
-import std/[options, parseutils, sequtils, strutils, tables]
+import std/[algorithm, options, parseutils, sequtils, strutils, tables]
+export tables
 
 type
   ConfigValueKind* = enum
@@ -115,12 +116,12 @@ proc parseQuotedString(raw: string): tuple[ok: bool, err: string, value: string]
   if quote == '\'':
     return (true, "", inner)
 
-  var out = newStringOfCap(inner.len)
+  var buffer = newStringOfCap(inner.len)
   var i = 0
   while i < inner.len:
     let c = inner[i]
     if c != '\\':
-      out.add(c)
+      buffer.add(c)
       inc i
       continue
 
@@ -130,20 +131,20 @@ proc parseQuotedString(raw: string): tuple[ok: bool, err: string, value: string]
     let n = inner[i + 1]
     case n
     of '\\':
-      out.add('\\')
+      buffer.add('\\')
     of '"':
-      out.add('"')
+      buffer.add('"')
     of 'n':
-      out.add('\n')
+      buffer.add('\n')
     of 'r':
-      out.add('\r')
+      buffer.add('\r')
     of 't':
-      out.add('\t')
+      buffer.add('\t')
     else:
-      out.add(n)
+      buffer.add(n)
     i += 2
 
-  (true, "", out)
+  (true, "", buffer)
 
 proc splitArrayItems(raw: string): seq[string] =
   result = @[]
@@ -267,7 +268,7 @@ proc parseTomlDocument*(content: string; source = "<inline>"): tuple[
   result = (true, "", initFlatConfig())
   var section = ""
 
-  for lineno, rawLine in content.splitLines():
+  for lineno, rawLine in pairs(content.splitLines()):
     let line = stripInlineComment(rawLine).strip()
     if line.len == 0:
       continue
@@ -292,7 +293,7 @@ proc parseTomlDocument*(content: string; source = "<inline>"): tuple[
         initFlatConfig(),
       )
 
-    let valueRaw = line[sep + 1 .. ^1].strip()
+    let valueRaw = if sep + 1 <= line.high: line[sep + 1 .. ^1].strip() else: ""
     let parsed = parseTomlValue(valueRaw)
     if not parsed.ok:
       return (

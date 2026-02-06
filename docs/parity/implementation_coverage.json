@@ -1,0 +1,3369 @@
+{
+  "total_modules": 548,
+  "summary": {
+    "scaffold": 537,
+    "partial": 6,
+    "implemented": 5,
+    "missing": 0
+  },
+  "status_by_crate": [
+    {
+      "crate": "admin",
+      "total": 45,
+      "scaffold": 44,
+      "partial": 1,
+      "implemented": 0,
+      "missing": 0
+    },
+    {
+      "crate": "api",
+      "total": 115,
+      "scaffold": 114,
+      "partial": 1,
+      "implemented": 0,
+      "missing": 0
+    },
+    {
+      "crate": "core",
+      "total": 161,
+      "scaffold": 160,
+      "partial": 1,
+      "implemented": 0,
+      "missing": 0
+    },
+    {
+      "crate": "database",
+      "total": 57,
+      "scaffold": 53,
+      "partial": 1,
+      "implemented": 3,
+      "missing": 0
+    },
+    {
+      "crate": "macros",
+      "total": 9,
+      "scaffold": 8,
+      "partial": 1,
+      "implemented": 0,
+      "missing": 0
+    },
+    {
+      "crate": "main",
+      "total": 14,
+      "scaffold": 13,
+      "partial": 0,
+      "implemented": 1,
+      "missing": 0
+    },
+    {
+      "crate": "router",
+      "total": 9,
+      "scaffold": 8,
+      "partial": 0,
+      "implemented": 1,
+      "missing": 0
+    },
+    {
+      "crate": "service",
+      "total": 138,
+      "scaffold": 137,
+      "partial": 1,
+      "implemented": 0,
+      "missing": 0
+    }
+  ],
+  "modules": [
+    {
+      "nim_path": "src/admin/admin.nim",
+      "rust_path": "admin/admin.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/appservice/commands.nim",
+      "rust_path": "admin/appservice/commands.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/appservice/mod.nim",
+      "rust_path": "admin/appservice/mod.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/check/commands.nim",
+      "rust_path": "admin/check/commands.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/check/mod.nim",
+      "rust_path": "admin/check/mod.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/context.nim",
+      "rust_path": "admin/context.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/debug/commands.nim",
+      "rust_path": "admin/debug/commands.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/debug/mod.nim",
+      "rust_path": "admin/debug/mod.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/debug/tester.nim",
+      "rust_path": "admin/debug/tester.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/federation/commands.nim",
+      "rust_path": "admin/federation/commands.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/federation/mod.nim",
+      "rust_path": "admin/federation/mod.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/media/commands.nim",
+      "rust_path": "admin/media/commands.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/media/mod.nim",
+      "rust_path": "admin/media/mod.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/mod.nim",
+      "rust_path": "admin/mod.rs",
+      "crate": "admin",
+      "status": "partial"
+    },
+    {
+      "nim_path": "src/admin/processor.nim",
+      "rust_path": "admin/processor.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/account_data.nim",
+      "rust_path": "admin/query/account_data.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/appservice.nim",
+      "rust_path": "admin/query/appservice.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/globals.nim",
+      "rust_path": "admin/query/globals.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/mod.nim",
+      "rust_path": "admin/query/mod.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/oauth.nim",
+      "rust_path": "admin/query/oauth.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/presence.nim",
+      "rust_path": "admin/query/presence.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/pusher.nim",
+      "rust_path": "admin/query/pusher.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/raw.nim",
+      "rust_path": "admin/query/raw.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/resolver.nim",
+      "rust_path": "admin/query/resolver.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/room_alias.nim",
+      "rust_path": "admin/query/room_alias.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/room_state_cache.nim",
+      "rust_path": "admin/query/room_state_cache.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/room_timeline.nim",
+      "rust_path": "admin/query/room_timeline.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/sending.nim",
+      "rust_path": "admin/query/sending.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/short.nim",
+      "rust_path": "admin/query/short.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/sync.nim",
+      "rust_path": "admin/query/sync.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/query/users.nim",
+      "rust_path": "admin/query/users.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/room/alias.nim",
+      "rust_path": "admin/room/alias.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/room/commands.nim",
+      "rust_path": "admin/room/commands.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/room/directory.nim",
+      "rust_path": "admin/room/directory.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/room/info.nim",
+      "rust_path": "admin/room/info.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/room/mod.nim",
+      "rust_path": "admin/room/mod.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/room/moderation.nim",
+      "rust_path": "admin/room/moderation.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/server/commands.nim",
+      "rust_path": "admin/server/commands.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/server/mod.nim",
+      "rust_path": "admin/server/mod.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/tests.nim",
+      "rust_path": "admin/tests.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/token/commands.nim",
+      "rust_path": "admin/token/commands.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/token/mod.nim",
+      "rust_path": "admin/token/mod.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/user/commands.nim",
+      "rust_path": "admin/user/commands.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/user/mod.nim",
+      "rust_path": "admin/user/mod.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/admin/utils.nim",
+      "rust_path": "admin/utils.rs",
+      "crate": "admin",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/account.nim",
+      "rust_path": "api/client/account.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/account_data.nim",
+      "rust_path": "api/client/account_data.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/alias.nim",
+      "rust_path": "api/client/alias.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/appservice.nim",
+      "rust_path": "api/client/appservice.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/backup.nim",
+      "rust_path": "api/client/backup.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/capabilities.nim",
+      "rust_path": "api/client/capabilities.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/context.nim",
+      "rust_path": "api/client/context.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/dehydrated_device.nim",
+      "rust_path": "api/client/dehydrated_device.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/device.nim",
+      "rust_path": "api/client/device.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/directory.nim",
+      "rust_path": "api/client/directory.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/events.nim",
+      "rust_path": "api/client/events.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/filter.nim",
+      "rust_path": "api/client/filter.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/keys.nim",
+      "rust_path": "api/client/keys.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/media.nim",
+      "rust_path": "api/client/media.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/media_legacy.nim",
+      "rust_path": "api/client/media_legacy.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/membership/ban.nim",
+      "rust_path": "api/client/membership/ban.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/membership/forget.nim",
+      "rust_path": "api/client/membership/forget.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/membership/invite.nim",
+      "rust_path": "api/client/membership/invite.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/membership/join.nim",
+      "rust_path": "api/client/membership/join.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/membership/kick.nim",
+      "rust_path": "api/client/membership/kick.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/membership/knock.nim",
+      "rust_path": "api/client/membership/knock.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/membership/leave.nim",
+      "rust_path": "api/client/membership/leave.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/membership/members.nim",
+      "rust_path": "api/client/membership/members.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/membership/mod.nim",
+      "rust_path": "api/client/membership/mod.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/membership/unban.nim",
+      "rust_path": "api/client/membership/unban.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/message.nim",
+      "rust_path": "api/client/message.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/mod.nim",
+      "rust_path": "api/client/mod.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/openid.nim",
+      "rust_path": "api/client/openid.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/presence.nim",
+      "rust_path": "api/client/presence.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/profile.nim",
+      "rust_path": "api/client/profile.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/push.nim",
+      "rust_path": "api/client/push.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/read_marker.nim",
+      "rust_path": "api/client/read_marker.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/redact.nim",
+      "rust_path": "api/client/redact.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/register.nim",
+      "rust_path": "api/client/register.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/relations.nim",
+      "rust_path": "api/client/relations.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/report.nim",
+      "rust_path": "api/client/report.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/room/aliases.nim",
+      "rust_path": "api/client/room/aliases.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/room/create.nim",
+      "rust_path": "api/client/room/create.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/room/event.nim",
+      "rust_path": "api/client/room/event.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/room/initial_sync.nim",
+      "rust_path": "api/client/room/initial_sync.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/room/mod.nim",
+      "rust_path": "api/client/room/mod.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/room/summary.nim",
+      "rust_path": "api/client/room/summary.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/room/upgrade.nim",
+      "rust_path": "api/client/room/upgrade.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/search.nim",
+      "rust_path": "api/client/search.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/send.nim",
+      "rust_path": "api/client/send.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/session/appservice.nim",
+      "rust_path": "api/client/session/appservice.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/session/jwt.nim",
+      "rust_path": "api/client/session/jwt.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/session/ldap.nim",
+      "rust_path": "api/client/session/ldap.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/session/logout.nim",
+      "rust_path": "api/client/session/logout.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/session/mod.nim",
+      "rust_path": "api/client/session/mod.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/session/password.nim",
+      "rust_path": "api/client/session/password.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/session/refresh.nim",
+      "rust_path": "api/client/session/refresh.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/session/sso.nim",
+      "rust_path": "api/client/session/sso.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/session/token.nim",
+      "rust_path": "api/client/session/token.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/space.nim",
+      "rust_path": "api/client/space.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/state.nim",
+      "rust_path": "api/client/state.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/mod.nim",
+      "rust_path": "api/client/sync/mod.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/v3.nim",
+      "rust_path": "api/client/sync/v3.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/v5/extensions/account_data.nim",
+      "rust_path": "api/client/sync/v5/extensions/account_data.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/v5/extensions/e2ee.nim",
+      "rust_path": "api/client/sync/v5/extensions/e2ee.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/v5/extensions/receipts.nim",
+      "rust_path": "api/client/sync/v5/extensions/receipts.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/v5/extensions/to_device.nim",
+      "rust_path": "api/client/sync/v5/extensions/to_device.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/v5/extensions/typing.nim",
+      "rust_path": "api/client/sync/v5/extensions/typing.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/v5/extensions.nim",
+      "rust_path": "api/client/sync/v5/extensions.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/v5/filter.nim",
+      "rust_path": "api/client/sync/v5/filter.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/v5/rooms.nim",
+      "rust_path": "api/client/sync/v5/rooms.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/v5/selector.nim",
+      "rust_path": "api/client/sync/v5/selector.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/sync/v5.nim",
+      "rust_path": "api/client/sync/v5.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/tag.nim",
+      "rust_path": "api/client/tag.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/thirdparty.nim",
+      "rust_path": "api/client/thirdparty.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/threads.nim",
+      "rust_path": "api/client/threads.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/to_device.nim",
+      "rust_path": "api/client/to_device.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/typing.nim",
+      "rust_path": "api/client/typing.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/unstable.nim",
+      "rust_path": "api/client/unstable.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/unversioned.nim",
+      "rust_path": "api/client/unversioned.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/user_directory.nim",
+      "rust_path": "api/client/user_directory.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/utils.nim",
+      "rust_path": "api/client/utils.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/voip.nim",
+      "rust_path": "api/client/voip.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/client/well_known.nim",
+      "rust_path": "api/client/well_known.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/mod.nim",
+      "rust_path": "api/mod.rs",
+      "crate": "api",
+      "status": "partial"
+    },
+    {
+      "nim_path": "src/api/router/args.nim",
+      "rust_path": "api/router/args.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/router/auth/appservice.nim",
+      "rust_path": "api/router/auth/appservice.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/router/auth/server.nim",
+      "rust_path": "api/router/auth/server.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/router/auth/uiaa.nim",
+      "rust_path": "api/router/auth/uiaa.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/router/auth.nim",
+      "rust_path": "api/router/auth.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/router/handler.nim",
+      "rust_path": "api/router/handler.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/router/request.nim",
+      "rust_path": "api/router/request.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/router/response.nim",
+      "rust_path": "api/router/response.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/router/state.nim",
+      "rust_path": "api/router/state.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/router.nim",
+      "rust_path": "api/router.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/backfill.nim",
+      "rust_path": "api/server/backfill.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/event.nim",
+      "rust_path": "api/server/event.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/event_auth.nim",
+      "rust_path": "api/server/event_auth.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/get_missing_events.nim",
+      "rust_path": "api/server/get_missing_events.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/hierarchy.nim",
+      "rust_path": "api/server/hierarchy.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/invite.nim",
+      "rust_path": "api/server/invite.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/key.nim",
+      "rust_path": "api/server/key.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/make_join.nim",
+      "rust_path": "api/server/make_join.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/make_knock.nim",
+      "rust_path": "api/server/make_knock.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/make_leave.nim",
+      "rust_path": "api/server/make_leave.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/media.nim",
+      "rust_path": "api/server/media.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/mod.nim",
+      "rust_path": "api/server/mod.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/openid.nim",
+      "rust_path": "api/server/openid.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/publicrooms.nim",
+      "rust_path": "api/server/publicrooms.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/query.nim",
+      "rust_path": "api/server/query.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/send.nim",
+      "rust_path": "api/server/send.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/send_join.nim",
+      "rust_path": "api/server/send_join.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/send_knock.nim",
+      "rust_path": "api/server/send_knock.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/send_leave.nim",
+      "rust_path": "api/server/send_leave.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/state.nim",
+      "rust_path": "api/server/state.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/state_ids.nim",
+      "rust_path": "api/server/state_ids.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/user.nim",
+      "rust_path": "api/server/user.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/utils.nim",
+      "rust_path": "api/server/utils.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/version.nim",
+      "rust_path": "api/server/version.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/api/server/well_known.nim",
+      "rust_path": "api/server/well_known.rs",
+      "crate": "api",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/alloc/default.nim",
+      "rust_path": "core/alloc/default.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/alloc/je.nim",
+      "rust_path": "core/alloc/je.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/alloc/mod.nim",
+      "rust_path": "core/alloc/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/benches/state_res.nim",
+      "rust_path": "core/benches/state_res.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/config/check.nim",
+      "rust_path": "core/config/check.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/config/manager.nim",
+      "rust_path": "core/config/manager.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/config/mod.nim",
+      "rust_path": "core/config/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/config/proxy.nim",
+      "rust_path": "core/config/proxy.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/debug.nim",
+      "rust_path": "core/debug.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/error/err.nim",
+      "rust_path": "core/error/err.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/error/log.nim",
+      "rust_path": "core/error/log.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/error/mod.nim",
+      "rust_path": "core/error/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/error/panic.nim",
+      "rust_path": "core/error/panic.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/error/response.nim",
+      "rust_path": "core/error/response.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/error/serde.nim",
+      "rust_path": "core/error/serde.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/info/cargo.nim",
+      "rust_path": "core/info/cargo.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/info/mod.nim",
+      "rust_path": "core/info/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/info/room_version.nim",
+      "rust_path": "core/info/room_version.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/info/rustc.nim",
+      "rust_path": "core/info/rustc.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/info/version.nim",
+      "rust_path": "core/info/version.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/capture/data.nim",
+      "rust_path": "core/log/capture/data.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/capture/guard.nim",
+      "rust_path": "core/log/capture/guard.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/capture/layer.nim",
+      "rust_path": "core/log/capture/layer.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/capture/mod.nim",
+      "rust_path": "core/log/capture/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/capture/state.nim",
+      "rust_path": "core/log/capture/state.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/capture/util.nim",
+      "rust_path": "core/log/capture/util.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/color.nim",
+      "rust_path": "core/log/color.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/console.nim",
+      "rust_path": "core/log/console.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/fmt.nim",
+      "rust_path": "core/log/fmt.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/fmt_span.nim",
+      "rust_path": "core/log/fmt_span.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/mod.nim",
+      "rust_path": "core/log/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/reload.nim",
+      "rust_path": "core/log/reload.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/log/suppress.nim",
+      "rust_path": "core/log/suppress.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/event/content.nim",
+      "rust_path": "core/matrix/event/content.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/event/filter.nim",
+      "rust_path": "core/matrix/event/filter.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/event/format.nim",
+      "rust_path": "core/matrix/event/format.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/event/id.nim",
+      "rust_path": "core/matrix/event/id.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/event/redact.nim",
+      "rust_path": "core/matrix/event/redact.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/event/relation.nim",
+      "rust_path": "core/matrix/event/relation.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/event/state_key.nim",
+      "rust_path": "core/matrix/event/state_key.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/event/type_ext.nim",
+      "rust_path": "core/matrix/event/type_ext.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/event/unsigned.nim",
+      "rust_path": "core/matrix/event/unsigned.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/event.nim",
+      "rust_path": "core/matrix/event.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/mod.nim",
+      "rust_path": "core/matrix/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/pdu/builder.nim",
+      "rust_path": "core/matrix/pdu/builder.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/pdu/count.nim",
+      "rust_path": "core/matrix/pdu/count.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/pdu/format.nim",
+      "rust_path": "core/matrix/pdu/format.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/pdu/hashes.nim",
+      "rust_path": "core/matrix/pdu/hashes.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/pdu/id.nim",
+      "rust_path": "core/matrix/pdu/id.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/pdu/raw_id.nim",
+      "rust_path": "core/matrix/pdu/raw_id.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/pdu/tests.nim",
+      "rust_path": "core/matrix/pdu/tests.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/pdu/unsigned.nim",
+      "rust_path": "core/matrix/pdu/unsigned.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/pdu.nim",
+      "rust_path": "core/matrix/pdu.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/room_version.nim",
+      "rust_path": "core/matrix/room_version.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/event_auth/auth_types.nim",
+      "rust_path": "core/matrix/state_res/event_auth/auth_types.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/event_auth/room_member/tests.nim",
+      "rust_path": "core/matrix/state_res/event_auth/room_member/tests.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/event_auth/room_member.nim",
+      "rust_path": "core/matrix/state_res/event_auth/room_member.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/event_auth/tests/room_power_levels.nim",
+      "rust_path": "core/matrix/state_res/event_auth/tests/room_power_levels.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/event_auth/tests.nim",
+      "rust_path": "core/matrix/state_res/event_auth/tests.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/event_auth.nim",
+      "rust_path": "core/matrix/state_res/event_auth.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/event_format.nim",
+      "rust_path": "core/matrix/state_res/event_format.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/events/create.nim",
+      "rust_path": "core/matrix/state_res/events/create.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/events/join_rules.nim",
+      "rust_path": "core/matrix/state_res/events/join_rules.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/events/member.nim",
+      "rust_path": "core/matrix/state_res/events/member.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/events/power_levels.nim",
+      "rust_path": "core/matrix/state_res/events/power_levels.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/events/third_party_invite.nim",
+      "rust_path": "core/matrix/state_res/events/third_party_invite.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/events.nim",
+      "rust_path": "core/matrix/state_res/events.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/fetch_state.nim",
+      "rust_path": "core/matrix/state_res/fetch_state.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/mod.nim",
+      "rust_path": "core/matrix/state_res/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/resolve/auth_difference.nim",
+      "rust_path": "core/matrix/state_res/resolve/auth_difference.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/resolve/conflicted_subgraph.nim",
+      "rust_path": "core/matrix/state_res/resolve/conflicted_subgraph.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/resolve/iterative_auth_check.nim",
+      "rust_path": "core/matrix/state_res/resolve/iterative_auth_check.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/resolve/mainline_sort.nim",
+      "rust_path": "core/matrix/state_res/resolve/mainline_sort.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/resolve/power_sort.nim",
+      "rust_path": "core/matrix/state_res/resolve/power_sort.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/resolve/split_conflicted.nim",
+      "rust_path": "core/matrix/state_res/resolve/split_conflicted.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/resolve/tests.nim",
+      "rust_path": "core/matrix/state_res/resolve/tests.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/resolve/topological_sort.nim",
+      "rust_path": "core/matrix/state_res/resolve/topological_sort.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/resolve.nim",
+      "rust_path": "core/matrix/state_res/resolve.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/matrix/state_res/test_utils.nim",
+      "rust_path": "core/matrix/state_res/test_utils.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/metrics/mod.nim",
+      "rust_path": "core/metrics/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/mod.nim",
+      "rust_path": "core/mod.rs",
+      "crate": "core",
+      "status": "partial"
+    },
+    {
+      "nim_path": "src/core/mods/canary.nim",
+      "rust_path": "core/mods/canary.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/mods/macros.nim",
+      "rust_path": "core/mods/macros.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/mods/mod.nim",
+      "rust_path": "core/mods/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/mods/module.nim",
+      "rust_path": "core/mods/module.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/mods/new.nim",
+      "rust_path": "core/mods/new.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/mods/path.nim",
+      "rust_path": "core/mods/path.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/server.nim",
+      "rust_path": "core/server.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/tests/state_res/main.nim",
+      "rust_path": "core/tests/state_res/main.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/tests/state_res/resolve/snapshot_tests.nim",
+      "rust_path": "core/tests/state_res/resolve/snapshot_tests.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/tests/state_res/resolve.nim",
+      "rust_path": "core/tests/state_res/resolve.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/arrayvec.nim",
+      "rust_path": "core/utils/arrayvec.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/bool.nim",
+      "rust_path": "core/utils/bool.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/bytes.nim",
+      "rust_path": "core/utils/bytes.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/content_disposition.nim",
+      "rust_path": "core/utils/content_disposition.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/debug.nim",
+      "rust_path": "core/utils/debug.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/defer.nim",
+      "rust_path": "core/utils/defer.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/future/bool_ext.nim",
+      "rust_path": "core/utils/future/bool_ext.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/future/ext_ext.nim",
+      "rust_path": "core/utils/future/ext_ext.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/future/mod.nim",
+      "rust_path": "core/utils/future/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/future/option_ext.nim",
+      "rust_path": "core/utils/future/option_ext.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/future/option_stream.nim",
+      "rust_path": "core/utils/future/option_stream.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/future/ready_bool_ext.nim",
+      "rust_path": "core/utils/future/ready_bool_ext.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/future/ready_eq_ext.nim",
+      "rust_path": "core/utils/future/ready_eq_ext.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/future/try_ext_ext.nim",
+      "rust_path": "core/utils/future/try_ext_ext.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/hash/argon.nim",
+      "rust_path": "core/utils/hash/argon.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/hash/sha256.nim",
+      "rust_path": "core/utils/hash/sha256.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/hash.nim",
+      "rust_path": "core/utils/hash.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/json.nim",
+      "rust_path": "core/utils/json.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/math/expected.nim",
+      "rust_path": "core/utils/math/expected.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/math/tried.nim",
+      "rust_path": "core/utils/math/tried.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/math.nim",
+      "rust_path": "core/utils/math.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/mod.nim",
+      "rust_path": "core/utils/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/mutex_map.nim",
+      "rust_path": "core/utils/mutex_map.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/option.nim",
+      "rust_path": "core/utils/option.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/rand.nim",
+      "rust_path": "core/utils/rand.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/and_then_ref.nim",
+      "rust_path": "core/utils/result/and_then_ref.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/debug_inspect.nim",
+      "rust_path": "core/utils/result/debug_inspect.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/filter.nim",
+      "rust_path": "core/utils/result/filter.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/flat_ok.nim",
+      "rust_path": "core/utils/result/flat_ok.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/inspect_log.nim",
+      "rust_path": "core/utils/result/inspect_log.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/into_is_ok.nim",
+      "rust_path": "core/utils/result/into_is_ok.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/is_err_or.nim",
+      "rust_path": "core/utils/result/is_err_or.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/log_debug_err.nim",
+      "rust_path": "core/utils/result/log_debug_err.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/log_err.nim",
+      "rust_path": "core/utils/result/log_err.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/map_expect.nim",
+      "rust_path": "core/utils/result/map_expect.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/map_ref.nim",
+      "rust_path": "core/utils/result/map_ref.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/not_found.nim",
+      "rust_path": "core/utils/result/not_found.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/unwrap_infallible.nim",
+      "rust_path": "core/utils/result/unwrap_infallible.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result/unwrap_or_err.nim",
+      "rust_path": "core/utils/result/unwrap_or_err.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/result.nim",
+      "rust_path": "core/utils/result.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/set.nim",
+      "rust_path": "core/utils/set.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/band.nim",
+      "rust_path": "core/utils/stream/band.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/broadband.nim",
+      "rust_path": "core/utils/stream/broadband.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/cloned.nim",
+      "rust_path": "core/utils/stream/cloned.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/expect.nim",
+      "rust_path": "core/utils/stream/expect.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/ignore.nim",
+      "rust_path": "core/utils/stream/ignore.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/iter_stream.nim",
+      "rust_path": "core/utils/stream/iter_stream.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/mod.nim",
+      "rust_path": "core/utils/stream/mod.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/ready.nim",
+      "rust_path": "core/utils/stream/ready.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/tools.nim",
+      "rust_path": "core/utils/stream/tools.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/try_broadband.nim",
+      "rust_path": "core/utils/stream/try_broadband.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/try_parallel.nim",
+      "rust_path": "core/utils/stream/try_parallel.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/try_ready.nim",
+      "rust_path": "core/utils/stream/try_ready.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/try_tools.nim",
+      "rust_path": "core/utils/stream/try_tools.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/try_wideband.nim",
+      "rust_path": "core/utils/stream/try_wideband.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/stream/wideband.nim",
+      "rust_path": "core/utils/stream/wideband.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/string/between.nim",
+      "rust_path": "core/utils/string/between.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/string/de.nim",
+      "rust_path": "core/utils/string/de.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/string/split.nim",
+      "rust_path": "core/utils/string/split.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/string/tests.nim",
+      "rust_path": "core/utils/string/tests.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/string/unquote.nim",
+      "rust_path": "core/utils/string/unquote.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/string/unquoted.nim",
+      "rust_path": "core/utils/string/unquoted.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/string.nim",
+      "rust_path": "core/utils/string.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/sys/compute.nim",
+      "rust_path": "core/utils/sys/compute.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/sys/storage.nim",
+      "rust_path": "core/utils/sys/storage.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/sys.nim",
+      "rust_path": "core/utils/sys.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/tests.nim",
+      "rust_path": "core/utils/tests.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/time/exponential_backoff.nim",
+      "rust_path": "core/utils/time/exponential_backoff.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/time.nim",
+      "rust_path": "core/utils/time.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/core/utils/two_phase_counter.nim",
+      "rust_path": "core/utils/two_phase_counter.rs",
+      "crate": "core",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/benches/ser.nim",
+      "rust_path": "database/benches/ser.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/cork.nim",
+      "rust_path": "database/cork.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/de.nim",
+      "rust_path": "database/de.rs",
+      "crate": "database",
+      "status": "implemented"
+    },
+    {
+      "nim_path": "src/database/deserialized.nim",
+      "rust_path": "database/deserialized.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/engine/backup.nim",
+      "rust_path": "database/engine/backup.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/engine/cf_opts.nim",
+      "rust_path": "database/engine/cf_opts.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/engine/context.nim",
+      "rust_path": "database/engine/context.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/engine/db_opts.nim",
+      "rust_path": "database/engine/db_opts.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/engine/descriptor.nim",
+      "rust_path": "database/engine/descriptor.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/engine/files.nim",
+      "rust_path": "database/engine/files.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/engine/logger.nim",
+      "rust_path": "database/engine/logger.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/engine/memory_usage.nim",
+      "rust_path": "database/engine/memory_usage.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/engine/open.nim",
+      "rust_path": "database/engine/open.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/engine/repair.nim",
+      "rust_path": "database/engine/repair.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/engine.nim",
+      "rust_path": "database/engine.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/handle.nim",
+      "rust_path": "database/handle.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/keyval.nim",
+      "rust_path": "database/keyval.rs",
+      "crate": "database",
+      "status": "implemented"
+    },
+    {
+      "nim_path": "src/database/map/clear.nim",
+      "rust_path": "database/map/clear.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/compact.nim",
+      "rust_path": "database/map/compact.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/contains.nim",
+      "rust_path": "database/map/contains.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/count.nim",
+      "rust_path": "database/map/count.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/del.nim",
+      "rust_path": "database/map/del.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/get.nim",
+      "rust_path": "database/map/get.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/get_batch.nim",
+      "rust_path": "database/map/get_batch.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/insert.nim",
+      "rust_path": "database/map/insert.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/keys.nim",
+      "rust_path": "database/map/keys.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/keys_from.nim",
+      "rust_path": "database/map/keys_from.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/keys_prefix.nim",
+      "rust_path": "database/map/keys_prefix.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/open.nim",
+      "rust_path": "database/map/open.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/options.nim",
+      "rust_path": "database/map/options.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/put.nim",
+      "rust_path": "database/map/put.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/qry.nim",
+      "rust_path": "database/map/qry.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/qry_batch.nim",
+      "rust_path": "database/map/qry_batch.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/remove.nim",
+      "rust_path": "database/map/remove.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/rev_keys.nim",
+      "rust_path": "database/map/rev_keys.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/rev_keys_from.nim",
+      "rust_path": "database/map/rev_keys_from.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/rev_keys_prefix.nim",
+      "rust_path": "database/map/rev_keys_prefix.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/rev_stream.nim",
+      "rust_path": "database/map/rev_stream.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/rev_stream_from.nim",
+      "rust_path": "database/map/rev_stream_from.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/rev_stream_prefix.nim",
+      "rust_path": "database/map/rev_stream_prefix.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/stream.nim",
+      "rust_path": "database/map/stream.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/stream_from.nim",
+      "rust_path": "database/map/stream_from.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/stream_prefix.nim",
+      "rust_path": "database/map/stream_prefix.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map/watch.nim",
+      "rust_path": "database/map/watch.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/map.nim",
+      "rust_path": "database/map.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/maps.nim",
+      "rust_path": "database/maps.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/mod.nim",
+      "rust_path": "database/mod.rs",
+      "crate": "database",
+      "status": "partial"
+    },
+    {
+      "nim_path": "src/database/pool/configure.nim",
+      "rust_path": "database/pool/configure.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/pool.nim",
+      "rust_path": "database/pool.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/ser.nim",
+      "rust_path": "database/ser.rs",
+      "crate": "database",
+      "status": "implemented"
+    },
+    {
+      "nim_path": "src/database/stream/items.nim",
+      "rust_path": "database/stream/items.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/stream/items_rev.nim",
+      "rust_path": "database/stream/items_rev.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/stream/keys.nim",
+      "rust_path": "database/stream/keys.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/stream/keys_rev.nim",
+      "rust_path": "database/stream/keys_rev.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/stream.nim",
+      "rust_path": "database/stream.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/tests.nim",
+      "rust_path": "database/tests.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/database/util.nim",
+      "rust_path": "database/util.rs",
+      "crate": "database",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/macros/admin.nim",
+      "rust_path": "macros/admin.rs",
+      "crate": "macros",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/macros/cargo.nim",
+      "rust_path": "macros/cargo.rs",
+      "crate": "macros",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/macros/config.nim",
+      "rust_path": "macros/config.rs",
+      "crate": "macros",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/macros/debug.nim",
+      "rust_path": "macros/debug.rs",
+      "crate": "macros",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/macros/git.nim",
+      "rust_path": "macros/git.rs",
+      "crate": "macros",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/macros/implement.nim",
+      "rust_path": "macros/implement.rs",
+      "crate": "macros",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/macros/mod.nim",
+      "rust_path": "macros/mod.rs",
+      "crate": "macros",
+      "status": "partial"
+    },
+    {
+      "nim_path": "src/macros/rustc.nim",
+      "rust_path": "macros/rustc.rs",
+      "crate": "macros",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/macros/utils.nim",
+      "rust_path": "macros/utils.rs",
+      "crate": "macros",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/args.nim",
+      "rust_path": "main/args.rs",
+      "crate": "main",
+      "status": "implemented"
+    },
+    {
+      "nim_path": "src/main/benches/main.nim",
+      "rust_path": "main/benches/main.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/lib.nim",
+      "rust_path": "main/lib.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/logging.nim",
+      "rust_path": "main/logging.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/main.nim",
+      "rust_path": "main/main.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/mods.nim",
+      "rust_path": "main/mods.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/restart.nim",
+      "rust_path": "main/restart.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/runtime.nim",
+      "rust_path": "main/runtime.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/sentry.nim",
+      "rust_path": "main/sentry.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/server.nim",
+      "rust_path": "main/server.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/signals.nim",
+      "rust_path": "main/signals.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/tests/smoke.nim",
+      "rust_path": "main/tests/smoke.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/tests/smoke_async.nim",
+      "rust_path": "main/tests/smoke_async.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/main/tests/smoke_shutdown.nim",
+      "rust_path": "main/tests/smoke_shutdown.rs",
+      "crate": "main",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/router/layers.nim",
+      "rust_path": "router/layers.rs",
+      "crate": "router",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/router/mod.nim",
+      "rust_path": "router/mod.rs",
+      "crate": "router",
+      "status": "implemented"
+    },
+    {
+      "nim_path": "src/router/request.nim",
+      "rust_path": "router/request.rs",
+      "crate": "router",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/router/router.nim",
+      "rust_path": "router/router.rs",
+      "crate": "router",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/router/run.nim",
+      "rust_path": "router/run.rs",
+      "crate": "router",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/router/serve/mod.nim",
+      "rust_path": "router/serve/mod.rs",
+      "crate": "router",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/router/serve/plain.nim",
+      "rust_path": "router/serve/plain.rs",
+      "crate": "router",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/router/serve/tls.nim",
+      "rust_path": "router/serve/tls.rs",
+      "crate": "router",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/router/serve/unix.nim",
+      "rust_path": "router/serve/unix.rs",
+      "crate": "router",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/account_data/direct.nim",
+      "rust_path": "service/account_data/direct.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/account_data/mod.nim",
+      "rust_path": "service/account_data/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/account_data/room_tags.nim",
+      "rust_path": "service/account_data/room_tags.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/admin/console.nim",
+      "rust_path": "service/admin/console.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/admin/create.nim",
+      "rust_path": "service/admin/create.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/admin/execute.nim",
+      "rust_path": "service/admin/execute.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/admin/grant.nim",
+      "rust_path": "service/admin/grant.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/admin/mod.nim",
+      "rust_path": "service/admin/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/appservice/append.nim",
+      "rust_path": "service/appservice/append.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/appservice/mod.nim",
+      "rust_path": "service/appservice/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/appservice/namespace_regex.nim",
+      "rust_path": "service/appservice/namespace_regex.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/appservice/registration_info.nim",
+      "rust_path": "service/appservice/registration_info.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/appservice/request.nim",
+      "rust_path": "service/appservice/request.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/client/mod.nim",
+      "rust_path": "service/client/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/config/mod.nim",
+      "rust_path": "service/config/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/deactivate/mod.nim",
+      "rust_path": "service/deactivate/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/emergency/mod.nim",
+      "rust_path": "service/emergency/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/federation/execute.nim",
+      "rust_path": "service/federation/execute.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/federation/format.nim",
+      "rust_path": "service/federation/format.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/federation/mod.nim",
+      "rust_path": "service/federation/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/globals/data.nim",
+      "rust_path": "service/globals/data.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/globals/mod.nim",
+      "rust_path": "service/globals/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/key_backups/mod.nim",
+      "rust_path": "service/key_backups/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/manager.nim",
+      "rust_path": "service/manager.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/media/blurhash.nim",
+      "rust_path": "service/media/blurhash.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/media/data.nim",
+      "rust_path": "service/media/data.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/media/migrations.nim",
+      "rust_path": "service/media/migrations.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/media/mod.nim",
+      "rust_path": "service/media/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/media/preview.nim",
+      "rust_path": "service/media/preview.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/media/remote.nim",
+      "rust_path": "service/media/remote.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/media/tests.nim",
+      "rust_path": "service/media/tests.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/media/thumbnail.nim",
+      "rust_path": "service/media/thumbnail.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/membership/ban.nim",
+      "rust_path": "service/membership/ban.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/membership/invite.nim",
+      "rust_path": "service/membership/invite.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/membership/join.nim",
+      "rust_path": "service/membership/join.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/membership/kick.nim",
+      "rust_path": "service/membership/kick.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/membership/knock.nim",
+      "rust_path": "service/membership/knock.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/membership/leave.nim",
+      "rust_path": "service/membership/leave.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/membership/mod.nim",
+      "rust_path": "service/membership/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/membership/unban.nim",
+      "rust_path": "service/membership/unban.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/migrations.nim",
+      "rust_path": "service/migrations.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/mod.nim",
+      "rust_path": "service/mod.rs",
+      "crate": "service",
+      "status": "partial"
+    },
+    {
+      "nim_path": "src/service/oauth/mod.nim",
+      "rust_path": "service/oauth/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/oauth/providers.nim",
+      "rust_path": "service/oauth/providers.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/oauth/sessions/association.nim",
+      "rust_path": "service/oauth/sessions/association.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/oauth/sessions.nim",
+      "rust_path": "service/oauth/sessions.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/oauth/user_info.nim",
+      "rust_path": "service/oauth/user_info.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/once_services.nim",
+      "rust_path": "service/once_services.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/presence/aggregate.nim",
+      "rust_path": "service/presence/aggregate.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/presence/data.nim",
+      "rust_path": "service/presence/data.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/presence/mod.nim",
+      "rust_path": "service/presence/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/presence/pipeline.nim",
+      "rust_path": "service/presence/pipeline.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/presence/presence.nim",
+      "rust_path": "service/presence/presence.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/pusher/append.nim",
+      "rust_path": "service/pusher/append.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/pusher/mod.nim",
+      "rust_path": "service/pusher/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/pusher/notification.nim",
+      "rust_path": "service/pusher/notification.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/pusher/request.nim",
+      "rust_path": "service/pusher/request.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/pusher/send.nim",
+      "rust_path": "service/pusher/send.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/pusher/suppressed.nim",
+      "rust_path": "service/pusher/suppressed.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/registration_tokens/data.nim",
+      "rust_path": "service/registration_tokens/data.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/registration_tokens/mod.nim",
+      "rust_path": "service/registration_tokens/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/resolver/actual.nim",
+      "rust_path": "service/resolver/actual.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/resolver/cache.nim",
+      "rust_path": "service/resolver/cache.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/resolver/dns.nim",
+      "rust_path": "service/resolver/dns.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/resolver/fed.nim",
+      "rust_path": "service/resolver/fed.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/resolver/mod.nim",
+      "rust_path": "service/resolver/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/resolver/tests.nim",
+      "rust_path": "service/resolver/tests.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/resolver/well_known.nim",
+      "rust_path": "service/resolver/well_known.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/alias/mod.nim",
+      "rust_path": "service/rooms/alias/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/auth_chain/mod.nim",
+      "rust_path": "service/rooms/auth_chain/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/delete/mod.nim",
+      "rust_path": "service/rooms/delete/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/directory/mod.nim",
+      "rust_path": "service/rooms/directory/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/acl_check.nim",
+      "rust_path": "service/rooms/event_handler/acl_check.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/fetch_auth.nim",
+      "rust_path": "service/rooms/event_handler/fetch_auth.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/fetch_prev.nim",
+      "rust_path": "service/rooms/event_handler/fetch_prev.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/fetch_state.nim",
+      "rust_path": "service/rooms/event_handler/fetch_state.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/handle_incoming_pdu.nim",
+      "rust_path": "service/rooms/event_handler/handle_incoming_pdu.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/handle_outlier_pdu.nim",
+      "rust_path": "service/rooms/event_handler/handle_outlier_pdu.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/handle_prev_pdu.nim",
+      "rust_path": "service/rooms/event_handler/handle_prev_pdu.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/mod.nim",
+      "rust_path": "service/rooms/event_handler/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/parse_incoming_pdu.nim",
+      "rust_path": "service/rooms/event_handler/parse_incoming_pdu.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/resolve_state.nim",
+      "rust_path": "service/rooms/event_handler/resolve_state.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/state_at_incoming.nim",
+      "rust_path": "service/rooms/event_handler/state_at_incoming.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/event_handler/upgrade_outlier_pdu.nim",
+      "rust_path": "service/rooms/event_handler/upgrade_outlier_pdu.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/lazy_loading/mod.nim",
+      "rust_path": "service/rooms/lazy_loading/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/metadata/mod.nim",
+      "rust_path": "service/rooms/metadata/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/mod.nim",
+      "rust_path": "service/rooms/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/pdu_metadata/mod.nim",
+      "rust_path": "service/rooms/pdu_metadata/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/read_receipt/data.nim",
+      "rust_path": "service/rooms/read_receipt/data.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/read_receipt/mod.nim",
+      "rust_path": "service/rooms/read_receipt/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/retention/mod.nim",
+      "rust_path": "service/rooms/retention/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/search/mod.nim",
+      "rust_path": "service/rooms/search/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/short/mod.nim",
+      "rust_path": "service/rooms/short/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/spaces/mod.nim",
+      "rust_path": "service/rooms/spaces/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/spaces/pagination_token.nim",
+      "rust_path": "service/rooms/spaces/pagination_token.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/spaces/tests.nim",
+      "rust_path": "service/rooms/spaces/tests.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/state/mod.nim",
+      "rust_path": "service/rooms/state/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/state_accessor/mod.nim",
+      "rust_path": "service/rooms/state_accessor/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/state_accessor/room_state.nim",
+      "rust_path": "service/rooms/state_accessor/room_state.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/state_accessor/server_can.nim",
+      "rust_path": "service/rooms/state_accessor/server_can.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/state_accessor/state.nim",
+      "rust_path": "service/rooms/state_accessor/state.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/state_accessor/user_can.nim",
+      "rust_path": "service/rooms/state_accessor/user_can.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/state_cache/mod.nim",
+      "rust_path": "service/rooms/state_cache/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/state_cache/update.nim",
+      "rust_path": "service/rooms/state_cache/update.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/state_cache/via.nim",
+      "rust_path": "service/rooms/state_cache/via.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/state_compressor/mod.nim",
+      "rust_path": "service/rooms/state_compressor/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/threads/mod.nim",
+      "rust_path": "service/rooms/threads/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/timeline/append.nim",
+      "rust_path": "service/rooms/timeline/append.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/timeline/backfill.nim",
+      "rust_path": "service/rooms/timeline/backfill.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/timeline/build.nim",
+      "rust_path": "service/rooms/timeline/build.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/timeline/create.nim",
+      "rust_path": "service/rooms/timeline/create.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/timeline/mod.nim",
+      "rust_path": "service/rooms/timeline/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/timeline/redact.nim",
+      "rust_path": "service/rooms/timeline/redact.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/rooms/typing/mod.nim",
+      "rust_path": "service/rooms/typing/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/sending/data.nim",
+      "rust_path": "service/sending/data.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/sending/dest.nim",
+      "rust_path": "service/sending/dest.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/sending/mod.nim",
+      "rust_path": "service/sending/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/sending/sender.nim",
+      "rust_path": "service/sending/sender.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/server_keys/acquire.nim",
+      "rust_path": "service/server_keys/acquire.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/server_keys/get.nim",
+      "rust_path": "service/server_keys/get.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/server_keys/keypair.nim",
+      "rust_path": "service/server_keys/keypair.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/server_keys/mod.nim",
+      "rust_path": "service/server_keys/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/server_keys/request.nim",
+      "rust_path": "service/server_keys/request.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/server_keys/sign.nim",
+      "rust_path": "service/server_keys/sign.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/server_keys/verify.nim",
+      "rust_path": "service/server_keys/verify.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/service.nim",
+      "rust_path": "service/service.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/services.nim",
+      "rust_path": "service/services.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/sync/mod.nim",
+      "rust_path": "service/sync/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/sync/watch.nim",
+      "rust_path": "service/sync/watch.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/transaction_ids/mod.nim",
+      "rust_path": "service/transaction_ids/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/uiaa/mod.nim",
+      "rust_path": "service/uiaa/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/users/dehydrated_device.nim",
+      "rust_path": "service/users/dehydrated_device.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/users/device.nim",
+      "rust_path": "service/users/device.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/users/keys.nim",
+      "rust_path": "service/users/keys.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/users/ldap.nim",
+      "rust_path": "service/users/ldap.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/users/mod.nim",
+      "rust_path": "service/users/mod.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/users/profile.nim",
+      "rust_path": "service/users/profile.rs",
+      "crate": "service",
+      "status": "scaffold"
+    },
+    {
+      "nim_path": "src/service/users/register.nim",
+      "rust_path": "service/users/register.rs",
+      "crate": "service",
+      "status": "scaffold"
+    }
+  ],
+  "thresholds": {
+    "all_modules_implemented": false,
+    "database_modules_implemented": false
+  }
+}

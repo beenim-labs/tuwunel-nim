@@ -1,4 +1,4 @@
-import std/[unittest, os]
+import std/[unittest, os, options]
 import main/args
 import core/config_bootstrap
 
@@ -69,3 +69,11 @@ suite "CLI and config bootstrap":
           let paths = resolveConfigPaths(a)
           check paths.len == 1
           check paths[0] == defaultConfigPath()
+
+  test "hidden optional boolean flags":
+    let a = parseArgs(@["--gc-on-park", "--gc-muzzy=false", "--worker-affinity"])
+    check a.gcOnPark.isSome
+    check a.gcOnPark.get
+    check a.gcMuzzy.isSome
+    check not a.gcMuzzy.get
+    check a.workerAffinity

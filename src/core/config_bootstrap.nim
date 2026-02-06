@@ -1,6 +1,6 @@
 import std/strutils
 import main/args
-import core/config_loader
+import config_loader
 
 type
   ConfigBootstrap* = object

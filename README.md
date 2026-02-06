@@ -23,6 +23,7 @@ It does **not yet** implement full Matrix homeserver behavior. Generated invento
 cd tuwunel-nim
 python3 tools/extract_inventory.py
 python3 tools/generate_stubs.py
+python3 tools/generate_module_scaffold.py
 python3 tools/render_parity_matrix.py
 nim c -d:ssl -o:build/tuwunel src/tuwunel.nim
 nim c -r -d:ssl --out:build/tuwunel_nim_tests tests/all_tests.nim

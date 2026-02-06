@@ -14,6 +14,9 @@ task parity_codegen, "Generate Nim stubs and parity matrix from inventory":
   exec "python3 tools/generate_stubs.py"
   exec "python3 tools/render_parity_matrix.py"
 
+task parity_scaffold, "Generate missing module scaffold from module_map.json":
+  exec "python3 tools/generate_module_scaffold.py"
+
 task parity_sync, "Refresh inventory + generated artifacts":
   exec "python3 tools/extract_inventory.py"
   exec "python3 tools/generate_stubs.py"

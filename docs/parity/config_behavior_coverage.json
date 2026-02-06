@@ -1,0 +1,2482 @@
+{
+  "summary": {
+    "total_keys": 308,
+    "typed_keys": 308,
+    "default_keys": 0,
+    "env_alias_keys": 308,
+    "override_keys": 308
+  },
+  "keys": [
+    {
+      "key": "server_name",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "database_path",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "new_user_displayname_suffix",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "tls",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "unix_socket_path",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "unix_socket_perms",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "database_backup_path",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "database_backups_to_keep",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "cache_capacity_modifier",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "db_cache_capacity_mb",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "db_write_buffer_capacity_mb",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "pdu_cache_capacity",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "auth_chain_cache_capacity",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "shorteventid_cache_capacity",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "eventidshort_cache_capacity",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "eventid_pdu_cache_capacity",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "shortstatekey_cache_capacity",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "statekeyshort_cache_capacity",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "servernameevent_data_cache_capacity",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "stateinfo_cache_capacity",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "roomid_spacehierarchy_cache_capacity",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "client_sync_timeout_min",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "client_sync_timeout_default",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "client_sync_timeout_max",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "dns_cache_entries",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "dns_min_ttl",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "dns_min_ttl_nxdomain",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "dns_attempts",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "dns_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "dns_tcp_fallback",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "query_all_nameservers",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "query_over_tcp_only",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "ip_lookup_strategy",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "dns_passthru_domains",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "dns_passthru_appservices",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "dns_case_randomization",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "max_request_size",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "max_fetch_prev_events",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "request_conn_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "request_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "request_total_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "request_idle_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "request_idle_per_host",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "well_known_conn_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "well_known_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "federation_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "federation_idle_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "federation_idle_per_host",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sender_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sender_idle_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sender_retry_backoff_limit",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "appservice_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "appservice_idle_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "pusher_idle_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "client_receive_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "client_request_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "client_response_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "client_shutdown_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sender_shutdown_timeout",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_registration",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "yes_i_am_very_very_sure_i_want_an_open_registration_server_prone_to_abuse",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "registration_token",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "registration_token_file",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_encryption",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "encryption_enabled_by_default_for_room_type",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_federation",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "federate_created_rooms",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "federation_loopback",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "forget_forced_upon_leave",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "require_auth_for_profile_requests",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_public_room_directory_over_federation",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_public_room_directory_without_auth",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_public_room_search_by_id",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_unlisted_room_search_by_id",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "show_all_local_users_in_user_directory",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "turn_allow_guests",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "lockdown_public_room_directory",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_device_name_federation",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_inbound_profile_lookup_federation_requests",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_room_creation",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_unstable_room_versions",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_experimental_room_versions",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "default_room_version",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "well_known",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_jaeger",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "jaeger_filter",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "tracing_flame",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "tracing_flame_filter",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "tracing_flame_output_path",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "proxy",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "trusted_servers",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "query_trusted_key_servers_first",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "query_trusted_key_servers_first_on_join",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "only_query_trusted_key_servers",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "trusted_server_batch_size",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "log",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "log_colors",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "log_compact",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "log_span_events",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "log_filter_regex",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "log_thread_ids",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "log_to_stderr",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "log_enable",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "log_global_default",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "openid_token_ttl",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "login_via_existing_session",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "login_via_token",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "login_token_ttl",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "access_token_ttl",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "turn_username",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "turn_password",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "turn_uris",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "turn_secret",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "turn_secret_file",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "turn_ttl",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "auto_join_rooms",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "auto_deactivate_banned_room_attempts",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_log_level",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_log_stderr",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_max_log_file_size",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_log_time_to_roll",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_optimize_for_spinning_disks",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_direct_io",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_parallelism_threads",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_max_log_files",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_compression_algo",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_compression_level",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_bottommost_compression_level",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_bottommost_compression",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_recovery_mode",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_paranoid_file_checks",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_checksums",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_atomic_flush",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_repair",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_read_only",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_secondary",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_compaction_prio_idle",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_compaction_ioprio_idle",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_compaction",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_stats_level",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rocksdb_never_drop_columns",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "emergency_password",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "notification_push_path",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "push_everything",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "calculate_heroes",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_local_presence",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_incoming_presence",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_outgoing_presence",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "presence_idle_timeout_s",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "presence_offline_timeout_s",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "presence_timeout_remote_users",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "suppress_push_when_active",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_incoming_read_receipts",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_outgoing_read_receipts",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_outgoing_typing",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_incoming_typing",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "typing_federation_timeout_s",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "typing_client_timeout_min_s",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "typing_client_timeout_max_s",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "zstd_compression",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "gzip_compression",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "brotli_compression",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_guest_registration",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "log_guest_registrations",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_guests_auto_join_rooms",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_legacy_media",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "request_legacy_media",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "freeze_legacy_media",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "media_startup_check",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "media_compat_file_link",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "prune_missing_media",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "prevent_media_downloads_from",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "forbidden_remote_server_names",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "forbidden_remote_room_directory_server_names",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "ip_range_denylist",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "url_preview_bound_interface",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "url_preview_domain_contains_allowlist",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "url_preview_domain_explicit_allowlist",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "url_preview_domain_explicit_denylist",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "url_preview_url_contains_allowlist",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "url_preview_max_spider_size",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "url_preview_check_root_domain",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "forbidden_alias_names",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "forbidden_usernames",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "deprioritize_joins_through_servers",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "max_make_join_attempts_per_join_attempt",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "max_join_attempts_per_join_request",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "startup_netburst",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "startup_netburst_keep",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "block_non_admin_invites",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "admin_escape_commands",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "admin_console_automatic",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "admin_execute",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "admin_execute_errors_ignore",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "admin_signal_execute",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "admin_log_capture",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "admin_room_tag",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "grant_admin_to_first_user",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "create_admin_room",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "federate_admin_room",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sentry",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sentry_endpoint",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sentry_send_server_name",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sentry_traces_sample_rate",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sentry_attach_stacktrace",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sentry_send_panic",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sentry_send_error",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sentry_filter",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "tokio_console",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "test",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "admin_room_notices",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "save_unredacted_events",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "redaction_retention_seconds",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_room_admins_to_request_unredacted_events",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "db_pool_affinity",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "db_pool_workers",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "db_pool_workers_limit",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "db_pool_max_workers",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "db_pool_queue_mult",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "stream_width_default",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "stream_width_scale",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "stream_amplification",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sender_workers",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "listening",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "config_reload_signal",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "allow_invalid_tls_certificates",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "access_control_allow_origin",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "hydra_backports",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "delete_rooms_after_leave",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "one_time_key_limit",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "single_sso",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sso_custom_providers_page",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sso_aware_preferred",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "blurhashing",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "ldap",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "jwt",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "appservice",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "identity_provider",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "certs",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "key",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "dual_protocol",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "client",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "server",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "support_page",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "support_role",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "support_email",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "support_mxid",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rtc_transports",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "components_x",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "components_y",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "blurhash_max_raw_size",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "enable",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "uri",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "base_dn",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "bind_dn",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "bind_password_file",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "filter",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "uid_attribute",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "mail_attribute",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "name_attribute",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "admin_base_dn",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "admin_filter",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "enable",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "key",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "format",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "register_user",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "algorithm",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "audience",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "issuer",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "require_exp",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "require_nbf",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "validate_exp",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "validate_nbf",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "validate_signature",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "brand",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "client_id",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "client_secret",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "client_secret_file",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "issuer_url",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "callback_url",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "default",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "name",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "icon",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "scope",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "userid_claims",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "base_path",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "discovery_url",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "authorization_url",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "token_url",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "revocation_url",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "introspection_url",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "userinfo_url",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "discovery",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "grant_session_duration",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "id",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "url",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "as_token",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "hs_token",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "sender_localpart",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "users",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "aliases",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rooms",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "rate_limited",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "protocols",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "receive_ephemeral",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "device_management",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "exclusive",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    },
+    {
+      "key": "regex",
+      "typed": true,
+      "default": false,
+      "env_alias": true,
+      "override": true,
+      "status": "partial"
+    }
+  ],
+  "thresholds": {
+    "all_keys_typed": true,
+    "all_keys_have_defaults": false,
+    "all_keys_env_alias_compatible": true,
+    "all_keys_option_override_compatible": true,
+    "m2_ready": false
+  }
+}

@@ -1,14 +1,22 @@
 import generated_column_families
+import generated_column_family_descriptors
 import types
 import serialization
+import ser
+import de
+import keyval
 import schema
 import backend_memory
 import backend_rocksdb
 import db
 
 export generated_column_families
+export generated_column_family_descriptors
 export types
 export serialization
+export ser
+export de
+export keyval
 export schema
 export backend_memory
 export backend_rocksdb

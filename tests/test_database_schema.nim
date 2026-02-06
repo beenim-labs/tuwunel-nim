@@ -1,10 +1,11 @@
 import std/unittest
-import database/[schema, generated_column_families]
+import database/[schema, generated_column_families, generated_column_family_descriptors]
 
 suite "Database schema compatibility":
   test "generated families match expected count":
-    check DatabaseColumnFamilies.len == 103
-    check expectedColumnFamilies().len == 103
+    check DatabaseColumnFamilies.len == DatabaseColumnFamilyCount
+    check expectedColumnFamilies().len == DatabaseColumnFamilyCount
+    check expectedRequiredColumnFamilies().len == RequiredDatabaseColumnFamilyCount
 
   test "exact match is compatible":
     let diff = computeSchemaDiff(DatabaseColumnFamilies)
@@ -21,3 +22,10 @@ suite "Database schema compatibility":
     check not isCompatible(diff)
     check "alias_roomid" in diff.missing
     check "extra_cf" in diff.extra
+
+  test "required schema only fails for missing":
+    var actual = @RequiredDatabaseColumnFamilies
+    actual.add("legacy_extra")
+    let diff = computeRequiredSchemaDiff(actual)
+    check diff.missing.len == 0
+    check "legacy_extra" in diff.extra

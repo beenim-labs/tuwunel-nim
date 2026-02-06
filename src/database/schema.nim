@@ -2,6 +2,7 @@
 
 import std/[algorithm, sets]
 import generated_column_families
+import generated_column_family_descriptors
 import types
 
 type
@@ -11,6 +12,9 @@ type
 
 proc expectedColumnFamilies*(): seq[string] =
   DatabaseColumnFamilies
+
+proc expectedRequiredColumnFamilies*(): seq[string] =
+  RequiredDatabaseColumnFamilies
 
 proc normalize(names: openArray[string]): seq[string] =
   result = @[]
@@ -47,3 +51,26 @@ proc ensureSchemaCompatible*(actual: openArray[string]; expected = DatabaseColum
     if diff.extra.len > 0:
       msg.add(" extra=" & $diff.extra)
     raise newDbError(msg)
+
+proc computeRequiredSchemaDiff*(
+    actual: openArray[string]; required = RequiredDatabaseColumnFamilies): SchemaDiff =
+  result = SchemaDiff(missing: @[], extra: @[])
+  let actualSet = actual.toHashSet()
+  let requiredSet = required.toHashSet()
+
+  for cf in required:
+    if cf notin actualSet:
+      result.missing.add(cf)
+
+  for cf in actual:
+    if cf notin requiredSet:
+      result.extra.add(cf)
+
+  result.missing = normalize(result.missing)
+  result.extra = normalize(result.extra)
+
+proc ensureRequiredSchemaCompatible*(
+    actual: openArray[string]; required = RequiredDatabaseColumnFamilies) =
+  let diff = computeRequiredSchemaDiff(actual, required)
+  if diff.missing.len > 0:
+    raise newDbError("Column-family schema mismatch missing=" & $diff.missing)

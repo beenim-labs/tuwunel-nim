@@ -1,7 +1,18 @@
 {.warning[UnusedImport]:off.}
 import test_inventory
+import test_module_coverage
+import test_behavior_coverage
+import test_parity_matrix_gates
 import test_args
+import test_args_update
+import test_config_model
+import test_config_loader
+import test_config_env_merge
 import test_database_schema
 import test_database_serialization
+import test_database_ser_de_parity
 import test_database_runtime
+import test_database_cf_descriptor_policy
 import test_database_rocksdb
+import test_route_runtime
+import test_rust_delegate

@@ -1,10 +1,14 @@
-## Database handle for tuwunel-nim M3 foundation.
+## Database handle and helper APIs for tuwunel-nim M3 parity baseline.
 
-import std/[options]
-import generated_column_families
-import schema
+import std/options
 import backend_memory
 import backend_rocksdb
+import de
+import generated_column_families
+import generated_column_family_descriptors
+import keyval
+import schema
+import serialization
 
 type
   DbMode* = enum
@@ -23,11 +27,14 @@ proc openInMemory*(path = ":memory:"; columnFamilies = DatabaseColumnFamilies): 
   result.path = path
   result.memory = newInMemoryBackend(columnFamilies)
 
-proc openRocksDb*(path: string; columnFamilies = DatabaseColumnFamilies): DatabaseHandle =
+proc openRocksDb*(
+    path: string;
+    options = defaultRocksDbOpenOptions();
+    descriptors = DatabaseColumnFamilyDescriptors): DatabaseHandle =
   new(result)
   result.mode = dmRocksDb
   result.path = path
-  result.rocks = openRocksDbBackend(path, columnFamilies)
+  result.rocks = openRocksDbBackend(path, descriptors, options)
 
 proc close*(db: DatabaseHandle) =
   if db.isNil:
@@ -84,3 +91,34 @@ proc listColumnFamilies*(db: DatabaseHandle): seq[string] =
 
 proc assertSchemaCompatible*(actual: openArray[string]) =
   ensureSchemaCompatible(actual)
+
+proc putString*(db: DatabaseHandle; cf, key, value: string) =
+  db.put(cf, toByteSeq(key), serializeStringValue(value))
+
+proc getString*(db: DatabaseHandle; cf, key: string): Option[string] =
+  let raw = db.get(cf, toByteSeq(key))
+  if raw.isNone:
+    return none(string)
+  some(deserializeStringValue(raw.get))
+
+proc putU64*(db: DatabaseHandle; cf, key: string; value: uint64) =
+  db.put(cf, toByteSeq(key), serializeU64Value(value))
+
+proc getU64*(db: DatabaseHandle; cf, key: string): Option[uint64] =
+  let raw = db.get(cf, toByteSeq(key))
+  if raw.isNone:
+    return none(uint64)
+  some(deserializeU64Value(raw.get))
+
+proc putTupleKeyVal*(db: DatabaseHandle; cf: string; keyParts, valParts: openArray[seq[byte]]) =
+  let key = serializeKey(keyParts)
+  let value = serializeKey(valParts)
+  db.put(cf, key, value)
+
+proc getTuple2Value*(
+    db: DatabaseHandle; cf: string; key: openArray[byte]): Option[tuple[a: seq[byte], b: seq[
+    byte]]] =
+  let raw = db.get(cf, key)
+  if raw.isNone:
+    return none((tuple[a: seq[byte], b: seq[byte]]))
+  some(deserializeTuple2Bytes(raw.get))

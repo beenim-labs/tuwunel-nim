@@ -2,7 +2,8 @@ import std/unittest
 
 when defined(tuwunel_use_rocksdb):
   import std/[os, times, strformat, sets, options]
-  import database/[db, serialization, generated_column_families, types]
+  import rocksdb
+  import database/[db, serialization, generated_column_family_descriptors, types]
 
   var tempDbCounter = 0
 
@@ -23,9 +24,9 @@ when defined(tuwunel_use_rocksdb):
 
       var d: DatabaseHandle
       try:
-        d = openRocksDb(path)
+        d = db.openRocksDb(path)
         let got = d.listColumnFamilies().toHashSet()
-        for cf in DatabaseColumnFamilies:
+        for cf in RequiredDatabaseColumnFamilies:
           check cf in got
       finally:
         if not d.isNil:
@@ -40,7 +41,7 @@ when defined(tuwunel_use_rocksdb):
 
       var d: DatabaseHandle
       try:
-        d = openRocksDb(path)
+        d = db.openRocksDb(path)
         let cf = "global"
         let key = serializeStringAndU64("server_name", 42'u64)
         let val = toByteSeq("example.org")
@@ -61,20 +62,22 @@ when defined(tuwunel_use_rocksdb):
         if dirExists(path):
           removeDir(path)
 
-    test "existing schema mismatch is rejected":
+    test "existing schema missing required families is rejected":
       let path = tempDbPath()
       if dirExists(path):
         removeDir(path)
 
-      var d: DatabaseHandle
+      var low: RocksDbReadWriteRef
       try:
-        d = openRocksDb(path)
-      finally:
-        if not d.isNil:
-          d.close()
+        let cfs = @[initColFamilyDescriptor("global", defaultColFamilyOptions(autoClose = true))]
+        low = openRocksDb(path, columnFamilies = cfs).value()
+        low.close()
 
-      expect DbError:
-        discard openRocksDb(path, @["global"])
+        expect DbError:
+          discard db.openRocksDb(path)
+      finally:
+        if not low.isNil and not low.isClosed():
+          low.close()
 
       if dirExists(path):
         removeDir(path)

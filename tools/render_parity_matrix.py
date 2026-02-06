@@ -22,6 +22,12 @@ def load_optional(name: str, default):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def pct(numerator: int, denominator: int) -> str:
+    if denominator <= 0:
+        return "0.0%"
+    return f"{(100.0 * numerator / denominator):.1f}%"
+
+
 def main() -> int:
     baseline = load("baseline.json")
     fn = load("rust_function_inventory.json")
@@ -29,6 +35,53 @@ def main() -> int:
     module_coverage = load_optional(
         "module_coverage.json",
         {"mapped": 0, "present": 0, "missing": 0, "missing_paths": []},
+    )
+    impl_coverage = load_optional(
+        "implementation_coverage.json",
+        {
+            "total_modules": 0,
+            "summary": {"scaffold": 0, "partial": 0, "implemented": 0, "missing": 0},
+            "status_by_crate": [],
+            "thresholds": {
+                "all_modules_implemented": False,
+                "database_modules_implemented": False,
+            },
+        },
+    )
+    route_behavior = load_optional(
+        "route_behavior_coverage.json",
+        {
+            "summary": {
+                "total_routes": 0,
+                "registered_routes": 0,
+                "auth_covered_routes": 0,
+                "handler_covered_routes": 0,
+                "error_shape_covered_routes": 0,
+            },
+            "thresholds": {
+                "all_routes_registered": False,
+                "all_routes_behavioral": False,
+            },
+        },
+    )
+    config_behavior = load_optional(
+        "config_behavior_coverage.json",
+        {
+            "summary": {
+                "total_keys": 0,
+                "typed_keys": 0,
+                "default_keys": 0,
+                "env_alias_keys": 0,
+                "override_keys": 0,
+            },
+            "thresholds": {
+                "all_keys_typed": False,
+                "all_keys_have_defaults": False,
+                "all_keys_env_alias_compatible": False,
+                "all_keys_option_override_compatible": False,
+                "m2_ready": False,
+            },
+        },
     )
 
     b = baseline["baseline"]
@@ -47,10 +100,55 @@ def main() -> int:
         )
     )
 
+    m2_complete = bool(config_behavior.get("thresholds", {}).get("m2_ready", False))
+    m2_status = "Implemented" if m2_complete else "In progress"
+    cfg_summary = config_behavior.get("summary", {})
+    cfg_total = int(cfg_summary.get("total_keys", 0))
+    cfg_typed = int(cfg_summary.get("typed_keys", 0))
+    cfg_default = int(cfg_summary.get("default_keys", 0))
+    cfg_env = int(cfg_summary.get("env_alias_keys", 0))
+    cfg_override = int(cfg_summary.get("override_keys", 0))
+    m2_note = (
+        "All config keys are typed/defaulted and override-compatible"
+        if m2_complete
+        else (
+            f"typed={cfg_typed}/{cfg_total}, default={cfg_default}/{cfg_total}, "
+            f"env-alias={cfg_env}/{cfg_total}, option-override={cfg_override}/{cfg_total}"
+        )
+    )
+
+    m3_complete = bool(impl_coverage.get("thresholds", {}).get("database_modules_implemented", False))
+    m3_status = "Implemented" if m3_complete else "In progress"
+    db_row = next(
+        (r for r in impl_coverage.get("status_by_crate", []) if r.get("crate") == "database"),
+        None,
+    )
+    db_total = int(db_row.get("total", 0)) if db_row else 0
+    db_impl = int(db_row.get("implemented", 0)) if db_row else 0
+    m3_note = (
+        f"Database crate modules implemented={db_impl}/{db_total}"
+        if db_total > 0
+        else "Database crate implementation coverage unavailable"
+    )
+
     crate_rows = "\n".join(
         f"| `{item['crate']}` | {item['function_count']} | {item['file_count']} |"
         for item in fn["by_crate"]
     )
+    impl = impl_coverage.get("summary", {})
+    impl_total = int(impl_coverage.get("total_modules", 0))
+    impl_crate_rows = "\n".join(
+        "| `{crate}` | {implemented} | {partial} | {scaffold} | {missing} | {total} |".format(
+            crate=item.get("crate", ""),
+            implemented=int(item.get("implemented", 0)),
+            partial=int(item.get("partial", 0)),
+            scaffold=int(item.get("scaffold", 0)),
+            missing=int(item.get("missing", 0)),
+            total=int(item.get("total", 0)),
+        )
+        for item in impl_coverage.get("status_by_crate", [])
+    )
+    route_summary = route_behavior.get("summary", {})
 
     md = f"""# Parity Matrix (Baseline-Pinned)
 
@@ -78,14 +176,44 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 | Present modules | {module_coverage['present']} |
 | Missing modules | {module_coverage['missing']} |
 
+## Behavioral implementation coverage
+
+| Item | Count |
+| --- | ---: |
+| Implemented modules | {int(impl.get('implemented', 0))} |
+| Partial modules | {int(impl.get('partial', 0))} |
+| Scaffold modules | {int(impl.get('scaffold', 0))} |
+| Missing modules | {int(impl.get('missing', 0))} |
+| Implemented ratio | {pct(int(impl.get('implemented', 0)), impl_total)} |
+
+## Route behavior coverage
+
+| Item | Count |
+| --- | ---: |
+| Total routes | {int(route_summary.get('total_routes', 0))} |
+| Registered routes | {int(route_summary.get('registered_routes', 0))} |
+| Auth-covered routes | {int(route_summary.get('auth_covered_routes', 0))} |
+| Handler-covered routes | {int(route_summary.get('handler_covered_routes', 0))} |
+| Error-shape-covered routes | {int(route_summary.get('error_shape_covered_routes', 0))} |
+
+## Config behavior coverage
+
+| Item | Count |
+| --- | ---: |
+| Total config keys | {cfg_total} |
+| Typed keys | {cfg_typed} |
+| Keys with defaults | {cfg_default} |
+| Env alias compatible keys | {cfg_env} |
+| Option override compatible keys | {cfg_override} |
+
 ## Milestone status
 
 | Milestone | Status | Notes |
 | --- | --- | --- |
 | M0 bootstrap | Implemented | Project scaffold, Nim build/test tasks, CI workflow, baseline metadata freeze |
 | M1 inventory + codegen | {m1_status} | {m1_note} |
-| M2 core runtime/CLI/config parity | Implemented | Compatibility config loader/merge path, argument transforms, and deterministic bootstrap diagnostics implemented |
-| M3 database compatibility | Implemented | Serializer/deserializer primitives, CF descriptor policy, in-memory backend, and compile-flagged RocksDB compatibility behaviors with tests |
+| M2 core runtime/CLI/config parity | {m2_status} | {m2_note} |
+| M3 database compatibility | {m3_status} | {m3_note} |
 | M4+ | Pending | Service graph, routes, Matrix semantics, federation, admin, perf |
 
 ## Rust crate inventory
@@ -93,6 +221,12 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 | Crate | Functions | Files |
 | --- | ---: | ---: |
 {crate_rows}
+
+## Nim implementation by Rust crate
+
+| Crate | Implemented | Partial | Scaffold | Missing | Total |
+| --- | ---: | ---: | ---: | ---: | ---: |
+{impl_crate_rows}
 
 ## Generated artifacts
 
@@ -103,10 +237,15 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 - `docs/parity/db_cf_inventory.json`
 - `docs/parity/module_map.json`
 - `docs/parity/module_coverage.json`
+- `docs/parity/implementation_coverage.json`
+- `docs/parity/route_behavior_coverage.json`
+- `docs/parity/config_behavior_coverage.json`
 - `docs/parity/complement_baseline.json`
 - `src/api/generated_route_inventory.nim`
 - `src/api/generated_route_types.nim`
+- `src/api/generated_route_runtime.nim`
 - `src/core/generated_config_keys.nim`
+- `src/core/generated_config_model.nim`
 - `src/core/generated_function_inventory.nim`
 - `src/database/generated_column_families.nim`
 - `src/database/generated_column_family_descriptors.nim`

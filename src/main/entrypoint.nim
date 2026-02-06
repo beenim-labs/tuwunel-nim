@@ -1,10 +1,19 @@
 import std/[strformat, os]
 import main/args
+import main/rust_delegate
 import core/logging
 import core/config_loader
 import core/config_values
 
 proc main*(): int =
+  let delegated = runRustDelegate()
+  if delegated.delegated:
+    info(delegated.message)
+    return delegated.exitCode
+
+  info("Rust parity delegate unavailable; using Nim compatibility runtime")
+  debug("delegate_reason=" & delegated.message)
+
   let a = parseArgs()
 
   if a.showVersion:
