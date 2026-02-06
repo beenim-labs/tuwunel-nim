@@ -91,6 +91,22 @@ when defined(tuwunel_use_rocksdb):
       seen.incl(value)
       dst.add(value)
 
+  proc compareBytes(a, b: openArray[byte]): int =
+    let m = min(a.len, b.len)
+    var i = 0
+    while i < m:
+      if a[i] < b[i]:
+        return -1
+      if a[i] > b[i]:
+        return 1
+      inc i
+
+    if a.len < b.len:
+      return -1
+    if a.len > b.len:
+      return 1
+    0
+
   proc ensureRequiredOnDisk(onDisk, required: openArray[string]) =
     let onDiskSet = onDisk.toHashSet()
     var missing: seq[string] = @[]
@@ -251,6 +267,20 @@ when defined(tuwunel_use_rocksdb):
     for _ in iter.pairs:
       inc result
 
+  proc entries*(backend: RocksDbBackend; cf: string): seq[DbEntry] =
+    result = @[]
+    let handle = requireCf(backend, cf)
+    let iterRes = backend.dbRef().openIterator(cfHandle = handle)
+    let iter = expectVal(iterRes, "rocksdb openIterator(" & cf & ")")
+
+    for key, value in iter.pairs:
+      result.add((key: key, value: value))
+
+    result.sort(
+      proc(a, b: DbEntry): int =
+        compareBytes(a.key, b.key)
+    )
+
   proc listColumnFamilies*(backend: RocksDbBackend): seq[string] =
     result = @[]
     for name in backend.cfHandles.keys:
@@ -258,6 +288,20 @@ when defined(tuwunel_use_rocksdb):
     for name in backend.unknownOnDisk:
       if name notin result:
         result.add(name)
+
+  proc clearColumnFamily*(backend: RocksDbBackend; cf: string): int =
+    if backend.readOnly:
+      raise fail("rocksdb clear disallowed in read-only mode")
+
+    let handle = requireCf(backend, cf)
+    let iterRes = backend.dbRef().openIterator(cfHandle = handle)
+    let iter = expectVal(iterRes, "rocksdb openIterator(" & cf & ")")
+
+    var removed = 0
+    for key, _ in iter.pairs:
+      expectOk(backend.readWriteDb.delete(key, handle), "rocksdb clear(" & cf & ")")
+      inc removed
+    removed
 
 else:
   type
@@ -305,6 +349,16 @@ else:
     discard cf
     raise newDbError("RocksDB backend not enabled")
 
+  proc entries*(backend: RocksDbBackend; cf: string): seq[DbEntry] =
+    discard backend
+    discard cf
+    raise newDbError("RocksDB backend not enabled")
+
   proc listColumnFamilies*(backend: RocksDbBackend): seq[string] =
     discard backend
+    raise newDbError("RocksDB backend not enabled")
+
+  proc clearColumnFamily*(backend: RocksDbBackend; cf: string): int =
+    discard backend
+    discard cf
     raise newDbError("RocksDB backend not enabled")

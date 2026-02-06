@@ -1,7 +1,7 @@
 ## In-memory backend used as development fallback while RocksDB backend
 ## integration is being completed.
 
-import std/[tables, options, base64]
+import std/[algorithm, tables, options, base64]
 import schema
 import types
 
@@ -16,8 +16,36 @@ proc bytesToString(data: openArray[byte]): string =
   for i, b in data:
     result[i] = char(b)
 
+proc stringToBytes(data: string): seq[byte] =
+  result = newSeq[byte](data.len)
+  for i, ch in data:
+    result[i] = byte(ord(ch))
+
 proc bytesToKey(data: openArray[byte]): string =
   encode(bytesToString(data), safe = false)
+
+proc keyToBytes(encoded: string): seq[byte] =
+  try:
+    let decoded = decode(encoded)
+    stringToBytes(decoded)
+  except CatchableError:
+    @[]
+
+proc compareBytes(a, b: openArray[byte]): int =
+  let m = min(a.len, b.len)
+  var i = 0
+  while i < m:
+    if a[i] < b[i]:
+      return -1
+    if a[i] > b[i]:
+      return 1
+    inc i
+
+  if a.len < b.len:
+    return -1
+  if a.len > b.len:
+    return 1
+  0
 
 proc newInMemoryBackend*(columnFamilies: openArray[string]): InMemoryBackend =
   ensureSchemaCompatible(columnFamilies)
@@ -64,7 +92,26 @@ proc count*(db: InMemoryBackend; cf: string): int =
   let table = db.families[cf]
   table.len
 
+proc entries*(db: InMemoryBackend; cf: string): seq[DbEntry] =
+  requireCf(db, cf)
+  result = @[]
+
+  let table = db.families[cf]
+  for encodedKey, value in table.pairs:
+    result.add((key: keyToBytes(encodedKey), value: value))
+
+  result.sort(
+    proc(a, b: DbEntry): int =
+      compareBytes(a.key, b.key)
+  )
+
 proc listColumnFamilies*(db: InMemoryBackend): seq[string] =
   result = @[]
   for k in db.families.keys:
     result.add(k)
+
+proc clearColumnFamily*(db: InMemoryBackend; cf: string): int =
+  requireCf(db, cf)
+  let removed = db.families[cf].len
+  db.families[cf] = initTable[string, seq[byte]]()
+  removed
