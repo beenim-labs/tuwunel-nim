@@ -4,6 +4,7 @@ import main/args_update
 import config_merge
 import config_values
 import generated_config_model
+import generated_config_defaults
 
 type
   LoadedConfig* = object
@@ -43,7 +44,8 @@ proc loadConfigCompatibility*(a: Args): tuple[ok: bool, err: string, cfg: Loaded
   if not merged.ok:
     return (false, merged.err, LoadedConfig())
 
-  var values = merged.values
+  var values = defaultConfigValues()
+  mergeFlatConfig(values, merged.values)
   var stats = merged.stats
 
   # These follow the same order as the Rust config load path.

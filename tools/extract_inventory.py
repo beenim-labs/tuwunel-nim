@@ -21,9 +21,13 @@ FN_NAME_RE = re.compile(r"\bfn\s+([A-Za-z_][A-Za-z0-9_]*)")
 CLIENT_ROUTE_RE = re.compile(r"\.ruma_route\(&client::([A-Za-z0-9_]+)\)")
 SERVER_ROUTE_RE = re.compile(r"\.ruma_route\(&server::([A-Za-z0-9_]+)\)")
 MANUAL_ROUTE_RE = re.compile(r"\.route\(\s*\"([^\"]+)\"")
-CONFIG_RE = re.compile(r"^\s*pub\s+([A-Za-z0-9_]+)\s*:\s*([^,]+),")
 DB_CF_RE = re.compile(r"name:\s*\"([^\"]+)\"")
 DESCRIPTOR_NAME_RE = re.compile(r'name:\s*"([^"]+)"')
+DEFAULT_DOC_RE = re.compile(r"^\s*///\s*default:\s*(.+)\s*$", re.IGNORECASE)
+SERDE_DEFAULT_FN_RE = re.compile(r'default\s*=\s*"([^"]+)"')
+SERDE_DEFAULT_ENABLED_RE = re.compile(r"\bdefault\b")
+STRUCT_START_RE = re.compile(r"^\s*(?:pub\s+)?struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{")
+FIELD_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 @dataclass
@@ -38,8 +42,13 @@ class FunctionFile:
 @dataclass
 class ConfigField:
     key: str
+    scope: str
+    qualified_key: str
     rust_type: str
     line: int
+    default_doc: str
+    serde_default_provider: str
+    serde_default_enabled: bool
 
 
 @dataclass
@@ -155,18 +164,146 @@ def extract_routes() -> Dict[str, object]:
 
 def extract_config_fields() -> Dict[str, object]:
     path = RUST_SRC / "core" / "config" / "mod.rs"
+    source_lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
     fields: List[ConfigField] = []
+    pending_default_doc = ""
+    pending_attrs: List[str] = []
+    attr_buf: List[str] = []
+    attr_depth = 0
+    current_struct = ""
+    struct_depth = 0
 
-    for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1):
-        m = CONFIG_RE.search(line)
-        if not m:
+    def clear_pending() -> None:
+        nonlocal pending_default_doc, pending_attrs, attr_buf, attr_depth
+        pending_default_doc = ""
+        pending_attrs = []
+        attr_buf = []
+        attr_depth = 0
+
+    def parse_field_decl(line: str) -> Tuple[str, str] | None:
+        stripped = line.strip()
+        if stripped.startswith("pub "):
+            stripped = stripped[4:].strip()
+        elif stripped.startswith("pub("):
+            close = stripped.find(")")
+            if close < 0:
+                return None
+            stripped = stripped[close + 1 :].strip()
+        else:
+            return None
+
+        if not stripped.endswith(",") or ":" not in stripped:
+            return None
+
+        name_part, type_part = stripped.split(":", 1)
+        name = name_part.strip()
+        rust_type = type_part[:-1].strip()
+        if not FIELD_NAME_RE.fullmatch(name) or not rust_type:
+            return None
+        return name, rust_type
+
+    for lineno, line in enumerate(source_lines, start=1):
+        m_doc = DEFAULT_DOC_RE.search(line)
+        if m_doc:
+            pending_default_doc = m_doc.group(1).strip()
             continue
-        fields.append(ConfigField(key=m.group(1), rust_type=m.group(2).strip(), line=lineno))
+
+        stripped = line.strip()
+        m_struct = STRUCT_START_RE.match(line)
+        if m_struct and struct_depth == 0:
+            current_struct = m_struct.group(1)
+            struct_depth = line.count("{") - line.count("}")
+            if struct_depth <= 0:
+                current_struct = ""
+                struct_depth = 0
+            clear_pending()
+            continue
+
+        if current_struct:
+            if stripped.startswith("#[") or attr_depth > 0:
+                attr_buf.append(stripped)
+                attr_depth += stripped.count("[") - stripped.count("]")
+                if attr_depth <= 0:
+                    pending_attrs.append(" ".join(attr_buf))
+                    attr_buf = []
+                    attr_depth = 0
+                continue
+
+            field = parse_field_decl(line)
+            if field is not None:
+                key, rust_type = field
+                serde_attrs = " ".join(
+                    attr for attr in pending_attrs if re.match(r"^#\[\s*serde\b", attr)
+                )
+                provider_match = SERDE_DEFAULT_FN_RE.search(serde_attrs)
+                provider = provider_match.group(1) if provider_match else ""
+                has_default = bool(SERDE_DEFAULT_ENABLED_RE.search(serde_attrs))
+
+                fields.append(
+                    ConfigField(
+                        key=key,
+                        scope=current_struct,
+                        qualified_key=f"{current_struct}.{key}",
+                        rust_type=rust_type,
+                        line=lineno,
+                        default_doc=pending_default_doc,
+                        serde_default_provider=provider,
+                        serde_default_enabled=has_default,
+                    )
+                )
+                clear_pending()
+                continue
+
+            if stripped and not stripped.startswith("///"):
+                pending_attrs = []
+                pending_default_doc = ""
+
+            struct_depth += line.count("{") - line.count("}")
+            if struct_depth <= 0:
+                current_struct = ""
+                struct_depth = 0
+                clear_pending()
+            continue
+
+        if stripped and not stripped.startswith("///"):
+            pending_attrs = []
+            pending_default_doc = ""
+
+    source = "\n".join(source_lines)
+    default_functions: Dict[str, str] = {}
+    marker_re = re.compile(
+        r"(?m)^\s*(?:pub\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\)\s*->\s*[^{}]+\{"
+    )
+    for match in marker_re.finditer(source):
+        name = match.group(1)
+        brace_start = source.find("{", match.start())
+        if brace_start < 0:
+            continue
+
+        depth = 0
+        i = brace_start
+        while i < len(source):
+            ch = source[i]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+
+        if depth != 0:
+            continue
+
+        body = source[brace_start + 1 : i].strip()
+        default_functions[name] = body
 
     return {
         "source": "src/core/config/mod.rs",
         "field_count": len(fields),
         "fields": [asdict(f) for f in fields],
+        "default_function_count": len(default_functions),
+        "default_functions": default_functions,
     }
 
 

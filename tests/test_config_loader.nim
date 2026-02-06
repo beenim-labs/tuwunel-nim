@@ -50,3 +50,17 @@ suite "Config loader compatibility":
 
     if fileExists(cfgPath):
       removeFile(cfgPath)
+
+  test "applies generated defaults on empty config set":
+    withEnv("CONDUIT_CONFIG", ""):
+      withEnv("CONDUWUIT_CONFIG", ""):
+        withEnv("TUWUNEL_CONFIG", ""):
+          let a = parseArgs(@[])
+          let loaded = loadConfigCompatibility(a)
+          check loaded.ok
+          check loaded.cfg.values["client_sync_timeout_min"].kind == cvInt
+          check loaded.cfg.values["client_sync_timeout_min"].i == 5000
+          check loaded.cfg.values["dns_cache_entries"].kind == cvInt
+          check loaded.cfg.values["dns_cache_entries"].i == 32768
+          check loaded.cfg.values["allow_encryption"].kind == cvBool
+          check loaded.cfg.values["allow_encryption"].b

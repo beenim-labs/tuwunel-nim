@@ -5,6 +5,7 @@ import config_merge
 import config_values
 import generated_config_keys
 import generated_config_model
+import generated_config_defaults
 import generated_function_inventory
 
 export logging
@@ -14,4 +15,5 @@ export config_merge
 export config_values
 export generated_config_keys
 export generated_config_model
+export generated_config_defaults
 export generated_function_inventory

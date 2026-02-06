@@ -11,6 +11,7 @@ import test_config_env_merge
 import test_database_schema
 import test_database_serialization
 import test_database_ser_de_parity
+import test_database_map_api
 import test_database_runtime
 import test_database_cf_descriptor_policy
 import test_database_rocksdb

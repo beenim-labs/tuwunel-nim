@@ -202,6 +202,8 @@ proc parseTomlValue*(raw: string): tuple[ok: bool, err: string, value: ConfigVal
     return (true, "", newStringValue(parsed.value))
 
   let lower = text.toLowerAscii()
+  if lower == "null":
+    return (true, "", newNullValue())
   if lower == "true":
     return (true, "", newBoolValue(true))
   if lower == "false":

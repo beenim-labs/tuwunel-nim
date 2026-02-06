@@ -1,8 +1,8 @@
 {
   "total_modules": 548,
   "summary": {
-    "scaffold": 537,
-    "partial": 6,
+    "scaffold": 526,
+    "partial": 17,
     "implemented": 5,
     "missing": 0
   },
@@ -34,8 +34,8 @@
     {
       "crate": "database",
       "total": 57,
-      "scaffold": 53,
-      "partial": 1,
+      "scaffold": 42,
+      "partial": 12,
       "implemented": 3,
       "missing": 0
     },
@@ -2105,7 +2105,7 @@
       "nim_path": "src/database/map/clear.nim",
       "rust_path": "database/map/clear.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "partial"
     },
     {
       "nim_path": "src/database/map/compact.nim",
@@ -2117,37 +2117,37 @@
       "nim_path": "src/database/map/contains.nim",
       "rust_path": "database/map/contains.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "partial"
     },
     {
       "nim_path": "src/database/map/count.nim",
       "rust_path": "database/map/count.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "partial"
     },
     {
       "nim_path": "src/database/map/del.nim",
       "rust_path": "database/map/del.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "partial"
     },
     {
       "nim_path": "src/database/map/get.nim",
       "rust_path": "database/map/get.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "partial"
     },
     {
       "nim_path": "src/database/map/get_batch.nim",
       "rust_path": "database/map/get_batch.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "partial"
     },
     {
       "nim_path": "src/database/map/insert.nim",
       "rust_path": "database/map/insert.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "partial"
     },
     {
       "nim_path": "src/database/map/keys.nim",
@@ -2171,7 +2171,7 @@
       "nim_path": "src/database/map/open.nim",
       "rust_path": "database/map/open.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "partial"
     },
     {
       "nim_path": "src/database/map/options.nim",
@@ -2183,7 +2183,7 @@
       "nim_path": "src/database/map/put.nim",
       "rust_path": "database/map/put.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "partial"
     },
     {
       "nim_path": "src/database/map/qry.nim",
@@ -2201,7 +2201,7 @@
       "nim_path": "src/database/map/remove.nim",
       "rust_path": "database/map/remove.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "partial"
     },
     {
       "nim_path": "src/database/map/rev_keys.nim",
@@ -2267,7 +2267,7 @@
       "nim_path": "src/database/map.nim",
       "rust_path": "database/map.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "partial"
     },
     {
       "nim_path": "src/database/maps.nim",

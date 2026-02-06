@@ -10,10 +10,16 @@ suite "Behavior coverage artifacts":
     let implementation = loadJson("docs/parity/implementation_coverage.json")
     let routeBehavior = loadJson("docs/parity/route_behavior_coverage.json")
     let configBehavior = loadJson("docs/parity/config_behavior_coverage.json")
+    let configDefaults = loadJson("docs/parity/config_default_inventory.json")
 
     check implementation["total_modules"].getInt() == moduleCoverage["mapped"].getInt()
     check routeBehavior["summary"]["total_routes"].getInt() == baseline["totals"]["route_total"].getInt()
     check configBehavior["summary"]["total_keys"].getInt() == baseline["totals"]["config_field_total"].getInt()
+    check configDefaults["total_keys"].getInt() == baseline["totals"]["config_field_total"].getInt()
+    check configDefaults["applied_count"].getInt() > 0
+    check configDefaults["missing_expected_count"].getInt() == 0
+    check configBehavior["summary"]["default_expected_applied_keys"].getInt() ==
+      configBehavior["summary"]["default_expected_keys"].getInt()
 
   test "threshold booleans are exposed for milestone gating":
     let implementation = loadJson("docs/parity/implementation_coverage.json")

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 from collections import Counter
@@ -197,6 +198,207 @@ def infer_manual_requires_auth(route_name: str) -> bool:
         if token in lowered:
             return False
     return True
+
+
+def unquote(s: str) -> str:
+    if len(s) >= 2 and ((s[0] == '"' and s[-1] == '"') or (s[0] == "'" and s[-1] == "'")):
+        return s[1:-1]
+    return s
+
+
+def parse_rust_string_expr(expr: str) -> str:
+    expr = expr.strip().rstrip(";")
+    m = re.search(r'String::from\("((?:[^"\\]|\\.)*)"\)', expr)
+    if m:
+        return '"' + m.group(1) + '"'
+
+    m = re.search(r'"((?:[^"\\]|\\.)*)"\s*\.to_owned\(\)', expr)
+    if m:
+        return '"' + m.group(1) + '"'
+
+    m = re.search(r'"((?:[^"\\]|\\.)*)"\s*\.into\(\)', expr)
+    if m:
+        return '"' + m.group(1) + '"'
+
+    m = re.search(r'Some\(\s*"((?:[^"\\]|\\.)*)"\s*(?:\.to_owned\(\)|\.into\(\))?\s*\)', expr)
+    if m:
+        return '"' + m.group(1) + '"'
+
+    m = re.search(r'"((?:[^"\\]|\\.)*)"$', expr)
+    if m:
+        return '"' + m.group(1) + '"'
+
+    return ""
+
+
+def eval_numeric_expr(expr: str) -> str:
+    src = expr.strip().replace("_", "")
+    if not src:
+        return ""
+    if re.search(r"[A-Za-z]", src):
+        return ""
+
+    try:
+        tree = ast.parse(src, mode="eval")
+    except SyntaxError:
+        return ""
+
+    def walk(node):
+        if isinstance(node, ast.Expression):
+            return walk(node.body)
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, (int, float)):
+                return node.value
+            raise ValueError("non-numeric constant")
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.USub, ast.UAdd)):
+            v = walk(node.operand)
+            return -v if isinstance(node.op, ast.USub) else +v
+        if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv)):
+            a = walk(node.left)
+            b = walk(node.right)
+            if isinstance(node.op, ast.Add):
+                return a + b
+            if isinstance(node.op, ast.Sub):
+                return a - b
+            if isinstance(node.op, ast.Mult):
+                return a * b
+            if isinstance(node.op, ast.Div):
+                return a / b
+            return a // b
+        raise ValueError("unsupported expression")
+
+    try:
+        value = walk(tree)
+    except ValueError:
+        return ""
+
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
+        return str(value)
+    return str(int(value))
+
+
+def normalize_doc_default(raw: str) -> str:
+    text = raw.strip().rstrip(".")
+    if not text:
+        return ""
+
+    lowered = text.lower()
+    if "varies by system" in lowered:
+        return ""
+
+    if lowered in {"true", "false", "null", "none"}:
+        return "null" if lowered in {"null", "none"} else lowered
+
+    if text in {"[]", "{}"}:
+        return text
+
+    if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
+        return text
+
+    number = text.replace("_", "").replace(",", "")
+    if re.fullmatch(r"-?\d+", number):
+        return number
+    if re.fullmatch(r"-?\d+\.\d+", number):
+        return number
+
+    mib = re.fullmatch(r"(-?\d+)\s*MiB", text, re.IGNORECASE)
+    if mib:
+        return str(int(mib.group(1)) * 1024 * 1024)
+
+    seconds = re.fullmatch(r"(-?\d+)\s*seconds?", text, re.IGNORECASE)
+    if seconds:
+        return str(int(seconds.group(1)))
+
+    days = re.fullmatch(r"(-?\d+)\s*days?", text, re.IGNORECASE)
+    if days:
+        return str(int(days.group(1)) * 86400)
+
+    return ""
+
+
+def normalize_rust_type(rust_type: str) -> str:
+    return re.sub(r"\s+", "", rust_type)
+
+
+def infer_type_default(rust_type: str) -> str:
+    rt = normalize_rust_type(rust_type)
+    numeric_types = {
+        "u8",
+        "u16",
+        "u32",
+        "u64",
+        "usize",
+        "i8",
+        "i16",
+        "i32",
+        "i64",
+        "isize",
+        "f32",
+        "f64",
+    }
+    if rt == "bool":
+        return "false"
+    if rt in numeric_types:
+        return "0"
+    if rt == "String":
+        return "\"\""
+    if rt.startswith("Option<"):
+        return "null"
+    if (
+        rt.startswith("Vec<")
+        or rt.startswith("BTreeSet<")
+        or rt.startswith("HashSet<")
+        or rt.startswith("RegexSet")
+    ):
+        return "[]"
+    if rt.startswith("BTreeMap<") or rt.startswith("HashMap<"):
+        return "{}"
+    if rt.endswith("Config") or rt.endswith("Namespace"):
+        return "{}"
+    return ""
+
+
+def rust_default_to_toml(default_body: str, rust_type: str) -> str:
+    body = default_body.strip().rstrip(";")
+    if not body:
+        return ""
+
+    if "\n" not in body:
+        if body in {"true", "false"}:
+            return body
+        if body == "None":
+            return "null"
+        some_num = re.fullmatch(r"Some\((.+)\)", body)
+        if some_num:
+            s = some_num.group(1).strip()
+            str_expr = parse_rust_string_expr(s)
+            if str_expr:
+                return str_expr
+            parsed = eval_numeric_expr(some_num.group(1).strip())
+            if parsed:
+                return parsed
+        str_expr = parse_rust_string_expr(body)
+        if str_expr:
+            return str_expr
+        room_ver = re.search(r"RoomVersionId::V(\d+)", body)
+        if room_ver:
+            return '"' + room_ver.group(1) + '"'
+        numeric = eval_numeric_expr(body)
+        if numeric:
+            return numeric
+
+    if "vec!" in body:
+        str_items = re.findall(r'"((?:[^"\\]|\\.)*)"', body)
+        if str_items:
+            quoted = ", ".join('"' + item + '"' for item in str_items)
+            return "[" + quoted + "]"
+
+    if normalize_rust_type(rust_type).startswith("Option<") and "None" in body:
+        return "null"
+
+    return ""
 
 
 def render_string_seq(name: str, values: List[str]) -> str:
@@ -546,6 +748,154 @@ def generate_config_model(config: Dict[str, object]) -> None:
     write(SRC / "core" / "generated_config_model.nim", "\n".join(lines))
 
 
+def generate_config_defaults(config: Dict[str, object]) -> Dict[str, object]:
+    fields = list(config.get("fields", []))
+    default_functions = dict(config.get("default_functions", {}))
+    entries: List[Dict[str, object]] = []
+    applied_keys: List[str] = []
+    applied_qualified_keys: List[str] = []
+    expected_keys: List[str] = []
+    expected_qualified_keys: List[str] = []
+    expected_applied_keys: List[str] = []
+    expected_applied_qualified_keys: List[str] = []
+
+    for field in fields:
+        key = field["key"]
+        qualified_key = field.get("qualified_key", key)
+        scope = field.get("scope", "")
+        rust_type = field["rust_type"]
+        default_doc = field.get("default_doc", "")
+        provider = field.get("serde_default_provider", "")
+        has_default = bool(field.get("serde_default_enabled", False))
+        normalized_type = normalize_rust_type(rust_type)
+        implicit_option_default = normalized_type.startswith("Option<")
+        default_expected = has_default or bool(provider) or bool(default_doc) or implicit_option_default
+        if default_expected:
+            expected_keys.append(key)
+            expected_qualified_keys.append(qualified_key)
+
+        expr = ""
+        source = ""
+        if provider and provider in default_functions:
+            expr = rust_default_to_toml(str(default_functions[provider]), rust_type)
+            if expr:
+                source = f"rust_fn:{provider}"
+
+        if not expr and (has_default or implicit_option_default):
+            expr = infer_type_default(rust_type)
+            if expr:
+                source = "type_default"
+
+        if not expr and default_doc:
+            expr = normalize_doc_default(default_doc)
+            if expr:
+                source = "doc_default"
+
+        if not expr and has_default:
+            expr = "{}"
+            if expr:
+                source = "serde_default_placeholder"
+
+        parseable = bool(expr)
+        if parseable:
+            applied_keys.append(key)
+            applied_qualified_keys.append(qualified_key)
+        if parseable and default_expected:
+            expected_applied_keys.append(key)
+            expected_applied_qualified_keys.append(qualified_key)
+
+        entries.append(
+            {
+                "key": key,
+                "scope": scope,
+                "qualified_key": qualified_key,
+                "rust_type": rust_type,
+                "default_expected": default_expected,
+                "expr": expr,
+                "source": source,
+                "parseable": parseable,
+            }
+        )
+
+    lines = [
+        "## Generated by tools/generate_stubs.py. Do not edit manually.",
+        "",
+        "import config_values",
+        "",
+        "type",
+        "  ConfigDefaultEntry* = object",
+        "    key*: string",
+        "    rustType*: string",
+        "    source*: string",
+        "    expr*: string",
+        "    parseable*: bool",
+        "",
+        "let ConfigDefaultEntries*: seq[ConfigDefaultEntry] = @[",
+    ]
+
+    for item in entries:
+        lines.append(
+            "  ConfigDefaultEntry("
+            + f"key: \"{nim_escape(item['key'])}\", "
+            + f"rustType: \"{nim_escape(item['rust_type'])}\", "
+            + f"source: \"{nim_escape(item['source'])}\", "
+            + f"expr: \"{nim_escape(item['expr'])}\", "
+            + f"parseable: {str(bool(item['parseable'])).lower()}"
+            + "),"
+        )
+
+    lines.extend(
+        [
+            "]",
+            "",
+            "proc defaultConfigValues*(): FlatConfig =",
+            "  result = initFlatConfig()",
+            "  for entry in ConfigDefaultEntries:",
+            "    if not entry.parseable:",
+            "      continue",
+            "    let parsed = parseTomlValue(entry.expr)",
+            "    if parsed.ok:",
+            "      result[entry.key] = parsed.value",
+            "",
+            f"const ConfigDefaultEntryCount* = {len(entries)}",
+            f"const ConfigDefaultAppliedCount* = {len(applied_keys)}",
+            f"const ConfigDefaultExpectedCount* = {len(expected_keys)}",
+            f"const ConfigDefaultExpectedAppliedCount* = {len(expected_applied_keys)}",
+            f"const ConfigDefaultMissingExpectedCount* = "
+            f"{len(set(expected_qualified_keys) - set(expected_applied_qualified_keys))}",
+            "",
+        ]
+    )
+
+    missing_expected = sorted(set(expected_qualified_keys) - set(expected_applied_qualified_keys))
+    lines.extend(
+        [
+            render_string_seq("ConfigDefaultMissingExpectedKeys", missing_expected),
+            "",
+        ]
+    )
+
+    write(SRC / "core" / "generated_config_defaults.nim", "\n".join(lines))
+
+    report = {
+        "total_keys": len(entries),
+        "applied_count": len(applied_keys),
+        "applied_keys": sorted(set(applied_keys)),
+        "applied_qualified_keys": sorted(set(applied_qualified_keys)),
+        "expected_default_count": len(expected_keys),
+        "expected_applied_count": len(expected_applied_keys),
+        "missing_expected_count": len(missing_expected),
+        "expected_default_keys": sorted(set(expected_keys)),
+        "expected_default_qualified_keys": sorted(set(expected_qualified_keys)),
+        "expected_applied_keys": sorted(set(expected_applied_keys)),
+        "expected_applied_qualified_keys": sorted(set(expected_applied_qualified_keys)),
+        "missing_expected_keys": missing_expected,
+        "entries": entries,
+    }
+    write_json(PARITY / "config_default_inventory.json", report)
+    return report
+
+
 def generate_db_cfs(db: Dict[str, object]) -> None:
     names = list(db["column_families"])
     content = "\n".join(
@@ -872,18 +1222,22 @@ def generate_route_behavior_coverage(routes: Dict[str, object]) -> Dict[str, obj
     return report
 
 
-def generate_config_behavior_coverage(config: Dict[str, object]) -> Dict[str, object]:
+def generate_config_behavior_coverage(
+    config: Dict[str, object], defaults_report: Dict[str, object]
+) -> Dict[str, object]:
     fields = list(config.get("fields", []))
     keys = [f["key"] for f in fields]
+    qualified_keys = [f.get("qualified_key", f["key"]) for f in fields]
 
     config_mod_path = SRC / "core" / "config" / "mod.nim"
     config_mod_text = read_text(config_mod_path) if config_mod_path.exists() else ""
     config_mod_is_scaffold = is_metadata_scaffold(config_mod_text)
 
-    defaults_path = SRC / "core" / "config_bootstrap.nim"
-    defaults_text = read_text(defaults_path) if defaults_path.exists() else ""
     generated_model_path = SRC / "core" / "generated_config_model.nim"
     generated_model_text = read_text(generated_model_path) if generated_model_path.exists() else ""
+    default_key_set = set(defaults_report.get("applied_qualified_keys", []))
+    expected_default_key_set = set(defaults_report.get("expected_default_qualified_keys", []))
+    expected_default_applied_set = set(defaults_report.get("expected_applied_qualified_keys", []))
 
     loader_path = SRC / "core" / "config_loader.nim"
     merge_path = SRC / "core" / "config_merge.nim"
@@ -901,19 +1255,17 @@ def generate_config_behavior_coverage(config: Dict[str, object]) -> Dict[str, ob
     option_override_support = "applyOptionOverrides" in args_update_text and "-O/--option" in args_update_text
 
     typed_key_set = set()
-    default_key_set = set()
     if not config_mod_is_scaffold or generated_model_text:
         for key in keys:
             if re.search(rf"\b{re.escape(key)}\b", config_mod_text + "\n" + generated_model_text):
                 typed_key_set.add(key)
-            if f"\"{key}\"" in defaults_text or f"'{key}'" in defaults_text:
-                default_key_set.add(key)
 
     summary = Counter()
     entries = []
-    for key in keys:
+    for key, qualified_key in zip(keys, qualified_keys):
         typed = key in typed_key_set
-        default = key in default_key_set
+        default = qualified_key in default_key_set
+        default_expected = qualified_key in expected_default_key_set
         env_alias = env_alias_support
         override = option_override_support
 
@@ -927,8 +1279,10 @@ def generate_config_behavior_coverage(config: Dict[str, object]) -> Dict[str, ob
         entries.append(
             {
                 "key": key,
+                "qualified_key": qualified_key,
                 "typed": typed,
                 "default": default,
+                "default_expected": default_expected,
                 "env_alias": env_alias,
                 "override": override,
                 "status": status,
@@ -938,27 +1292,35 @@ def generate_config_behavior_coverage(config: Dict[str, object]) -> Dict[str, ob
         summary["total"] += 1
         summary["typed"] += int(typed)
         summary["default"] += int(default)
+        summary["default_expected"] += int(default_expected)
         summary["env_alias"] += int(env_alias)
         summary["override"] += int(override)
 
     total = int(summary.get("total", 0))
+    default_expected_total = int(summary.get("default_expected", 0))
+    default_expected_applied = len(expected_default_applied_set)
     report = {
         "summary": {
             "total_keys": total,
             "typed_keys": int(summary.get("typed", 0)),
             "default_keys": int(summary.get("default", 0)),
+            "default_expected_keys": default_expected_total,
+            "default_expected_applied_keys": default_expected_applied,
             "env_alias_keys": int(summary.get("env_alias", 0)),
             "override_keys": int(summary.get("override", 0)),
         },
         "keys": entries,
         "thresholds": {
             "all_keys_typed": int(summary.get("typed", 0)) == total and total > 0,
-            "all_keys_have_defaults": int(summary.get("default", 0)) == total and total > 0,
+            "all_keys_have_defaults": (
+                default_expected_total == default_expected_applied and default_expected_total > 0
+            ),
             "all_keys_env_alias_compatible": int(summary.get("env_alias", 0)) == total and total > 0,
             "all_keys_option_override_compatible": int(summary.get("override", 0)) == total and total > 0,
             "m2_ready": (
                 int(summary.get("typed", 0)) == total
-                and int(summary.get("default", 0)) == total
+                and default_expected_total == default_expected_applied
+                and default_expected_total > 0
                 and int(summary.get("env_alias", 0)) == total
                 and int(summary.get("override", 0)) == total
                 and total > 0
@@ -983,6 +1345,7 @@ def main() -> int:
     generate_route_runtime(routes)
     generate_config_keys(config)
     generate_config_model(config)
+    defaults_report = generate_config_defaults(config)
     generate_db_cfs(db)
     generate_db_cf_descriptors(db)
     generate_function_inventory(functions)
@@ -990,7 +1353,7 @@ def main() -> int:
     coverage = generate_module_scaffold(module_map, baseline)
     impl_cov = generate_implementation_coverage(module_map)
     route_cov = generate_route_behavior_coverage(routes)
-    config_cov = generate_config_behavior_coverage(config)
+    config_cov = generate_config_behavior_coverage(config, defaults_report)
 
     print("Generated Nim stubs in src/")
     print(
@@ -1017,6 +1380,10 @@ def main() -> int:
         f"default={config_cov['summary']['default_keys']} "
         f"env_alias={config_cov['summary']['env_alias_keys']} "
         f"override={config_cov['summary']['override_keys']}"
+    )
+    print(
+        "Config defaults extracted: "
+        f"{defaults_report['applied_count']}/{defaults_report['total_keys']}"
     )
     return 0
 

@@ -106,13 +106,15 @@ def main() -> int:
     cfg_total = int(cfg_summary.get("total_keys", 0))
     cfg_typed = int(cfg_summary.get("typed_keys", 0))
     cfg_default = int(cfg_summary.get("default_keys", 0))
+    cfg_default_expected = int(cfg_summary.get("default_expected_keys", 0))
+    cfg_default_expected_applied = int(cfg_summary.get("default_expected_applied_keys", 0))
     cfg_env = int(cfg_summary.get("env_alias_keys", 0))
     cfg_override = int(cfg_summary.get("override_keys", 0))
     m2_note = (
         "All config keys are typed/defaulted and override-compatible"
         if m2_complete
         else (
-            f"typed={cfg_typed}/{cfg_total}, default={cfg_default}/{cfg_total}, "
+            f"typed={cfg_typed}/{cfg_total}, default={cfg_default_expected_applied}/{cfg_default_expected}, "
             f"env-alias={cfg_env}/{cfg_total}, option-override={cfg_override}/{cfg_total}"
         )
     )
@@ -202,7 +204,8 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 | --- | ---: |
 | Total config keys | {cfg_total} |
 | Typed keys | {cfg_typed} |
-| Keys with defaults | {cfg_default} |
+| Keys with defaults (applied/expected) | {cfg_default_expected_applied}/{cfg_default_expected} |
+| Keys with defaults (raw applied) | {cfg_default} |
 | Env alias compatible keys | {cfg_env} |
 | Option override compatible keys | {cfg_override} |
 
@@ -234,6 +237,7 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 - `docs/parity/rust_function_inventory.json`
 - `docs/parity/route_inventory.json`
 - `docs/parity/config_inventory.json`
+- `docs/parity/config_default_inventory.json`
 - `docs/parity/db_cf_inventory.json`
 - `docs/parity/module_map.json`
 - `docs/parity/module_coverage.json`
@@ -246,6 +250,7 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 - `src/api/generated_route_runtime.nim`
 - `src/core/generated_config_keys.nim`
 - `src/core/generated_config_model.nim`
+- `src/core/generated_config_defaults.nim`
 - `src/core/generated_function_inventory.nim`
 - `src/database/generated_column_families.nim`
 - `src/database/generated_column_family_descriptors.nim`

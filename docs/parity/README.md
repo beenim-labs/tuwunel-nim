@@ -9,6 +9,7 @@ be edited manually.
 - `rust_function_inventory.json`: function inventory by crate/file.
 - `route_inventory.json`: extracted client/server/manual route sets.
 - `config_inventory.json`: extracted public config fields from `core/config/mod.rs`.
+- `config_default_inventory.json`: extracted and normalized config defaults from Rust serde providers/docs.
 - `db_cf_inventory.json`: extracted RocksDB column family names and descriptor metadata (`dropped`/`ignored`).
 - `module_coverage.json`: scaffold module coverage against `module_map.json`.
 - `implementation_coverage.json`: behavioral module status (`scaffold`/`partial`/`implemented`) and crate rollups.
