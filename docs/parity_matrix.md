@@ -1,0 +1,71 @@
+# Parity Matrix (Baseline-Pinned)
+
+Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175f7debc2d8069109`.
+
+## Baseline summary
+
+| Item | Count |
+| --- | ---: |
+| Rust functions | 2820 |
+| Client routes (`.ruma_route`) | 149 |
+| Server routes (`.ruma_route`) | 29 |
+| Manual routes (`.route`) | 29 |
+| Config fields (public) | 308 |
+| DB column families | 103 |
+| Complement pass | 494 |
+| Complement fail | 267 |
+| Complement skip | 16 |
+
+## Module coverage
+
+| Item | Count |
+| --- | ---: |
+| Mapped modules | 0 |
+| Present modules | 0 |
+| Missing modules | 0 |
+
+## Milestone status
+
+| Milestone | Status | Notes |
+| --- | --- | --- |
+| M0 bootstrap | Implemented | Project scaffold, Nim build/test tasks, CI workflow, baseline metadata freeze |
+| M1 inventory + codegen | In progress | Module scaffold incomplete; missing 0 of 0 mapped modules |
+| M2 core runtime/CLI/config parity | Implemented | Compatibility config loader/merge path, argument transforms, and deterministic bootstrap diagnostics implemented |
+| M3 database compatibility | Implemented | Serializer/deserializer primitives, CF descriptor policy, in-memory backend, and compile-flagged RocksDB compatibility behaviors with tests |
+| M4+ | Pending | Service graph, routes, Matrix semantics, federation, admin, perf |
+
+## Rust crate inventory
+
+| Crate | Functions | Files |
+| --- | ---: | ---: |
+| `admin` | 58 | 45 |
+| `api` | 123 | 115 |
+| `core` | 1197 | 161 |
+| `database` | 337 | 57 |
+| `macros` | 24 | 9 |
+| `main` | 48 | 14 |
+| `router` | 19 | 9 |
+| `service` | 1014 | 138 |
+
+## Generated artifacts
+
+- `docs/parity/baseline.json`
+- `docs/parity/rust_function_inventory.json`
+- `docs/parity/route_inventory.json`
+- `docs/parity/config_inventory.json`
+- `docs/parity/db_cf_inventory.json`
+- `docs/parity/module_map.json`
+- `docs/parity/module_coverage.json`
+- `docs/parity/complement_baseline.json`
+- `src/api/generated_route_inventory.nim`
+- `src/api/generated_route_types.nim`
+- `src/core/generated_config_keys.nim`
+- `src/core/generated_function_inventory.nim`
+- `src/database/generated_column_families.nim`
+- `src/database/generated_column_family_descriptors.nim`
+- `src/service/generated_service_inventory.nim`
+
+## Notes
+
+- Baseline policy is frozen to local Rust snapshot and should only change via explicit re-baseline.
+- Generated files must be refreshed through `nimble parity_sync`.

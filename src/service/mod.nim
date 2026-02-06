@@ -1,0 +1,3 @@
+import generated_service_inventory
+
+export generated_service_inventory

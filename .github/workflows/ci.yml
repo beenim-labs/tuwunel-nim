@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: '2.3.1'
+      - name: Sync parity artifacts
+        run: nimble parity_sync
+      - name: Build
+        run: nimble build
+      - name: Test
+        run: nimble test
+
+  verify-rocksdb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: '2.3.1'
+      - name: Install RocksDB Nim package
+        run: |
+          cd /tmp
+          nimble install -y rocksdb
+      - name: Run RocksDB-enabled tests
+        run: bash tools/run_rocksdb_tests.sh

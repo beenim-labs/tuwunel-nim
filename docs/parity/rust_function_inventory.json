@@ -1,0 +1,7096 @@
+{
+  "total_functions": 2820,
+  "by_crate": [
+    {
+      "crate": "admin",
+      "function_count": 58,
+      "file_count": 45
+    },
+    {
+      "crate": "api",
+      "function_count": 123,
+      "file_count": 115
+    },
+    {
+      "crate": "core",
+      "function_count": 1197,
+      "file_count": 161
+    },
+    {
+      "crate": "database",
+      "function_count": 337,
+      "file_count": 57
+    },
+    {
+      "crate": "macros",
+      "function_count": 24,
+      "file_count": 9
+    },
+    {
+      "crate": "main",
+      "function_count": 48,
+      "file_count": 14
+    },
+    {
+      "crate": "router",
+      "function_count": 19,
+      "file_count": 9
+    },
+    {
+      "crate": "service",
+      "function_count": 1014,
+      "file_count": 138
+    }
+  ],
+  "files": [
+    {
+      "rust_path": "admin/admin.rs",
+      "crate": "admin",
+      "module": "admin.rs",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/appservice/commands.rs",
+      "crate": "admin",
+      "module": "appservice",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/appservice/mod.rs",
+      "crate": "admin",
+      "module": "appservice",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/check/commands.rs",
+      "crate": "admin",
+      "module": "check",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/check/mod.rs",
+      "crate": "admin",
+      "module": "check",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/context.rs",
+      "crate": "admin",
+      "module": "context.rs",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/debug/commands.rs",
+      "crate": "admin",
+      "module": "debug",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/debug/mod.rs",
+      "crate": "admin",
+      "module": "debug",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/debug/tester.rs",
+      "crate": "admin",
+      "module": "debug",
+      "function_count": 5,
+      "functions": [
+        "panic",
+        "failure",
+        "tester",
+        "timer",
+        "timed"
+      ]
+    },
+    {
+      "rust_path": "admin/federation/commands.rs",
+      "crate": "admin",
+      "module": "federation",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/federation/mod.rs",
+      "crate": "admin",
+      "module": "federation",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/media/commands.rs",
+      "crate": "admin",
+      "module": "media",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/media/mod.rs",
+      "crate": "admin",
+      "module": "media",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/mod.rs",
+      "crate": "admin",
+      "module": "mod.rs",
+      "function_count": 2,
+      "functions": [
+        "init",
+        "fini"
+      ]
+    },
+    {
+      "rust_path": "admin/processor.rs",
+      "crate": "admin",
+      "module": "processor.rs",
+      "function_count": 10,
+      "functions": [
+        "handle_command",
+        "process_command",
+        "handle_panic",
+        "process",
+        "capture_create",
+        "parse",
+        "parse_command",
+        "complete_command",
+        "parse_line",
+        "reply"
+      ]
+    },
+    {
+      "rust_path": "admin/query/account_data.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 2,
+      "functions": [
+        "changes_since",
+        "account_data_get"
+      ]
+    },
+    {
+      "rust_path": "admin/query/appservice.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/query/globals.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/query/mod.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/query/oauth.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 1,
+      "functions": [
+        "session_or_user_id"
+      ]
+    },
+    {
+      "rust_path": "admin/query/presence.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/query/pusher.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/query/raw.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 3,
+      "functions": [
+        "with_map_or",
+        "with_maps_or",
+        "encode"
+      ]
+    },
+    {
+      "rust_path": "admin/query/resolver.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 2,
+      "functions": [
+        "destinations_cache",
+        "overrides_cache"
+      ]
+    },
+    {
+      "rust_path": "admin/query/room_alias.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/query/room_state_cache.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/query/room_timeline.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/query/sending.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/query/short.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/query/sync.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/query/users.rs",
+      "crate": "admin",
+      "module": "query",
+      "function_count": 22,
+      "functions": [
+        "auth_ldap",
+        "search_ldap",
+        "get_shared_rooms",
+        "get_backup_session",
+        "get_room_backups",
+        "get_all_backups",
+        "get_backup_algorithm",
+        "get_latest_backup_version",
+        "get_latest_backup",
+        "iter_users",
+        "iter_users2",
+        "count_users",
+        "password_hash",
+        "list_devices",
+        "list_devices_metadata",
+        "get_device_metadata",
+        "get_devices_version",
+        "count_one_time_keys",
+        "get_device_keys",
+        "get_user_signing_key",
+        "get_master_key",
+        "get_to_device_events"
+      ]
+    },
+    {
+      "rust_path": "admin/room/alias.rs",
+      "crate": "admin",
+      "module": "room",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/room/commands.rs",
+      "crate": "admin",
+      "module": "room",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/room/directory.rs",
+      "crate": "admin",
+      "module": "room",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/room/info.rs",
+      "crate": "admin",
+      "module": "room",
+      "function_count": 2,
+      "functions": [
+        "list_joined_members",
+        "view_room_topic"
+      ]
+    },
+    {
+      "rust_path": "admin/room/mod.rs",
+      "crate": "admin",
+      "module": "room",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/room/moderation.rs",
+      "crate": "admin",
+      "module": "room",
+      "function_count": 4,
+      "functions": [
+        "ban_room",
+        "ban_list_of_rooms",
+        "unban_room",
+        "list_banned_rooms"
+      ]
+    },
+    {
+      "rust_path": "admin/server/commands.rs",
+      "crate": "admin",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/server/mod.rs",
+      "crate": "admin",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/tests.rs",
+      "crate": "admin",
+      "module": "tests.rs",
+      "function_count": 4,
+      "functions": [
+        "get_help_short",
+        "get_help_long",
+        "get_help_subcommand",
+        "get_help_inner"
+      ]
+    },
+    {
+      "rust_path": "admin/token/commands.rs",
+      "crate": "admin",
+      "module": "token",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/token/mod.rs",
+      "crate": "admin",
+      "module": "token",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/user/commands.rs",
+      "crate": "admin",
+      "module": "user",
+      "function_count": 1,
+      "functions": [
+        "deactivate_user"
+      ]
+    },
+    {
+      "rust_path": "admin/user/mod.rs",
+      "crate": "admin",
+      "module": "user",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "admin/utils.rs",
+      "crate": "admin",
+      "module": "utils.rs",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/account.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/account_data.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "set_account_data"
+      ]
+    },
+    {
+      "rust_path": "api/client/alias.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "room_available_servers"
+      ]
+    },
+    {
+      "rust_path": "api/client/appservice.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/backup.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "get_count_etag"
+      ]
+    },
+    {
+      "rust_path": "api/client/capabilities.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/context.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/dehydrated_device.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/device.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/directory.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 3,
+      "functions": [
+        "user_can_publish_room",
+        "public_rooms_chunk",
+        "check_server_banned"
+      ]
+    },
+    {
+      "rust_path": "api/client/events.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/filter.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/keys.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 2,
+      "functions": [
+        "check_for_new_keys",
+        "add_unsigned_device_display_name"
+      ]
+    },
+    {
+      "rust_path": "api/client/media.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 4,
+      "functions": [
+        "fetch_thumbnail",
+        "fetch_file",
+        "fetch_thumbnail_meta",
+        "fetch_file_meta"
+      ]
+    },
+    {
+      "rust_path": "api/client/media_legacy.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/membership/ban.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/membership/forget.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/membership/invite.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/membership/join.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/membership/kick.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/membership/knock.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/membership/leave.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/membership/members.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "membership_filter"
+      ]
+    },
+    {
+      "rust_path": "api/client/membership/mod.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "maybe_deactivate"
+      ]
+    },
+    {
+      "rust_path": "api/client/membership/unban.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/message.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 2,
+      "functions": [
+        "get_member_event",
+        "_is_sorted"
+      ]
+    },
+    {
+      "rust_path": "api/client/mod.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/openid.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/presence.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/profile.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/push.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "recreate_push_rules_and_return"
+      ]
+    },
+    {
+      "rust_path": "api/client/read_marker.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/redact.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/register.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/relations.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "paginate_relations_with_filter"
+      ]
+    },
+    {
+      "rust_path": "api/client/report.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 2,
+      "functions": [
+        "is_event_report_valid",
+        "delay_response"
+      ]
+    },
+    {
+      "rust_path": "api/client/room/aliases.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/room/create.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 7,
+      "functions": [
+        "create_create_event",
+        "create_create_event_legacy",
+        "default_power_levels_content",
+        "room_alias_check",
+        "custom_room_id_check",
+        "can_publish_directory_check",
+        "can_create_room_check"
+      ]
+    },
+    {
+      "rust_path": "api/client/room/event.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/room/initial_sync.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/room/mod.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/room/summary.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 4,
+      "functions": [
+        "room_summary_response",
+        "local_room_summary_response",
+        "remote_room_summary_hierarchy_response",
+        "user_can_see_summary"
+      ]
+    },
+    {
+      "rust_path": "api/client/room/upgrade.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 9,
+      "functions": [
+        "upgrade_room_create",
+        "upgrade_room_create_legacy",
+        "transfer_room",
+        "move_joined_member",
+        "move_state_events",
+        "rebuild_state_event",
+        "move_local_aliases",
+        "tombstone_old_room",
+        "lockdown_old_room"
+      ]
+    },
+    {
+      "rust_path": "api/client/search.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 3,
+      "functions": [
+        "category_room_events",
+        "procure_room_state",
+        "check_room_visible"
+      ]
+    },
+    {
+      "rust_path": "api/client/send.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/session/appservice.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/session/jwt.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 3,
+      "functions": [
+        "validate",
+        "init_verifier",
+        "init_validator"
+      ]
+    },
+    {
+      "rust_path": "api/client/session/ldap.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/session/logout.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/session/mod.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/session/password.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/session/refresh.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/session/sso.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 6,
+      "functions": [
+        "handle_sso_login",
+        "register_user",
+        "set_avatar",
+        "decide_user_id",
+        "try_user_id",
+        "parse_user_id"
+      ]
+    },
+    {
+      "rust_path": "api/client/session/token.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/space.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "get_client_hierarchy"
+      ]
+    },
+    {
+      "rust_path": "api/client/state.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 2,
+      "functions": [
+        "send_state_event_for_key_helper",
+        "allowed_to_send_state_event"
+      ]
+    },
+    {
+      "rust_path": "api/client/sync/mod.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 2,
+      "functions": [
+        "load_timeline",
+        "share_encrypted_room"
+      ]
+    },
+    {
+      "rust_path": "api/client/sync/v3.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 12,
+      "functions": [
+        "build_empty_response",
+        "build_sync_events",
+        "process_presence_updates",
+        "handle_left_room",
+        "load_left_room",
+        "load_joined_room",
+        "calculate_state_changes",
+        "lazy_filter",
+        "calculate_counts",
+        "calculate_heroes",
+        "fold_hero",
+        "typings_event_for_user"
+      ]
+    },
+    {
+      "rust_path": "api/client/sync/v5/extensions/account_data.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/sync/v5/extensions/e2ee.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "collect_room"
+      ]
+    },
+    {
+      "rust_path": "api/client/sync/v5/extensions/receipts.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "collect_room"
+      ]
+    },
+    {
+      "rust_path": "api/client/sync/v5/extensions/to_device.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/sync/v5/extensions/typing.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/sync/v5/extensions.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "selector"
+      ]
+    },
+    {
+      "rust_path": "api/client/sync/v5/filter.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/sync/v5/rooms.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 2,
+      "functions": [
+        "handle_room",
+        "calculate_heroes"
+      ]
+    },
+    {
+      "rust_path": "api/client/sync/v5/selector.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 4,
+      "functions": [
+        "matcher",
+        "window",
+        "response_lists",
+        "room_sort"
+      ]
+    },
+    {
+      "rust_path": "api/client/sync/v5.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "is_empty_response"
+      ]
+    },
+    {
+      "rust_path": "api/client/tag.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/thirdparty.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/threads.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/to_device.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/typing.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/unstable.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/unversioned.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/user_directory.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 1,
+      "functions": [
+        "should_show_user"
+      ]
+    },
+    {
+      "rust_path": "api/client/utils.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/voip.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/client/well_known.rs",
+      "crate": "api",
+      "module": "client",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/mod.rs",
+      "crate": "api",
+      "module": "mod.rs",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/router/args.rs",
+      "crate": "api",
+      "module": "router",
+      "function_count": 5,
+      "functions": [
+        "deref",
+        "from_request",
+        "make_body",
+        "into_http_request",
+        "take_body"
+      ]
+    },
+    {
+      "rust_path": "api/router/auth/appservice.rs",
+      "crate": "api",
+      "module": "router",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/router/auth/server.rs",
+      "crate": "api",
+      "module": "router",
+      "function_count": 2,
+      "functions": [
+        "auth_server_checks",
+        "parse_x_matrix"
+      ]
+    },
+    {
+      "rust_path": "api/router/auth/uiaa.rs",
+      "crate": "api",
+      "module": "router",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/router/auth.rs",
+      "crate": "api",
+      "module": "router",
+      "function_count": 2,
+      "functions": [
+        "check_auth_still_required",
+        "find_token"
+      ]
+    },
+    {
+      "rust_path": "api/router/handler.rs",
+      "crate": "api",
+      "module": "router",
+      "function_count": 6,
+      "functions": [
+        "add_route",
+        "add_routes",
+        "ruma_route",
+        "ruma_route",
+        "add_routes",
+        "add_route"
+      ]
+    },
+    {
+      "rust_path": "api/router/request.rs",
+      "crate": "api",
+      "module": "router",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/router/response.rs",
+      "crate": "api",
+      "module": "router",
+      "function_count": 2,
+      "functions": [
+        "from",
+        "into_response"
+      ]
+    },
+    {
+      "rust_path": "api/router/state.rs",
+      "crate": "api",
+      "module": "router",
+      "function_count": 4,
+      "functions": [
+        "create",
+        "drop",
+        "deref",
+        "deref"
+      ]
+    },
+    {
+      "rust_path": "api/router.rs",
+      "crate": "api",
+      "module": "router.rs",
+      "function_count": 4,
+      "functions": [
+        "build",
+        "redirect_legacy_preview",
+        "legacy_media_disabled",
+        "federation_disabled"
+      ]
+    },
+    {
+      "rust_path": "api/server/backfill.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/event.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/event_auth.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/get_missing_events.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/hierarchy.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/invite.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/key.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 2,
+      "functions": [
+        "valid_until_ts",
+        "expires_ts"
+      ]
+    },
+    {
+      "rust_path": "api/server/make_join.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/make_knock.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/make_leave.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/media.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/mod.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/openid.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/publicrooms.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/query.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/send.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 14,
+      "functions": [
+        "handle",
+        "handle_room",
+        "handle_edu",
+        "handle_edu_presence",
+        "handle_edu_presence_update",
+        "handle_edu_receipt",
+        "handle_edu_receipt_room",
+        "handle_edu_receipt_room_user",
+        "handle_edu_typing",
+        "handle_edu_device_list_update",
+        "handle_edu_direct_to_device",
+        "handle_edu_direct_to_device_user",
+        "handle_edu_direct_to_device_event",
+        "handle_edu_signing_key_update"
+      ]
+    },
+    {
+      "rust_path": "api/server/send_join.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 1,
+      "functions": [
+        "create_join_event"
+      ]
+    },
+    {
+      "rust_path": "api/server/send_knock.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/send_leave.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 1,
+      "functions": [
+        "create_leave_event"
+      ]
+    },
+    {
+      "rust_path": "api/server/state.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/state_ids.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/user.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/utils.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/version.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "api/server/well_known.rs",
+      "crate": "api",
+      "module": "server",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/alloc/default.rs",
+      "crate": "core",
+      "module": "alloc",
+      "function_count": 3,
+      "functions": [
+        "trim",
+        "memory_stats",
+        "memory_usage"
+      ]
+    },
+    {
+      "rust_path": "core/alloc/je.rs",
+      "crate": "core",
+      "module": "alloc",
+      "function_count": 59,
+      "functions": [
+        "_static_initialization",
+        "memory_usage",
+        "memory_usage",
+        "memory_stats",
+        "handle_malloc_stats",
+        "global_alloc_hook",
+        "global_alloc_zeroed_hook",
+        "handle_global_alloc",
+        "global_alloc_count",
+        "trim",
+        "purge",
+        "decay",
+        "idle",
+        "flush",
+        "set_muzzy_decay",
+        "get_muzzy_decay",
+        "set_dirty_decay",
+        "get_dirty_decay",
+        "cache_enable",
+        "is_cache_enabled",
+        "set_arena",
+        "arena_id",
+        "prof_enable",
+        "is_prof_enabled",
+        "reset_peak",
+        "peak",
+        "allocated",
+        "deallocated",
+        "notify",
+        "set",
+        "get",
+        "init_tls_cell",
+        "stats_reset",
+        "prof_reset",
+        "prof_enable",
+        "is_prof_enabled",
+        "trim",
+        "purge",
+        "decay",
+        "set_muzzy_decay",
+        "set_dirty_decay",
+        "background_thread_enable",
+        "is_affine_arena",
+        "is_percpu_arena",
+        "is_phycpu_arena",
+        "percpu_arenas",
+        "arenas",
+        "inc_epoch",
+        "acq_epoch",
+        "notify_by_arena",
+        "set_by_arena",
+        "get_by_arena",
+        "notify",
+        "set",
+        "get",
+        "xchg",
+        "key",
+        "name",
+        "map_err"
+      ]
+    },
+    {
+      "rust_path": "core/alloc/mod.rs",
+      "crate": "core",
+      "module": "alloc",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/benches/state_res.rs",
+      "crate": "core",
+      "module": "benches",
+      "function_count": 19,
+      "functions": [
+        "lexico_topo_sort",
+        "resolution_shallow_auth_chain",
+        "resolve_deeper_event_set",
+        "get_event",
+        "get_events",
+        "auth_event_ids",
+        "auth_chain_diff",
+        "set_up",
+        "event_id",
+        "alice",
+        "bob",
+        "charlie",
+        "ella",
+        "room_id",
+        "member_content_ban",
+        "member_content_join",
+        "to_pdu_event",
+        "INITIAL_EVENTS",
+        "BAN_STATE_SET"
+      ]
+    },
+    {
+      "rust_path": "core/config/check.rs",
+      "crate": "core",
+      "module": "config",
+      "function_count": 4,
+      "functions": [
+        "reload",
+        "check",
+        "warn_deprecated",
+        "warn_unknown_key"
+      ]
+    },
+    {
+      "rust_path": "core/config/manager.rs",
+      "crate": "core",
+      "module": "config",
+      "function_count": 5,
+      "functions": [
+        "drop",
+        "deref",
+        "update",
+        "load",
+        "load_miss"
+      ]
+    },
+    {
+      "rust_path": "core/config/mod.rs",
+      "crate": "core",
+      "module": "config",
+      "function_count": 125,
+      "functions": [
+        "id",
+        "get_client_secret",
+        "hash",
+        "from",
+        "from",
+        "load",
+        "new",
+        "get_bind_addrs",
+        "get_bind_hosts",
+        "get_bind_ports",
+        "check",
+        "true_fn",
+        "default_server_name",
+        "default_database_path",
+        "default_address",
+        "default_port",
+        "default_unix_socket_perms",
+        "default_database_backups_to_keep",
+        "default_db_write_buffer_capacity_mb",
+        "default_db_cache_capacity_mb",
+        "default_pdu_cache_capacity",
+        "default_cache_capacity_modifier",
+        "default_auth_chain_cache_capacity",
+        "default_shorteventid_cache_capacity",
+        "default_eventidshort_cache_capacity",
+        "default_eventid_pdu_cache_capacity",
+        "default_shortstatekey_cache_capacity",
+        "default_statekeyshort_cache_capacity",
+        "default_servernameevent_data_cache_capacity",
+        "default_stateinfo_cache_capacity",
+        "default_roomid_spacehierarchy_cache_capacity",
+        "default_dns_cache_entries",
+        "default_dns_min_ttl",
+        "default_dns_min_ttl_nxdomain",
+        "default_dns_attempts",
+        "default_dns_timeout",
+        "default_ip_lookup_strategy",
+        "default_max_request_size",
+        "default_request_conn_timeout",
+        "default_request_timeout",
+        "default_request_total_timeout",
+        "default_request_idle_timeout",
+        "default_request_idle_per_host",
+        "default_well_known_conn_timeout",
+        "default_well_known_timeout",
+        "default_federation_timeout",
+        "default_federation_idle_timeout",
+        "default_federation_idle_per_host",
+        "default_sender_timeout",
+        "default_sender_idle_timeout",
+        "default_sender_retry_backoff_limit",
+        "default_appservice_timeout",
+        "default_appservice_idle_timeout",
+        "default_pusher_idle_timeout",
+        "default_max_fetch_prev_events",
+        "default_tracing_flame_filter",
+        "default_jaeger_filter",
+        "default_tracing_flame_output_path",
+        "default_trusted_servers",
+        "default_log",
+        "default_log_span_events",
+        "default_notification_push_path",
+        "default_openid_token_ttl",
+        "default_login_token_ttl",
+        "default_turn_ttl",
+        "default_presence_idle_timeout_s",
+        "default_presence_offline_timeout_s",
+        "default_typing_federation_timeout_s",
+        "default_typing_client_timeout_min_s",
+        "default_typing_client_timeout_max_s",
+        "default_rocksdb_recovery_mode",
+        "default_rocksdb_log_level",
+        "default_rocksdb_log_time_to_roll",
+        "default_rocksdb_max_log_files",
+        "default_rocksdb_max_log_file_size",
+        "default_rocksdb_parallelism_threads",
+        "default_rocksdb_compression_algo",
+        "default_rocksdb_compression_level",
+        "default_rocksdb_bottommost_compression_level",
+        "default_rocksdb_stats_level",
+        "default_default_room_version",
+        "default_ip_range_denylist",
+        "default_url_preview_max_spider_size",
+        "default_new_user_displayname_suffix",
+        "default_sentry_endpoint",
+        "default_sentry_traces_sample_rate",
+        "default_sentry_filter",
+        "default_startup_netburst_keep",
+        "default_admin_log_capture",
+        "default_admin_room_tag",
+        "parallelism_scaled_f64",
+        "parallelism_scaled_u32",
+        "parallelism_scaled",
+        "default_trusted_server_batch_size",
+        "default_db_pool_workers",
+        "default_db_pool_workers_limit",
+        "default_db_pool_max_workers",
+        "default_db_pool_queue_mult",
+        "default_stream_width_default",
+        "default_stream_width_scale",
+        "default_stream_amplification",
+        "default_client_receive_timeout",
+        "default_client_request_timeout",
+        "default_client_response_timeout",
+        "default_client_shutdown_timeout",
+        "default_sender_shutdown_timeout",
+        "default_blurhash_max_raw_size",
+        "default_blurhash_x_component",
+        "default_blurhash_y_component",
+        "default_ldap_search_filter",
+        "default_ldap_uid_attribute",
+        "default_ldap_mail_attribute",
+        "default_ldap_name_attribute",
+        "default_jwt_algorithm",
+        "default_jwt_format",
+        "default_client_sync_timeout_min",
+        "default_client_sync_timeout_default",
+        "default_client_sync_timeout_max",
+        "default_access_token_ttl",
+        "default_deprioritize_joins_through_servers",
+        "default_one_time_key_limit",
+        "default_max_make_join_attempts_per_join_attempt",
+        "default_max_join_attempts_per_join_request",
+        "default_sso_grant_session_duration",
+        "default_redaction_retention_seconds"
+      ]
+    },
+    {
+      "rust_path": "core/config/proxy.rs",
+      "crate": "core",
+      "module": "config",
+      "function_count": 6,
+      "functions": [
+        "to_proxy",
+        "for_url",
+        "matches",
+        "more_specific_than",
+        "from_str",
+        "deserialize"
+      ]
+    },
+    {
+      "rust_path": "core/debug.rs",
+      "crate": "core",
+      "module": "debug.rs",
+      "function_count": 6,
+      "functions": [
+        "set_panic_trap",
+        "panic_handler",
+        "trap",
+        "panic_str",
+        "rttype_name",
+        "type_name"
+      ]
+    },
+    {
+      "rust_path": "core/error/err.rs",
+      "crate": "core",
+      "module": "error",
+      "function_count": 2,
+      "functions": [
+        "record_debug",
+        "visit"
+      ]
+    },
+    {
+      "rust_path": "core/error/log.rs",
+      "crate": "core",
+      "module": "error",
+      "function_count": 10,
+      "functions": [
+        "else_log",
+        "else_debug_log",
+        "default_log",
+        "default_debug_log",
+        "map_log",
+        "map_debug_log",
+        "inspect_log",
+        "inspect_debug_log",
+        "inspect_log_level",
+        "inspect_debug_log_level"
+      ]
+    },
+    {
+      "rust_path": "core/error/mod.rs",
+      "crate": "core",
+      "module": "error",
+      "function_count": 12,
+      "functions": [
+        "from_errno",
+        "bad_database",
+        "sanitized_message",
+        "message",
+        "kind",
+        "status_code",
+        "is_not_found",
+        "fmt",
+        "from",
+        "from",
+        "infallible",
+        "sanitized_message"
+      ]
+    },
+    {
+      "rust_path": "core/error/panic.rs",
+      "crate": "core",
+      "module": "error",
+      "function_count": 5,
+      "functions": [
+        "panic",
+        "from_panic",
+        "into_panic",
+        "panic_str",
+        "is_panic"
+      ]
+    },
+    {
+      "rust_path": "core/error/response.rs",
+      "crate": "core",
+      "module": "error",
+      "function_count": 2,
+      "functions": [
+        "into_response",
+        "from"
+      ]
+    },
+    {
+      "rust_path": "core/error/serde.rs",
+      "crate": "core",
+      "module": "error",
+      "function_count": 2,
+      "functions": [
+        "custom",
+        "custom"
+      ]
+    },
+    {
+      "rust_path": "core/info/cargo.rs",
+      "crate": "core",
+      "module": "info",
+      "function_count": 6,
+      "functions": [
+        "dependencies_names",
+        "dependencies",
+        "features",
+        "init_features",
+        "append_features",
+        "init_dependencies"
+      ]
+    },
+    {
+      "rust_path": "core/info/mod.rs",
+      "crate": "core",
+      "module": "info",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/info/room_version.rs",
+      "crate": "core",
+      "module": "info",
+      "function_count": 5,
+      "functions": [
+        "supported_room_version",
+        "supported_room_versions",
+        "available_room_versions",
+        "supported_stability",
+        "available_room_versions"
+      ]
+    },
+    {
+      "rust_path": "core/info/rustc.rs",
+      "crate": "core",
+      "module": "info",
+      "function_count": 4,
+      "functions": [
+        "features",
+        "version",
+        "init_features",
+        "append_features"
+      ]
+    },
+    {
+      "rust_path": "core/info/version.rs",
+      "crate": "core",
+      "module": "info",
+      "function_count": 7,
+      "functions": [
+        "name",
+        "version",
+        "user_agent",
+        "init_user_agent",
+        "init_version",
+        "detailed",
+        "semantic"
+      ]
+    },
+    {
+      "rust_path": "core/log/capture/data.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 5,
+      "functions": [
+        "our_modules",
+        "level",
+        "mod_name",
+        "span_name",
+        "message"
+      ]
+    },
+    {
+      "rust_path": "core/log/capture/guard.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 1,
+      "functions": [
+        "drop"
+      ]
+    },
+    {
+      "rust_path": "core/log/capture/layer.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 7,
+      "functions": [
+        "new",
+        "fmt",
+        "on_event",
+        "handle",
+        "filter",
+        "record_debug",
+        "record_str"
+      ]
+    },
+    {
+      "rust_path": "core/log/capture/mod.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 3,
+      "functions": [
+        "new",
+        "start",
+        "stop"
+      ]
+    },
+    {
+      "rust_path": "core/log/capture/state.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 2,
+      "functions": [
+        "default",
+        "new"
+      ]
+    },
+    {
+      "rust_path": "core/log/capture/util.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 4,
+      "functions": [
+        "fmt_html",
+        "fmt_markdown",
+        "fmt",
+        "call"
+      ]
+    },
+    {
+      "rust_path": "core/log/color.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 2,
+      "functions": [
+        "html",
+        "code_tag"
+      ]
+    },
+    {
+      "rust_path": "core/log/console.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 10,
+      "functions": [
+        "new",
+        "make_writer",
+        "write",
+        "flush",
+        "new",
+        "format_event",
+        "format_fields",
+        "record_debug",
+        "get_journal_stream",
+        "is_systemd_mode"
+      ]
+    },
+    {
+      "rust_path": "core/log/fmt.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 4,
+      "functions": [
+        "html",
+        "markdown",
+        "markdown_table",
+        "markdown_table_head"
+      ]
+    },
+    {
+      "rust_path": "core/log/fmt_span.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 1,
+      "functions": [
+        "from_str"
+      ]
+    },
+    {
+      "rust_path": "core/log/mod.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/log/reload.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 8,
+      "functions": [
+        "current",
+        "reload",
+        "current",
+        "reload",
+        "add",
+        "reload",
+        "current",
+        "default"
+      ]
+    },
+    {
+      "rust_path": "core/log/suppress.rs",
+      "crate": "core",
+      "module": "log",
+      "function_count": 2,
+      "functions": [
+        "new",
+        "drop"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/event/content.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/matrix/event/filter.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 10,
+      "functions": [
+        "matches",
+        "matches",
+        "matches",
+        "matches",
+        "matches_user_id",
+        "matches_room_id",
+        "matches_room",
+        "matches_sender",
+        "matches_type",
+        "matches_url"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/event/format.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 18,
+      "functions": [
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from",
+        "from"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/event/id.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 2,
+      "functions": [
+        "gen_event_id_canonical_json",
+        "gen_event_id"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/event/redact.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/matrix/event/relation.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 2,
+      "functions": [
+        "relation_type_equal",
+        "relation_type_equal"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/event/state_key.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 2,
+      "functions": [
+        "cmp",
+        "rcmp"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/event/type_ext.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 5,
+      "functions": [
+        "with_state_key",
+        "with_state_key",
+        "with_state_key",
+        "with_state_key",
+        "with_state_key"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/event/unsigned.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/matrix/event.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 33,
+      "functions": [
+        "is_type_and_state_key",
+        "into_format",
+        "to_format",
+        "contains_unsigned_property",
+        "get_unsigned_property",
+        "get_unsigned_as_value",
+        "get_unsigned",
+        "get_content_as_value",
+        "get_content",
+        "redacts_id",
+        "is_redacted",
+        "into_canonical_object",
+        "to_canonical_object",
+        "into_value",
+        "to_value",
+        "as_mut_pdu",
+        "as_pdu",
+        "into_pdu",
+        "is_owned",
+        "auth_events",
+        "auth_events_into",
+        "content",
+        "event_id",
+        "origin_server_ts",
+        "prev_events",
+        "redacts",
+        "rejected",
+        "room_id",
+        "sender",
+        "state_key",
+        "kind",
+        "unsigned",
+        "event_type"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/mod.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/matrix/pdu/builder.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 4,
+      "functions": [
+        "default",
+        "state",
+        "timeline",
+        "fmt"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/pdu/count.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 19,
+      "functions": [
+        "to_be_bytes",
+        "from_unsigned",
+        "from_signed",
+        "into_unsigned",
+        "into_signed",
+        "into_normal",
+        "checked_inc",
+        "checked_add",
+        "checked_sub",
+        "saturating_inc",
+        "saturating_add",
+        "saturating_sub",
+        "fmt",
+        "from",
+        "from",
+        "from_str",
+        "partial_cmp",
+        "cmp",
+        "default"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/pdu/format.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 4,
+      "functions": [
+        "into_outgoing_federation",
+        "mutate_outgoing_reference_format",
+        "from_incoming_federation",
+        "mutate_incoming_reference_format"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/pdu/hashes.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/matrix/pdu/id.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 1,
+      "functions": [
+        "from"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/pdu/raw_id.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 14,
+      "functions": [
+        "is_room_eq",
+        "pdu_count",
+        "shortroomid",
+        "count",
+        "as_bytes",
+        "fmt",
+        "deserialize",
+        "expecting",
+        "visit_bytes",
+        "from",
+        "from",
+        "from",
+        "from",
+        "as_ref"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/pdu/tests.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 2,
+      "functions": [
+        "backfilled_parse",
+        "normal_parse"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/pdu/unsigned.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 3,
+      "functions": [
+        "remove_transaction_id",
+        "add_age",
+        "add_relation"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/pdu.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 41,
+      "functions": [
+        "from_rid_val",
+        "from_id_val",
+        "from_val",
+        "auth_events",
+        "auth_events_into",
+        "content",
+        "event_id",
+        "origin_server_ts",
+        "prev_events",
+        "redacts",
+        "rejected",
+        "rejected",
+        "room_id",
+        "sender",
+        "state_key",
+        "kind",
+        "unsigned",
+        "as_mut_pdu",
+        "as_pdu",
+        "into_pdu",
+        "is_owned",
+        "auth_events",
+        "auth_events_into",
+        "content",
+        "event_id",
+        "origin_server_ts",
+        "prev_events",
+        "redacts",
+        "rejected",
+        "rejected",
+        "room_id",
+        "sender",
+        "state_key",
+        "kind",
+        "unsigned",
+        "as_pdu",
+        "into_pdu",
+        "is_owned",
+        "eq",
+        "cmp",
+        "partial_cmp"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/room_version.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 3,
+      "functions": [
+        "rules",
+        "from_create_event",
+        "from_create_content"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/event_auth/auth_types.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 2,
+      "functions": [
+        "auth_types_for_event",
+        "auth_types_for_member_event"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/event_auth/room_member/tests.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 63,
+      "functions": [
+        "missing_state_key",
+        "missing_membership",
+        "join_after_create_creator_match",
+        "join_after_create_creator_mismatch",
+        "join_after_create_sender_match",
+        "join_after_create_sender_mismatch",
+        "join_sender_state_key_mismatch",
+        "join_banned",
+        "join_invite_join_rule_already_joined",
+        "join_knock_join_rule_already_invited",
+        "join_knock_join_rule_not_supported",
+        "join_restricted_join_rule_not_supported",
+        "join_knock_restricted_join_rule_not_supported",
+        "join_restricted_join_rule_already_joined",
+        "join_knock_restricted_join_rule_already_invited",
+        "join_restricted_join_rule_missing_join_authorised_via_users_server",
+        "join_restricted_join_rule_authorised_via_user_not_in_room",
+        "join_restricted_join_rule_authorised_via_user_with_not_enough_power",
+        "join_restricted_join_rule_authorised_via_user",
+        "join_public_join_rule",
+        "invite_via_third_party_invite_banned",
+        "invite_via_third_party_invite_missing_signed",
+        "invite_via_third_party_invite_missing_mxid",
+        "invite_via_third_party_invite_missing_token",
+        "invite_via_third_party_invite_mxid_mismatch",
+        "invite_via_third_party_invite_missing_room_third_party_invite",
+        "invite_via_third_party_invite_room_third_party_invite_sender_mismatch",
+        "invite_via_third_party_invite_with_room_missing_signatures",
+        "invite_via_third_party_invite_with_room_empty_signatures",
+        "invite_via_third_party_invite_with_wrong_signature",
+        "invite_via_third_party_invite_with_wrong_signing_algorithm",
+        "invite_via_third_party_invite",
+        "invite_sender_not_joined",
+        "invite_banned",
+        "invite_already_joined",
+        "invite_sender_not_enough_power",
+        "invite",
+        "leave_after_leave",
+        "leave_after_join",
+        "leave_after_invite",
+        "leave_after_knock",
+        "leave_after_knock_not_supported",
+        "leave_kick_sender_left",
+        "leave_unban_not_enough_power",
+        "leave_unban",
+        "leave_kick_not_enough_power",
+        "leave_kick_greater_power",
+        "leave_kick_same_power",
+        "leave_kick",
+        "ban_sender_not_joined",
+        "ban_not_enough_power",
+        "ban_greater_power",
+        "ban_same_power",
+        "ban",
+        "knock_public_join_rule",
+        "knock_knock_join_rule",
+        "knock_knock_join_rule_not_supported",
+        "knock_knock_restricted_join_rule",
+        "knock_knock_restricted_join_rule_not_supported",
+        "knock_sender_state_key_mismatch",
+        "knock_after_ban",
+        "knock_after_invite",
+        "knock_after_join"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/event_auth/room_member.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 6,
+      "functions": [
+        "check_room_member_join",
+        "check_room_member_invite",
+        "check_third_party_invite",
+        "check_room_member_leave",
+        "check_room_member_ban",
+        "check_room_member_knock"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/event_auth/tests/room_power_levels.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 22,
+      "functions": [
+        "not_int_or_string_int_in_content",
+        "not_int_or_string_int_in_events",
+        "not_int_or_string_int_in_notifications",
+        "not_user_id_in_users",
+        "not_int_or_string_int_in_users",
+        "first_power_levels_event",
+        "change_content_level_with_current_higher_power_level",
+        "change_content_level_with_new_higher_power_level",
+        "change_content_level_with_same_power_level",
+        "change_events_level_with_current_higher_power_level",
+        "change_events_level_with_new_higher_power_level",
+        "change_events_level_with_same_power_level",
+        "change_notifications_level_with_current_higher_power_level",
+        "change_notifications_level_with_new_higher_power_level",
+        "change_notifications_level_with_same_power_level",
+        "change_other_user_level_with_current_higher_power_level",
+        "change_other_user_level_with_new_higher_power_level",
+        "change_other_user_level_with_same_power_level",
+        "change_own_user_level_to_new_higher_power_level",
+        "change_own_user_level_to_lower_power_level",
+        "creator_has_infinite_power",
+        "dont_allow_creator_in_users_field"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/event_auth/tests.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 28,
+      "functions": [
+        "valid_room_create",
+        "invalid_room_create",
+        "redact_higher_power_level",
+        "redact_same_power_level",
+        "redact_same_server",
+        "missing_room_create_in_state",
+        "reject_missing_room_create_auth_events",
+        "no_federate_different_server",
+        "no_federate_same_server",
+        "room_aliases_no_state_key",
+        "room_aliases_other_server",
+        "room_aliases_same_server",
+        "sender_not_in_room",
+        "room_third_party_invite_not_enough_power",
+        "room_third_party_invite_with_enough_power",
+        "event_type_not_enough_power",
+        "user_id_state_key_not_sender",
+        "user_id_state_key_is_sender",
+        "auth_event_in_different_room",
+        "duplicate_auth_event_type",
+        "unexpected_auth_event_type",
+        "rejected_auth_event",
+        "room_create_with_allowed_or_rejected_room_id",
+        "event_without_room_id",
+        "allow_missing_room_create_auth_events",
+        "reject_room_create_in_auth_events",
+        "missing_room_create_in_fetch_event",
+        "rejected_room_create_in_fetch_event"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/event_auth.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 5,
+      "functions": [
+        "auth_check",
+        "check_room_create",
+        "check_room_power_levels",
+        "check_power_level_maps",
+        "check_room_redaction"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/event_format.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 21,
+      "functions": [
+        "check_pdu_format",
+        "extract_optional_string_field",
+        "extract_required_string_field",
+        "extract_required_array_field",
+        "pdu_v1",
+        "pdu_v3",
+        "room_create_hydra",
+        "pdu_hydra",
+        "check_pdu_format_valid_v1",
+        "check_pdu_format_valid_v3",
+        "check_pdu_format_pdu_too_big",
+        "check_pdu_format_fields_missing",
+        "check_pdu_format_strings_too_big",
+        "check_pdu_format_strings_wrong_format",
+        "check_pdu_format_arrays_too_big",
+        "check_pdu_format_arrays_wrong_format",
+        "check_pdu_format_negative_depth",
+        "check_pdu_format_depth_wrong_format",
+        "check_pdu_format_valid_room_create_hydra",
+        "check_pdu_format_valid_hydra",
+        "check_pdu_format_hydra_with_room_create"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/events/create.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 7,
+      "functions": [
+        "new",
+        "room_version",
+        "federate",
+        "creator",
+        "creators",
+        "has_creator",
+        "deref"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/events/join_rules.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 3,
+      "functions": [
+        "new",
+        "join_rule",
+        "deref"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/events/member.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 15,
+      "functions": [
+        "new",
+        "membership",
+        "join_authorised_via_users_server",
+        "third_party_invite",
+        "deref",
+        "membership",
+        "membership",
+        "new",
+        "membership",
+        "join_authorised_via_users_server",
+        "third_party_invite",
+        "token",
+        "mxid",
+        "signatures",
+        "signed_canonical_json"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/events/power_levels.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 14,
+      "functions": [
+        "new",
+        "deserialized_content",
+        "get_as_int_map",
+        "deref",
+        "user_power_level",
+        "get_as_int_or_default",
+        "event_power_level",
+        "user_power_level",
+        "get_as_int_or_default",
+        "event_power_level",
+        "position",
+        "as_str",
+        "default_value",
+        "as_ref"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/events/third_party_invite.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 2,
+      "functions": [
+        "new",
+        "deref"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/events.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/matrix/state_res/fetch_state.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 10,
+      "functions": [
+        "room_create_event",
+        "user_membership",
+        "room_power_levels_event",
+        "join_rule",
+        "room_third_party_invite_event",
+        "room_create_event",
+        "user_membership",
+        "room_power_levels_event",
+        "join_rule",
+        "room_third_party_invite_event"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/mod.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/matrix/state_res/resolve/auth_difference.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/matrix/state_res/resolve/conflicted_subgraph.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 2,
+      "functions": [
+        "subgraph_descent",
+        "pop"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/resolve/iterative_auth_check.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 1,
+      "functions": [
+        "auth_check"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/resolve/mainline_sort.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 2,
+      "functions": [
+        "mainline_position",
+        "get_power_levels_auth_event"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/resolve/power_sort.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 3,
+      "functions": [
+        "add_event_auth_chain",
+        "power_level_for_sender",
+        "is_power_event_id"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/resolve/split_conflicted.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/matrix/state_res/resolve/tests.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 19,
+      "functions": [
+        "test_event_sort",
+        "test_sort",
+        "ban_vs_power_level",
+        "topic_basic",
+        "topic_reset",
+        "join_rule_evasion",
+        "offtopic_power_level",
+        "topic_setting",
+        "test_event_map_none",
+        "test_reverse_topological_power_sort",
+        "ban_with_auth_chains",
+        "ban_with_auth_chains2",
+        "join_rule_with_auth_chain",
+        "BAN_STATE_SET",
+        "JOIN_RULE",
+        "split_conflicted_state_set_conflicted_unique_state_keys",
+        "split_conflicted_state_set_conflicted_same_state_key",
+        "split_conflicted_state_set_unconflicted",
+        "split_conflicted_state_set_mixed"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/resolve/topological_sort.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 3,
+      "functions": [
+        "cmp",
+        "partial_cmp",
+        "topological_sort"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/resolve.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 1,
+      "functions": [
+        "resolve"
+      ]
+    },
+    {
+      "rust_path": "core/matrix/state_res/test_utils.rs",
+      "crate": "core",
+      "module": "matrix",
+      "function_count": 1,
+      "functions": [
+        "event_id"
+      ]
+    },
+    {
+      "rust_path": "core/metrics/mod.rs",
+      "crate": "core",
+      "module": "metrics",
+      "function_count": 5,
+      "functions": [
+        "new",
+        "runtime_interval",
+        "task_root",
+        "num_workers",
+        "runtime_metrics"
+      ]
+    },
+    {
+      "rust_path": "core/mod.rs",
+      "crate": "core",
+      "module": "mod.rs",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/mods/canary.rs",
+      "crate": "core",
+      "module": "mods",
+      "function_count": 1,
+      "functions": [
+        "report"
+      ]
+    },
+    {
+      "rust_path": "core/mods/macros.rs",
+      "crate": "core",
+      "module": "mods",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/mods/mod.rs",
+      "crate": "core",
+      "module": "mods",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/mods/module.rs",
+      "crate": "core",
+      "module": "mods",
+      "function_count": 8,
+      "functions": [
+        "from_name",
+        "from_path",
+        "unload",
+        "get",
+        "deleted",
+        "name",
+        "path",
+        "drop"
+      ]
+    },
+    {
+      "rust_path": "core/mods/new.rs",
+      "crate": "core",
+      "module": "mods",
+      "function_count": 2,
+      "functions": [
+        "from_name",
+        "from_path"
+      ]
+    },
+    {
+      "rust_path": "core/mods/path.rs",
+      "crate": "core",
+      "module": "mods",
+      "function_count": 3,
+      "functions": [
+        "from_name",
+        "to_name",
+        "mtime"
+      ]
+    },
+    {
+      "rust_path": "core/server.rs",
+      "crate": "core",
+      "module": "server.rs",
+      "function_count": 13,
+      "functions": [
+        "new",
+        "reload",
+        "restart",
+        "shutdown",
+        "signal",
+        "until_shutdown",
+        "runtime",
+        "check_running",
+        "running",
+        "is_stopping",
+        "is_reloading",
+        "is_restarting",
+        "is_ours"
+      ]
+    },
+    {
+      "rust_path": "core/tests/state_res/main.rs",
+      "crate": "core",
+      "module": "tests",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/tests/state_res/resolve/snapshot_tests.rs",
+      "crate": "core",
+      "module": "tests",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/tests/state_res/resolve.rs",
+      "crate": "core",
+      "module": "tests",
+      "function_count": 12,
+      "functions": [
+        "unknown_fn",
+        "unknown_fn",
+        "eq",
+        "cmp",
+        "partial_cmp",
+        "snapshot_test_prelude",
+        "reshape",
+        "test_resolve",
+        "test_contrived_states",
+        "resolve_batch",
+        "resolve_iteratively",
+        "auth_events_dfs"
+      ]
+    },
+    {
+      "rust_path": "core/utils/arrayvec.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "extend_from_slice",
+        "extend_from_slice"
+      ]
+    },
+    {
+      "rust_path": "core/utils/bool.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 46,
+      "functions": [
+        "and",
+        "and_is",
+        "and_if",
+        "and_then",
+        "clone_or",
+        "copy_or",
+        "expect",
+        "expect_false",
+        "into_option",
+        "into_result",
+        "is_false",
+        "map",
+        "map_ok_or",
+        "map_or",
+        "map_or_else",
+        "ok_or",
+        "ok_or_else",
+        "or",
+        "or_some",
+        "then_async",
+        "then_none",
+        "then_ok_or",
+        "then_ok_or_else",
+        "and",
+        "and_if",
+        "and_is",
+        "and_then",
+        "clone_or",
+        "copy_or",
+        "expect",
+        "expect_false",
+        "into_option",
+        "into_result",
+        "is_false",
+        "map",
+        "map_ok_or",
+        "map_or",
+        "map_or_else",
+        "ok_or",
+        "ok_or_else",
+        "or",
+        "or_some",
+        "then_async",
+        "then_none",
+        "then_ok_or",
+        "then_ok_or_else"
+      ]
+    },
+    {
+      "rust_path": "core/utils/bytes.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 5,
+      "functions": [
+        "from_str",
+        "pretty",
+        "increment",
+        "u64_from_u8",
+        "u64_from_bytes"
+      ]
+    },
+    {
+      "rust_path": "core/utils/content_disposition.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 5,
+      "functions": [
+        "content_disposition_type",
+        "sanitise_filename",
+        "make_content_disposition",
+        "string_sanitisation",
+        "empty_sanitisation"
+      ]
+    },
+    {
+      "rust_path": "core/utils/debug.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 4,
+      "functions": [
+        "slice_truncated",
+        "str_truncated",
+        "fmt",
+        "fmt"
+      ]
+    },
+    {
+      "rust_path": "core/utils/defer.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 1,
+      "functions": [
+        "drop"
+      ]
+    },
+    {
+      "rust_path": "core/utils/future/bool_ext.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 15,
+      "functions": [
+        "or",
+        "and",
+        "and2",
+        "and3",
+        "or",
+        "and",
+        "and2",
+        "and3",
+        "and",
+        "or",
+        "and4",
+        "and5",
+        "and6",
+        "and7",
+        "test"
+      ]
+    },
+    {
+      "rust_path": "core/utils/future/ext_ext.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "until",
+        "until"
+      ]
+    },
+    {
+      "rust_path": "core/utils/future/mod.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/utils/future/option_ext.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 10,
+      "functions": [
+        "is_none_or",
+        "is_some_and",
+        "unwrap_or",
+        "unwrap_or_else",
+        "unwrap_or_default",
+        "is_none_or",
+        "is_some_and",
+        "unwrap_or",
+        "unwrap_or_else",
+        "unwrap_or_default"
+      ]
+    },
+    {
+      "rust_path": "core/utils/future/option_stream.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "stream",
+        "stream"
+      ]
+    },
+    {
+      "rust_path": "core/utils/future/ready_bool_ext.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "is_false",
+        "is_true"
+      ]
+    },
+    {
+      "rust_path": "core/utils/future/ready_eq_ext.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 4,
+      "functions": [
+        "eq",
+        "ne",
+        "eq",
+        "ne"
+      ]
+    },
+    {
+      "rust_path": "core/utils/future/try_ext_ext.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 14,
+      "functions": [
+        "is_err",
+        "is_ok",
+        "map_ok_or",
+        "ok",
+        "try_until",
+        "unwrap_or",
+        "unwrap_or_default",
+        "is_err",
+        "is_ok",
+        "map_ok_or",
+        "ok",
+        "try_until",
+        "unwrap_or",
+        "unwrap_or_default"
+      ]
+    },
+    {
+      "rust_path": "core/utils/hash/argon.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 4,
+      "functions": [
+        "init_argon",
+        "map_err",
+        "password_hash_and_verify",
+        "password_hash_and_verify_fail"
+      ]
+    },
+    {
+      "rust_path": "core/utils/hash/sha256.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 3,
+      "functions": [
+        "delimited",
+        "concat",
+        "hash"
+      ]
+    },
+    {
+      "rust_path": "core/utils/hash.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "verify_password",
+        "password"
+      ]
+    },
+    {
+      "rust_path": "core/utils/json.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 5,
+      "functions": [
+        "to_raw",
+        "to_canonical_object",
+        "deserialize_from_str",
+        "expecting",
+        "visit_str"
+      ]
+    },
+    {
+      "rust_path": "core/utils/math/expected.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 5,
+      "functions": [
+        "expected_add",
+        "expected_sub",
+        "expected_mul",
+        "expected_div",
+        "expected_rem"
+      ]
+    },
+    {
+      "rust_path": "core/utils/math/tried.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 5,
+      "functions": [
+        "try_add",
+        "try_sub",
+        "try_mul",
+        "try_div",
+        "try_rem"
+      ]
+    },
+    {
+      "rust_path": "core/utils/math.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 6,
+      "functions": [
+        "usize_from_f64",
+        "usize_from_ruma",
+        "ruma_from_u64",
+        "ruma_from_usize",
+        "usize_from_u64_truncated",
+        "try_into"
+      ]
+    },
+    {
+      "rust_path": "core/utils/mod.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/utils/mutex_map.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 9,
+      "functions": [
+        "new",
+        "lock",
+        "try_lock",
+        "try_try_lock",
+        "contains",
+        "is_empty",
+        "len",
+        "default",
+        "drop"
+      ]
+    },
+    {
+      "rust_path": "core/utils/option.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 3,
+      "functions": [
+        "map_async",
+        "map_stream",
+        "map_async"
+      ]
+    },
+    {
+      "rust_path": "core/utils/rand.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 7,
+      "functions": [
+        "shuffle",
+        "string",
+        "string_array",
+        "truncate_string",
+        "truncate_str",
+        "time_from_now_secs",
+        "secs"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/and_then_ref.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "and_then_ref",
+        "and_then_ref"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/debug_inspect.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 6,
+      "functions": [
+        "debug_inspect_err",
+        "debug_inspect",
+        "debug_inspect",
+        "debug_inspect_err",
+        "debug_inspect",
+        "debug_inspect_err"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/filter.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "filter",
+        "filter"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/flat_ok.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 9,
+      "functions": [
+        "flat_ok",
+        "flat_ok_or",
+        "flat_ok_or_else",
+        "flat_ok",
+        "flat_ok_or",
+        "flat_ok_or_else",
+        "flat_ok",
+        "flat_ok_or",
+        "flat_ok_or_else"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/inspect_log.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 6,
+      "functions": [
+        "log_err",
+        "err_log",
+        "log_err_debug",
+        "err_debug_log",
+        "log_err",
+        "log_err_debug"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/into_is_ok.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "into_is_ok",
+        "into_is_ok"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/is_err_or.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "is_err_or",
+        "is_err_or"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/log_debug_err.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 3,
+      "functions": [
+        "err_debug_log",
+        "log_debug_err",
+        "err_debug_log"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/log_err.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 3,
+      "functions": [
+        "err_log",
+        "log_err",
+        "err_log"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/map_expect.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 3,
+      "functions": [
+        "map_expect",
+        "map_expect",
+        "map_expect"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/map_ref.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "map_ref",
+        "map_ref"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/not_found.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "is_not_found",
+        "is_not_found"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/unwrap_infallible.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "unwrap_infallible",
+        "unwrap_infallible"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result/unwrap_or_err.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "unwrap_or_err",
+        "unwrap_or_err"
+      ]
+    },
+    {
+      "rust_path": "core/utils/result.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/utils/set.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 4,
+      "functions": [
+        "intersection",
+        "intersection_sorted",
+        "intersection_sorted_stream2",
+        "difference_sorted_stream2"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/band.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 4,
+      "functions": [
+        "set_width",
+        "set_amplification",
+        "automatic_width",
+        "automatic_amplification"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/broadband.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 18,
+      "functions": [
+        "broadn_all",
+        "broadn_any",
+        "broadn_filter_map",
+        "broadn_find_map",
+        "broadn_flat_map",
+        "broadn_then",
+        "broad_all",
+        "broad_any",
+        "broad_filter_map",
+        "broad_find_map",
+        "broad_flat_map",
+        "broad_then",
+        "broadn_all",
+        "broadn_any",
+        "broadn_filter_map",
+        "broadn_find_map",
+        "broadn_flat_map",
+        "broadn_then"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/cloned.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "cloned",
+        "cloned"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/expect.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 4,
+      "functions": [
+        "expect_ok",
+        "map_expect",
+        "expect_ok",
+        "map_expect"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/ignore.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 5,
+      "functions": [
+        "ignore_err",
+        "ignore_ok",
+        "ignore_err",
+        "ignore_err",
+        "ignore_ok"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/iter_stream.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 4,
+      "functions": [
+        "stream",
+        "try_stream",
+        "stream",
+        "try_stream"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/mod.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "core/utils/stream/ready.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 26,
+      "functions": [
+        "ready_all",
+        "ready_any",
+        "ready_find",
+        "ready_find_map",
+        "ready_filter",
+        "ready_filter_map",
+        "ready_fold",
+        "ready_fold_default",
+        "ready_for_each",
+        "ready_take_while",
+        "ready_scan",
+        "ready_scan_each",
+        "ready_skip_while",
+        "ready_all",
+        "ready_any",
+        "ready_find",
+        "ready_find_map",
+        "ready_filter",
+        "ready_filter_map",
+        "ready_fold",
+        "ready_fold_default",
+        "ready_for_each",
+        "ready_take_while",
+        "ready_scan",
+        "ready_scan_each",
+        "ready_skip_while"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/tools.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 10,
+      "functions": [
+        "counts",
+        "counts_by",
+        "counts_by_with_cap",
+        "counts_with_cap",
+        "fold_default",
+        "counts",
+        "counts_by",
+        "counts_by_with_cap",
+        "counts_with_cap",
+        "fold_default"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/try_broadband.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 3,
+      "functions": [
+        "broadn_and_then",
+        "broad_and_then",
+        "broadn_and_then"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/try_parallel.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 3,
+      "functions": [
+        "paralleln_and_then",
+        "parallel_and_then",
+        "paralleln_and_then"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/try_ready.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 14,
+      "functions": [
+        "ready_and_then",
+        "ready_try_filter_map",
+        "ready_try_fold",
+        "ready_try_fold_default",
+        "ready_try_for_each",
+        "ready_try_skip_while",
+        "ready_try_take_while",
+        "ready_and_then",
+        "ready_try_filter_map",
+        "ready_try_fold",
+        "ready_try_fold_default",
+        "ready_try_for_each",
+        "ready_try_skip_while",
+        "ready_try_take_while"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/try_tools.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "try_take",
+        "try_take"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/try_wideband.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 3,
+      "functions": [
+        "widen_and_then",
+        "wide_and_then",
+        "widen_and_then"
+      ]
+    },
+    {
+      "rust_path": "core/utils/stream/wideband.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 6,
+      "functions": [
+        "widen_filter_map",
+        "widen_then",
+        "wide_filter_map",
+        "wide_then",
+        "widen_filter_map",
+        "widen_then"
+      ]
+    },
+    {
+      "rust_path": "core/utils/string/between.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 4,
+      "functions": [
+        "between",
+        "between_infallible",
+        "between_infallible",
+        "between"
+      ]
+    },
+    {
+      "rust_path": "core/utils/string/de.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 3,
+      "functions": [
+        "to_lowercase",
+        "visit_str",
+        "expecting"
+      ]
+    },
+    {
+      "rust_path": "core/utils/string/split.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 4,
+      "functions": [
+        "split_once_infallible",
+        "rsplit_once_infallible",
+        "rsplit_once_infallible",
+        "split_once_infallible"
+      ]
+    },
+    {
+      "rust_path": "core/utils/string/tests.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 9,
+      "functions": [
+        "common_prefix",
+        "common_prefix_empty",
+        "common_prefix_none",
+        "camel_to_snake_case_0",
+        "camel_to_snake_case_1",
+        "unquote",
+        "unquote_infallible",
+        "between",
+        "between_infallible"
+      ]
+    },
+    {
+      "rust_path": "core/utils/string/unquote.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 6,
+      "functions": [
+        "is_quoted",
+        "unquote",
+        "unquote_infallible",
+        "unquote_infallible",
+        "unquote",
+        "is_quoted"
+      ]
+    },
+    {
+      "rust_path": "core/utils/string/unquoted.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 5,
+      "functions": [
+        "as_str",
+        "deserialize",
+        "from",
+        "deref",
+        "as_ref"
+      ]
+    },
+    {
+      "rust_path": "core/utils/string.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 8,
+      "functions": [
+        "collect_stream",
+        "camel_to_snake_string",
+        "camel_to_snake_case",
+        "common_prefix",
+        "truncate_deterministic",
+        "to_small_string",
+        "string_from_bytes",
+        "str_from_bytes"
+      ]
+    },
+    {
+      "rust_path": "core/utils/sys/compute.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 18,
+      "functions": [
+        "set_affinity",
+        "get_affinity",
+        "smt_siblings",
+        "node_siblings",
+        "smt_affinity",
+        "node_affinity",
+        "available_parallelism",
+        "nth_core_available",
+        "is_core_available",
+        "cores_available",
+        "getcpu",
+        "getcpu",
+        "query_cores_available",
+        "init_smt_topology",
+        "init_node_topology",
+        "into_mask",
+        "from_mask",
+        "_sys_path"
+      ]
+    },
+    {
+      "rust_path": "core/utils/sys/storage.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 6,
+      "functions": [
+        "md_discover",
+        "mq_discover",
+        "queue_discover",
+        "name_from_path",
+        "dev_from_path",
+        "block_path"
+      ]
+    },
+    {
+      "rust_path": "core/utils/sys.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 4,
+      "functions": [
+        "maximize_fd_limit",
+        "current_exe",
+        "current_exe_deleted",
+        "uevent_find"
+      ]
+    },
+    {
+      "rust_path": "core/utils/tests.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 15,
+      "functions": [
+        "increment_none",
+        "increment_fault",
+        "increment_norm",
+        "increment_wrap",
+        "checked_add",
+        "checked_add_overflow",
+        "mutex_map_cleanup",
+        "mutex_map_contend",
+        "set_intersection_none",
+        "set_intersection_all",
+        "set_intersection_some",
+        "set_intersection_sorted_some",
+        "set_intersection_sorted_all",
+        "set_intersection_sorted_stream2",
+        "set_difference_sorted_stream2"
+      ]
+    },
+    {
+      "rust_path": "core/utils/time/exponential_backoff.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 2,
+      "functions": [
+        "continue_exponential_backoff_secs",
+        "continue_exponential_backoff"
+      ]
+    },
+    {
+      "rust_path": "core/utils/time.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 15,
+      "functions": [
+        "now_millis",
+        "now_secs",
+        "now",
+        "duration_since_epoch",
+        "timepoint_from_epoch",
+        "timepoint_from_now",
+        "timepoint_ago",
+        "parse_timepoint_ago",
+        "parse_duration",
+        "timepoint_has_passed",
+        "rfc2822_from_seconds",
+        "format",
+        "pretty",
+        "whole_and_frac",
+        "whole_unit"
+      ]
+    },
+    {
+      "rust_path": "core/utils/two_phase_counter.rs",
+      "crate": "core",
+      "module": "utils",
+      "function_count": 15,
+      "functions": [
+        "new",
+        "next",
+        "range",
+        "current",
+        "dispatched",
+        "new",
+        "dispatch",
+        "retire",
+        "retired",
+        "pending_index",
+        "check_pending",
+        "retired",
+        "id",
+        "deref",
+        "drop"
+      ]
+    },
+    {
+      "rust_path": "database/benches/ser.rs",
+      "crate": "database",
+      "module": "benches",
+      "function_count": 1,
+      "functions": [
+        "ser_str"
+      ]
+    },
+    {
+      "rust_path": "database/cork.rs",
+      "crate": "database",
+      "module": "cork.rs",
+      "function_count": 4,
+      "functions": [
+        "cork",
+        "cork_and_flush",
+        "cork_and_sync",
+        "drop"
+      ]
+    },
+    {
+      "rust_path": "database/de.rs",
+      "crate": "database",
+      "module": "de.rs",
+      "function_count": 45,
+      "functions": [
+        "finished",
+        "sequence_start",
+        "record_ignore",
+        "record_ignore_all",
+        "record_next",
+        "record_peek_byte",
+        "record_start",
+        "record_trail",
+        "inc_pos",
+        "inc_rec",
+        "remaining",
+        "deserialize_seq",
+        "deserialize_tuple",
+        "deserialize_tuple_struct",
+        "deserialize_map",
+        "deserialize_struct",
+        "deserialize_unit_struct",
+        "deserialize_newtype_struct",
+        "deserialize_enum",
+        "deserialize_option",
+        "deserialize_bool",
+        "deserialize_i8",
+        "deserialize_i16",
+        "deserialize_i32",
+        "deserialize_i64",
+        "deserialize_u8",
+        "deserialize_u16",
+        "deserialize_u32",
+        "deserialize_u64",
+        "deserialize_f32",
+        "deserialize_f64",
+        "deserialize_char",
+        "deserialize_str",
+        "deserialize_string",
+        "deserialize_bytes",
+        "deserialize_byte_buf",
+        "deserialize_unit",
+        "deserialize_identifier",
+        "deserialize_ignored_any",
+        "deserialize_any",
+        "next_element_seed",
+        "next_key_seed",
+        "next_value_seed",
+        "deserialize_str",
+        "deserialize_str"
+      ]
+    },
+    {
+      "rust_path": "database/deserialized.rs",
+      "crate": "database",
+      "module": "deserialized.rs",
+      "function_count": 2,
+      "functions": [
+        "map_de",
+        "deserialized"
+      ]
+    },
+    {
+      "rust_path": "database/engine/backup.rs",
+      "crate": "database",
+      "module": "engine",
+      "function_count": 5,
+      "functions": [
+        "backup",
+        "backup_list",
+        "backup_count",
+        "backup_engine",
+        "backup_path"
+      ]
+    },
+    {
+      "rust_path": "database/engine/cf_opts.rs",
+      "crate": "database",
+      "module": "engine",
+      "function_count": 7,
+      "functions": [
+        "descriptor_cf_options",
+        "set_table_options",
+        "set_compression",
+        "fifo_options",
+        "uc_options",
+        "table_options",
+        "get_cache"
+      ]
+    },
+    {
+      "rust_path": "database/engine/context.rs",
+      "crate": "database",
+      "module": "engine",
+      "function_count": 3,
+      "functions": [
+        "drop",
+        "after_close",
+        "delete_database_for_testing"
+      ]
+    },
+    {
+      "rust_path": "database/engine/db_opts.rs",
+      "crate": "database",
+      "module": "engine",
+      "function_count": 2,
+      "functions": [
+        "set_logging_defaults",
+        "num_threads"
+      ]
+    },
+    {
+      "rust_path": "database/engine/descriptor.rs",
+      "crate": "database",
+      "module": "engine",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "database/engine/files.rs",
+      "crate": "database",
+      "module": "engine",
+      "function_count": 1,
+      "functions": [
+        "file_list"
+      ]
+    },
+    {
+      "rust_path": "database/engine/logger.rs",
+      "crate": "database",
+      "module": "engine",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "database/engine/memory_usage.rs",
+      "crate": "database",
+      "module": "engine",
+      "function_count": 1,
+      "functions": [
+        "memory_usage"
+      ]
+    },
+    {
+      "rust_path": "database/engine/open.rs",
+      "crate": "database",
+      "module": "engine",
+      "function_count": 2,
+      "functions": [
+        "configure_cfds",
+        "discover_cfs"
+      ]
+    },
+    {
+      "rust_path": "database/engine/repair.rs",
+      "crate": "database",
+      "module": "engine",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "database/engine.rs",
+      "crate": "database",
+      "module": "engine.rs",
+      "function_count": 10,
+      "functions": [
+        "wait_compactions_blocking",
+        "sort",
+        "update",
+        "sync",
+        "flush",
+        "corked",
+        "current_sequence",
+        "is_read_only",
+        "is_secondary",
+        "drop"
+      ]
+    },
+    {
+      "rust_path": "database/handle.rs",
+      "crate": "database",
+      "module": "handle.rs",
+      "function_count": 9,
+      "functions": [
+        "from",
+        "fmt",
+        "serialize",
+        "map_de",
+        "map_de",
+        "map_de",
+        "from",
+        "deref",
+        "as_ref"
+      ]
+    },
+    {
+      "rust_path": "database/keyval.rs",
+      "crate": "database",
+      "module": "keyval.rs",
+      "function_count": 4,
+      "functions": [
+        "serialize_key",
+        "serialize_val",
+        "key",
+        "val"
+      ]
+    },
+    {
+      "rust_path": "database/map/clear.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 2,
+      "functions": [
+        "clear",
+        "for_clear"
+      ]
+    },
+    {
+      "rust_path": "database/map/compact.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 1,
+      "functions": [
+        "compact_blocking"
+      ]
+    },
+    {
+      "rust_path": "database/map/contains.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 5,
+      "functions": [
+        "contains",
+        "acontains",
+        "bcontains",
+        "exists",
+        "exists_blocking"
+      ]
+    },
+    {
+      "rust_path": "database/map/count.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 5,
+      "functions": [
+        "count",
+        "count_from",
+        "raw_count_from",
+        "count_prefix",
+        "raw_count_prefix"
+      ]
+    },
+    {
+      "rust_path": "database/map/del.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 3,
+      "functions": [
+        "del",
+        "adel",
+        "bdel"
+      ]
+    },
+    {
+      "rust_path": "database/map/get.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 3,
+      "functions": [
+        "get",
+        "get_blocking",
+        "get_blocking_opts"
+      ]
+    },
+    {
+      "rust_path": "database/map/get_batch.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 3,
+      "functions": [
+        "get",
+        "get",
+        "get_batch_blocking_opts"
+      ]
+    },
+    {
+      "rust_path": "database/map/insert.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 2,
+      "functions": [
+        "insert",
+        "insert_batch"
+      ]
+    },
+    {
+      "rust_path": "database/map/keys.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 2,
+      "functions": [
+        "keys",
+        "raw_keys"
+      ]
+    },
+    {
+      "rust_path": "database/map/keys_from.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 4,
+      "functions": [
+        "keys_from",
+        "keys_from_raw",
+        "keys_raw_from",
+        "raw_keys_from"
+      ]
+    },
+    {
+      "rust_path": "database/map/keys_prefix.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 4,
+      "functions": [
+        "keys_prefix",
+        "keys_prefix_raw",
+        "keys_raw_prefix",
+        "raw_keys_prefix"
+      ]
+    },
+    {
+      "rust_path": "database/map/open.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "database/map/options.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "database/map/put.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 11,
+      "functions": [
+        "put",
+        "put_raw",
+        "raw_put",
+        "put_aput",
+        "aput_put",
+        "aput",
+        "aput_raw",
+        "raw_aput",
+        "bput",
+        "bput_raw",
+        "raw_bput"
+      ]
+    },
+    {
+      "rust_path": "database/map/qry.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 3,
+      "functions": [
+        "qry",
+        "aqry",
+        "bqry"
+      ]
+    },
+    {
+      "rust_path": "database/map/qry_batch.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 2,
+      "functions": [
+        "qry",
+        "qry"
+      ]
+    },
+    {
+      "rust_path": "database/map/remove.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 1,
+      "functions": [
+        "remove"
+      ]
+    },
+    {
+      "rust_path": "database/map/rev_keys.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 2,
+      "functions": [
+        "rev_keys",
+        "rev_raw_keys"
+      ]
+    },
+    {
+      "rust_path": "database/map/rev_keys_from.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 4,
+      "functions": [
+        "rev_keys_from",
+        "rev_keys_from_raw",
+        "rev_keys_raw_from",
+        "rev_raw_keys_from"
+      ]
+    },
+    {
+      "rust_path": "database/map/rev_keys_prefix.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 4,
+      "functions": [
+        "rev_keys_prefix",
+        "rev_keys_prefix_raw",
+        "rev_keys_raw_prefix",
+        "rev_raw_keys_prefix"
+      ]
+    },
+    {
+      "rust_path": "database/map/rev_stream.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 2,
+      "functions": [
+        "rev_stream",
+        "rev_raw_stream"
+      ]
+    },
+    {
+      "rust_path": "database/map/rev_stream_from.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 4,
+      "functions": [
+        "rev_stream_from",
+        "rev_stream_from_raw",
+        "rev_stream_raw_from",
+        "rev_raw_stream_from"
+      ]
+    },
+    {
+      "rust_path": "database/map/rev_stream_prefix.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 4,
+      "functions": [
+        "rev_stream_prefix",
+        "rev_stream_prefix_raw",
+        "rev_stream_raw_prefix",
+        "rev_raw_stream_prefix"
+      ]
+    },
+    {
+      "rust_path": "database/map/stream.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 2,
+      "functions": [
+        "stream",
+        "raw_stream"
+      ]
+    },
+    {
+      "rust_path": "database/map/stream_from.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 4,
+      "functions": [
+        "stream_from",
+        "stream_from_raw",
+        "stream_raw_from",
+        "raw_stream_from"
+      ]
+    },
+    {
+      "rust_path": "database/map/stream_prefix.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 4,
+      "functions": [
+        "stream_prefix",
+        "stream_prefix_raw",
+        "stream_raw_prefix",
+        "raw_stream_prefix"
+      ]
+    },
+    {
+      "rust_path": "database/map/watch.rs",
+      "crate": "database",
+      "module": "map",
+      "function_count": 2,
+      "functions": [
+        "watch_prefix",
+        "watch_raw_prefix"
+      ]
+    },
+    {
+      "rust_path": "database/map.rs",
+      "crate": "database",
+      "module": "map.rs",
+      "function_count": 5,
+      "functions": [
+        "property_integer",
+        "property",
+        "name",
+        "fmt",
+        "fmt"
+      ]
+    },
+    {
+      "rust_path": "database/maps.rs",
+      "crate": "database",
+      "module": "maps.rs",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "database/mod.rs",
+      "crate": "database",
+      "module": "mod.rs",
+      "function_count": 7,
+      "functions": [
+        "open",
+        "get",
+        "iter",
+        "keys",
+        "is_read_only",
+        "is_secondary",
+        "index"
+      ]
+    },
+    {
+      "rust_path": "database/pool/configure.rs",
+      "crate": "database",
+      "module": "pool",
+      "function_count": 1,
+      "functions": [
+        "update_stream_width"
+      ]
+    },
+    {
+      "rust_path": "database/pool.rs",
+      "crate": "database",
+      "module": "pool.rs",
+      "function_count": 16,
+      "functions": [
+        "drop",
+        "spawn_group",
+        "spawn_one",
+        "select_queue",
+        "execute",
+        "worker",
+        "worker_init",
+        "worker_loop",
+        "worker_wait",
+        "worker_handle",
+        "handle_iter",
+        "handle_batch",
+        "handle_get",
+        "into_send_get",
+        "into_recv_get",
+        "into_recv_seek"
+      ]
+    },
+    {
+      "rust_path": "database/ser.rs",
+      "crate": "database",
+      "module": "ser.rs",
+      "function_count": 55,
+      "functions": [
+        "serialize_to_vec",
+        "serialize_to",
+        "serialize",
+        "tuple_start",
+        "tuple_end",
+        "sequence_start",
+        "sequence_end",
+        "record_start",
+        "separator",
+        "write",
+        "set_finalized",
+        "is_finalized",
+        "serialize_seq",
+        "serialize_tuple",
+        "serialize_tuple_struct",
+        "serialize_tuple_variant",
+        "serialize_map",
+        "serialize_struct",
+        "serialize_struct_variant",
+        "serialize_newtype_struct",
+        "serialize_newtype_variant",
+        "serialize_unit_struct",
+        "serialize_unit_variant",
+        "serialize_some",
+        "serialize_none",
+        "serialize_char",
+        "serialize_str",
+        "serialize_bytes",
+        "serialize_f64",
+        "serialize_f32",
+        "serialize_i64",
+        "serialize_i32",
+        "serialize_i16",
+        "serialize_i8",
+        "serialize_u64",
+        "serialize_u32",
+        "serialize_u16",
+        "serialize_u8",
+        "serialize_bool",
+        "serialize_unit",
+        "serialize_element",
+        "end",
+        "serialize_element",
+        "end",
+        "serialize_field",
+        "end",
+        "serialize_field",
+        "end",
+        "serialize_key",
+        "serialize_value",
+        "end",
+        "serialize_field",
+        "end",
+        "serialize_field",
+        "end"
+      ]
+    },
+    {
+      "rust_path": "database/stream/items.rs",
+      "crate": "database",
+      "module": "stream",
+      "function_count": 6,
+      "functions": [
+        "from",
+        "state",
+        "fetch",
+        "seek",
+        "poll_next",
+        "is_terminated"
+      ]
+    },
+    {
+      "rust_path": "database/stream/items_rev.rs",
+      "crate": "database",
+      "module": "stream",
+      "function_count": 6,
+      "functions": [
+        "from",
+        "state",
+        "fetch",
+        "seek",
+        "poll_next",
+        "is_terminated"
+      ]
+    },
+    {
+      "rust_path": "database/stream/keys.rs",
+      "crate": "database",
+      "module": "stream",
+      "function_count": 6,
+      "functions": [
+        "from",
+        "state",
+        "fetch",
+        "seek",
+        "poll_next",
+        "is_terminated"
+      ]
+    },
+    {
+      "rust_path": "database/stream/keys_rev.rs",
+      "crate": "database",
+      "module": "stream",
+      "function_count": 6,
+      "functions": [
+        "from",
+        "state",
+        "fetch",
+        "seek",
+        "poll_next",
+        "is_terminated"
+      ]
+    },
+    {
+      "rust_path": "database/stream.rs",
+      "crate": "database",
+      "module": "stream.rs",
+      "function_count": 10,
+      "functions": [
+        "state",
+        "fetch",
+        "seek",
+        "get",
+        "seek_and_get",
+        "fetch_key",
+        "_fetch_val",
+        "fetch",
+        "keyval_longevity",
+        "slice_longevity"
+      ]
+    },
+    {
+      "rust_path": "database/tests.rs",
+      "crate": "database",
+      "module": "tests.rs",
+      "function_count": 39,
+      "functions": [
+        "ser_str",
+        "ser_tuple",
+        "ser_tuple_option",
+        "ser_overflow",
+        "ser_complex",
+        "ser_json",
+        "ser_json_value",
+        "ser_json_macro",
+        "ser_json_raw",
+        "ser_json_raw_json",
+        "ser_cbor",
+        "ser_cbor_ruma_raw",
+        "de_tuple",
+        "de_tuple_invalid",
+        "de_tuple_incomplete",
+        "de_tuple_incomplete_default",
+        "de_tuple_incomplete_nodefault",
+        "de_tuple_incomplete_option",
+        "de_tuple_incomplete_with_sep",
+        "de_tuple_unfinished",
+        "de_tuple_ignore",
+        "de_json_array",
+        "de_json_raw_array",
+        "ser_array_integer",
+        "ser_array_string",
+        "ser_array_one_string",
+        "de_array_integer",
+        "de_array_string",
+        "de_array_one_string",
+        "de_complex",
+        "serde_tuple_option_value_some",
+        "serde_tuple_option_value_none",
+        "serde_tuple_option_none_value",
+        "serde_tuple_option_some_value",
+        "serde_tuple_option_value_incomplete",
+        "serde_tuple_option_some_some",
+        "serde_tuple_option_none_none",
+        "serde_tuple_option_some_none_some",
+        "serde_tuple_option_none_none_none"
+      ]
+    },
+    {
+      "rust_path": "database/util.rs",
+      "crate": "database",
+      "module": "util.rs",
+      "function_count": 1,
+      "functions": [
+        "io_error_kind"
+      ]
+    },
+    {
+      "rust_path": "macros/admin.rs",
+      "crate": "macros",
+      "module": "admin.rs",
+      "function_count": 1,
+      "functions": [
+        "dispatch_arm"
+      ]
+    },
+    {
+      "rust_path": "macros/cargo.rs",
+      "crate": "macros",
+      "module": "cargo.rs",
+      "function_count": 1,
+      "functions": [
+        "manifest_path"
+      ]
+    },
+    {
+      "rust_path": "macros/config.rs",
+      "crate": "macros",
+      "module": "config.rs",
+      "function_count": 7,
+      "functions": [
+        "generate_example",
+        "fmt",
+        "get_default",
+        "get_doc_comment",
+        "get_doc_comment_line",
+        "get_doc_comment_full",
+        "get_type_name"
+      ]
+    },
+    {
+      "rust_path": "macros/debug.rs",
+      "crate": "macros",
+      "module": "debug.rs",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "macros/git.rs",
+      "crate": "macros",
+      "module": "git.rs",
+      "function_count": 1,
+      "functions": [
+        "git"
+      ]
+    },
+    {
+      "rust_path": "macros/implement.rs",
+      "crate": "macros",
+      "module": "implement.rs",
+      "function_count": 1,
+      "functions": [
+        "get_receiver"
+      ]
+    },
+    {
+      "rust_path": "macros/mod.rs",
+      "crate": "macros",
+      "module": "mod.rs",
+      "function_count": 11,
+      "functions": [
+        "admin_command",
+        "admin_command_dispatch",
+        "cargo_manifest",
+        "recursion_depth",
+        "rustc_flags_capture",
+        "rustc_version",
+        "implement",
+        "config_example_generator",
+        "git_semantic",
+        "git_commit",
+        "attribute_macro"
+      ]
+    },
+    {
+      "rust_path": "macros/rustc.rs",
+      "crate": "macros",
+      "module": "rustc.rs",
+      "function_count": 2,
+      "functions": [
+        "_set_rustc_flags",
+        "_unset_rustc_flags"
+      ]
+    },
+    {
+      "rust_path": "macros/utils.rs",
+      "crate": "macros",
+      "module": "utils.rs",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "main/args.rs",
+      "crate": "main",
+      "module": "args.rs",
+      "function_count": 4,
+      "functions": [
+        "default_test",
+        "default",
+        "parse",
+        "update"
+      ]
+    },
+    {
+      "rust_path": "main/benches/main.rs",
+      "crate": "main",
+      "module": "benches",
+      "function_count": 2,
+      "functions": [
+        "dummy",
+        "smoke"
+      ]
+    },
+    {
+      "rust_path": "main/lib.rs",
+      "crate": "main",
+      "module": "lib.rs",
+      "function_count": 7,
+      "functions": [
+        "exec",
+        "run",
+        "async_exec",
+        "async_start",
+        "async_run",
+        "async_stop",
+        "async_exec"
+      ]
+    },
+    {
+      "rust_path": "main/logging.rs",
+      "crate": "main",
+      "module": "logging.rs",
+      "function_count": 2,
+      "functions": [
+        "tokio_console_enabled",
+        "set_global_default"
+      ]
+    },
+    {
+      "rust_path": "main/main.rs",
+      "crate": "main",
+      "module": "main.rs",
+      "function_count": 1,
+      "functions": [
+        "main"
+      ]
+    },
+    {
+      "rust_path": "main/mods.rs",
+      "crate": "main",
+      "module": "mods.rs",
+      "function_count": 3,
+      "functions": [
+        "stale_count",
+        "stale",
+        "restart_thresh"
+      ]
+    },
+    {
+      "rust_path": "main/restart.rs",
+      "crate": "main",
+      "module": "restart.rs",
+      "function_count": 1,
+      "functions": [
+        "restart"
+      ]
+    },
+    {
+      "rust_path": "main/runtime.rs",
+      "crate": "main",
+      "module": "runtime.rs",
+      "function_count": 17,
+      "functions": [
+        "new",
+        "enable_histogram",
+        "shutdown",
+        "shutdown",
+        "wait_shutdown",
+        "thread_start",
+        "set_worker_affinity",
+        "set_worker_mallctl",
+        "set_worker_mallctl",
+        "thread_stop",
+        "thread_unpark",
+        "thread_park",
+        "gc_on_park",
+        "task_spawn",
+        "task_terminate",
+        "task_enter",
+        "task_leave"
+      ]
+    },
+    {
+      "rust_path": "main/sentry.rs",
+      "crate": "main",
+      "module": "sentry.rs",
+      "function_count": 3,
+      "functions": [
+        "options",
+        "before_send",
+        "before_breadcrumb"
+      ]
+    },
+    {
+      "rust_path": "main/server.rs",
+      "crate": "main",
+      "module": "server.rs",
+      "function_count": 1,
+      "functions": [
+        "new"
+      ]
+    },
+    {
+      "rust_path": "main/signals.rs",
+      "crate": "main",
+      "module": "signals.rs",
+      "function_count": 2,
+      "functions": [
+        "enable",
+        "enable"
+      ]
+    },
+    {
+      "rust_path": "main/tests/smoke.rs",
+      "crate": "main",
+      "module": "tests",
+      "function_count": 3,
+      "functions": [
+        "dummy",
+        "panic_dummy",
+        "smoke"
+      ]
+    },
+    {
+      "rust_path": "main/tests/smoke_async.rs",
+      "crate": "main",
+      "module": "tests",
+      "function_count": 1,
+      "functions": [
+        "smoke_async"
+      ]
+    },
+    {
+      "rust_path": "main/tests/smoke_shutdown.rs",
+      "crate": "main",
+      "module": "tests",
+      "function_count": 1,
+      "functions": [
+        "smoke_shutdown"
+      ]
+    },
+    {
+      "rust_path": "router/layers.rs",
+      "crate": "router",
+      "module": "layers.rs",
+      "function_count": 7,
+      "functions": [
+        "compression_layer",
+        "cors_layer",
+        "body_limit_layer",
+        "catch_panic",
+        "tracing_span",
+        "request_path_str",
+        "truncated_matched_path"
+      ]
+    },
+    {
+      "rust_path": "router/mod.rs",
+      "crate": "router",
+      "module": "mod.rs",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "router/request.rs",
+      "crate": "router",
+      "module": "request.rs",
+      "function_count": 3,
+      "functions": [
+        "execute",
+        "handle_result",
+        "unhandled"
+      ]
+    },
+    {
+      "rust_path": "router/router.rs",
+      "crate": "router",
+      "module": "router.rs",
+      "function_count": 2,
+      "functions": [
+        "not_found",
+        "it_works"
+      ]
+    },
+    {
+      "rust_path": "router/run.rs",
+      "crate": "router",
+      "module": "run.rs",
+      "function_count": 3,
+      "functions": [
+        "signal",
+        "handle_shutdown",
+        "handle_services_poll"
+      ]
+    },
+    {
+      "rust_path": "router/serve/mod.rs",
+      "crate": "router",
+      "module": "serve",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "router/serve/plain.rs",
+      "crate": "router",
+      "module": "serve",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "router/serve/tls.rs",
+      "crate": "router",
+      "module": "serve",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "router/serve/unix.rs",
+      "crate": "router",
+      "module": "serve",
+      "function_count": 4,
+      "functions": [
+        "accept",
+        "accepted",
+        "init",
+        "fini"
+      ]
+    },
+    {
+      "rust_path": "service/account_data/direct.rs",
+      "crate": "service",
+      "module": "account_data",
+      "function_count": 1,
+      "functions": [
+        "is_direct"
+      ]
+    },
+    {
+      "rust_path": "service/account_data/mod.rs",
+      "crate": "service",
+      "module": "account_data",
+      "function_count": 8,
+      "functions": [
+        "build",
+        "name",
+        "update",
+        "get_global",
+        "get_room",
+        "get_raw",
+        "changes_since",
+        "last_count"
+      ]
+    },
+    {
+      "rust_path": "service/account_data/room_tags.rs",
+      "crate": "service",
+      "module": "account_data",
+      "function_count": 2,
+      "functions": [
+        "set_room_tag",
+        "get_room_tags"
+      ]
+    },
+    {
+      "rust_path": "service/admin/console.rs",
+      "crate": "service",
+      "module": "admin",
+      "function_count": 18,
+      "functions": [
+        "start",
+        "close",
+        "interrupt",
+        "interrupt_readline",
+        "interrupt_command",
+        "worker",
+        "readline",
+        "handle",
+        "process",
+        "output_err",
+        "output",
+        "set_history",
+        "add_history",
+        "tab_complete",
+        "print_err",
+        "print",
+        "configure_output_err",
+        "configure_output"
+      ]
+    },
+    {
+      "rust_path": "service/admin/create.rs",
+      "crate": "service",
+      "module": "admin",
+      "function_count": 2,
+      "functions": [
+        "create_server_user",
+        "create_admin_room"
+      ]
+    },
+    {
+      "rust_path": "service/admin/execute.rs",
+      "crate": "service",
+      "module": "admin",
+      "function_count": 5,
+      "functions": [
+        "execute_command",
+        "execute_command_output",
+        "execute_command_error",
+        "execute_command_output",
+        "execute_command_error"
+      ]
+    },
+    {
+      "rust_path": "service/admin/grant.rs",
+      "crate": "service",
+      "module": "admin",
+      "function_count": 2,
+      "functions": [
+        "make_user_admin",
+        "revoke_admin"
+      ]
+    },
+    {
+      "rust_path": "service/admin/mod.rs",
+      "crate": "service",
+      "module": "admin",
+      "function_count": 21,
+      "functions": [
+        "build",
+        "worker",
+        "interrupt",
+        "name",
+        "notice",
+        "send_text",
+        "send_message",
+        "command",
+        "command_in_place",
+        "complete_command",
+        "handle_signal",
+        "handle_command",
+        "handle_command_output",
+        "process_command",
+        "user_is_admin",
+        "get_admin_room",
+        "handle_response",
+        "respond_to_room",
+        "handle_response_error",
+        "is_admin_command",
+        "is_admin_room"
+      ]
+    },
+    {
+      "rust_path": "service/appservice/append.rs",
+      "crate": "service",
+      "module": "appservice",
+      "function_count": 2,
+      "functions": [
+        "append_pdu_to",
+        "should_append_to"
+      ]
+    },
+    {
+      "rust_path": "service/appservice/mod.rs",
+      "crate": "service",
+      "module": "appservice",
+      "function_count": 16,
+      "functions": [
+        "build",
+        "worker",
+        "name",
+        "init_registrations",
+        "check_registrations",
+        "register_appservice",
+        "unregister_appservice",
+        "get_registration",
+        "find_from_access_token",
+        "is_exclusive_user_id",
+        "is_exclusive_alias",
+        "is_exclusive_room_id",
+        "iter_ids",
+        "iter_db_ids",
+        "get_db_registration",
+        "read"
+      ]
+    },
+    {
+      "rust_path": "service/appservice/namespace_regex.rs",
+      "crate": "service",
+      "module": "appservice",
+      "function_count": 3,
+      "functions": [
+        "is_match",
+        "is_exclusive_match",
+        "try_from"
+      ]
+    },
+    {
+      "rust_path": "service/appservice/registration_info.rs",
+      "crate": "service",
+      "module": "appservice",
+      "function_count": 3,
+      "functions": [
+        "is_user_match",
+        "is_exclusive_user_match",
+        "try_from"
+      ]
+    },
+    {
+      "rust_path": "service/appservice/request.rs",
+      "crate": "service",
+      "module": "appservice",
+      "function_count": 1,
+      "functions": [
+        "send_request"
+      ]
+    },
+    {
+      "rust_path": "service/client/mod.rs",
+      "crate": "service",
+      "module": "client",
+      "function_count": 8,
+      "functions": [
+        "build",
+        "make",
+        "name",
+        "base",
+        "builder_interface",
+        "builder_interface",
+        "appservice_resolver",
+        "valid_cidr_range"
+      ]
+    },
+    {
+      "rust_path": "service/config/mod.rs",
+      "crate": "service",
+      "module": "config",
+      "function_count": 6,
+      "functions": [
+        "build",
+        "worker",
+        "name",
+        "deref",
+        "handle_reload",
+        "reload"
+      ]
+    },
+    {
+      "rust_path": "service/deactivate/mod.rs",
+      "crate": "service",
+      "module": "deactivate",
+      "function_count": 3,
+      "functions": [
+        "build",
+        "name",
+        "full_deactivate"
+      ]
+    },
+    {
+      "rust_path": "service/emergency/mod.rs",
+      "crate": "service",
+      "module": "emergency",
+      "function_count": 4,
+      "functions": [
+        "build",
+        "worker",
+        "name",
+        "set_emergency_access"
+      ]
+    },
+    {
+      "rust_path": "service/federation/execute.rs",
+      "crate": "service",
+      "module": "federation",
+      "function_count": 11,
+      "functions": [
+        "execute",
+        "execute_synapse",
+        "execute_on",
+        "perform",
+        "prepare",
+        "validate_url",
+        "handle_response",
+        "into_http_response",
+        "handle_error",
+        "to_http_request",
+        "sign_request"
+      ]
+    },
+    {
+      "rust_path": "service/federation/format.rs",
+      "crate": "service",
+      "module": "federation",
+      "function_count": 1,
+      "functions": [
+        "format_pdu_into"
+      ]
+    },
+    {
+      "rust_path": "service/federation/mod.rs",
+      "crate": "service",
+      "module": "federation",
+      "function_count": 2,
+      "functions": [
+        "build",
+        "name"
+      ]
+    },
+    {
+      "rust_path": "service/globals/data.rs",
+      "crate": "service",
+      "module": "globals",
+      "function_count": 5,
+      "functions": [
+        "handle_retire",
+        "store_count",
+        "stored_count",
+        "bump_database_version",
+        "database_version"
+      ]
+    },
+    {
+      "rust_path": "service/globals/mod.rs",
+      "crate": "service",
+      "module": "globals",
+      "function_count": 13,
+      "functions": [
+        "build",
+        "name",
+        "wait_pending",
+        "wait_count",
+        "next_count",
+        "current_count",
+        "pending_count",
+        "server_name",
+        "user_is_local",
+        "alias_is_local",
+        "server_is_ours",
+        "is_read_only",
+        "init_rustls_provider"
+      ]
+    },
+    {
+      "rust_path": "service/key_backups/mod.rs",
+      "crate": "service",
+      "module": "key_backups",
+      "function_count": 17,
+      "functions": [
+        "build",
+        "name",
+        "create_backup",
+        "delete_backup",
+        "update_backup",
+        "get_latest_backup_version",
+        "get_latest_backup",
+        "get_backup",
+        "add_key",
+        "count_keys",
+        "get_etag",
+        "get_all",
+        "get_room",
+        "get_session",
+        "delete_all_keys",
+        "delete_room_keys",
+        "delete_room_key"
+      ]
+    },
+    {
+      "rust_path": "service/manager.rs",
+      "crate": "service",
+      "module": "manager.rs",
+      "function_count": 7,
+      "functions": [
+        "worker",
+        "handle_abort",
+        "handle_result",
+        "handle_finished",
+        "handle_error",
+        "start_worker",
+        "worker"
+      ]
+    },
+    {
+      "rust_path": "service/media/blurhash.rs",
+      "crate": "service",
+      "module": "media",
+      "function_count": 11,
+      "functions": [
+        "create_blurhash",
+        "create_blurhash",
+        "get_blurhash_from_request",
+        "get_format_from_data_mime_and_filename",
+        "get_image_decoder_with_format_and_data",
+        "is_image_above_size_limit",
+        "blurhash_an_image",
+        "from",
+        "from",
+        "from",
+        "fmt"
+      ]
+    },
+    {
+      "rust_path": "service/media/data.rs",
+      "crate": "service",
+      "module": "media",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/media/migrations.rs",
+      "crate": "service",
+      "module": "media",
+      "function_count": 1,
+      "functions": [
+        "handle_media_check"
+      ]
+    },
+    {
+      "rust_path": "service/media/mod.rs",
+      "crate": "service",
+      "module": "media",
+      "function_count": 18,
+      "functions": [
+        "build",
+        "worker",
+        "name",
+        "create",
+        "delete",
+        "delete_from_user",
+        "get",
+        "get_all_mxcs",
+        "delete_all_remote_media_at_after_time",
+        "create_media_dir",
+        "remove_media_file",
+        "create_media_file",
+        "get_metadata",
+        "get_media_file",
+        "get_media_file_sha256",
+        "get_media_file_b64",
+        "get_media_dir",
+        "encode_key"
+      ]
+    },
+    {
+      "rust_path": "service/media/preview.rs",
+      "crate": "service",
+      "module": "media",
+      "function_count": 9,
+      "functions": [
+        "remove_url_preview",
+        "set_url_preview",
+        "get_url_preview",
+        "request_url_preview",
+        "download_image",
+        "download_image",
+        "download_html",
+        "download_html",
+        "url_preview_allowed"
+      ]
+    },
+    {
+      "rust_path": "service/media/remote.rs",
+      "crate": "service",
+      "module": "media",
+      "function_count": 16,
+      "functions": [
+        "fetch_remote_thumbnail",
+        "fetch_remote_content",
+        "fetch_thumbnail_authenticated",
+        "fetch_content_authenticated",
+        "fetch_thumbnail_unauthenticated",
+        "fetch_content_unauthenticated",
+        "handle_thumbnail_file",
+        "handle_content_file",
+        "handle_location",
+        "location_request",
+        "federation_request",
+        "handle_federation_error",
+        "fetch_remote_thumbnail_legacy",
+        "fetch_remote_content_legacy",
+        "check_fetch_authorized",
+        "check_legacy_freeze"
+      ]
+    },
+    {
+      "rust_path": "service/media/tests.rs",
+      "crate": "service",
+      "module": "media",
+      "function_count": 9,
+      "functions": [
+        "long_file_names_works",
+        "create_file_metadata",
+        "delete_file_mxc",
+        "search_mxc_metadata_prefix",
+        "get_all_media_keys",
+        "search_file_metadata",
+        "remove_url_preview",
+        "set_url_preview",
+        "get_url_preview"
+      ]
+    },
+    {
+      "rust_path": "service/media/thumbnail.rs",
+      "crate": "service",
+      "module": "media",
+      "function_count": 13,
+      "functions": [
+        "upload_thumbnail",
+        "get_thumbnail",
+        "get_thumbnail_saved",
+        "get_thumbnail_generate",
+        "get_thumbnail_generate",
+        "thumbnail_generate",
+        "into_filemeta",
+        "from_ruma",
+        "new",
+        "scaled",
+        "normalized",
+        "crop",
+        "default"
+      ]
+    },
+    {
+      "rust_path": "service/membership/ban.rs",
+      "crate": "service",
+      "module": "membership",
+      "function_count": 1,
+      "functions": [
+        "ban"
+      ]
+    },
+    {
+      "rust_path": "service/membership/invite.rs",
+      "crate": "service",
+      "module": "membership",
+      "function_count": 3,
+      "functions": [
+        "invite",
+        "remote_invite",
+        "local_invite"
+      ]
+    },
+    {
+      "rust_path": "service/membership/join.rs",
+      "crate": "service",
+      "module": "membership",
+      "function_count": 5,
+      "functions": [
+        "join",
+        "join_remote",
+        "join_local",
+        "create_join_event",
+        "make_join_request"
+      ]
+    },
+    {
+      "rust_path": "service/membership/kick.rs",
+      "crate": "service",
+      "module": "membership",
+      "function_count": 1,
+      "functions": [
+        "kick"
+      ]
+    },
+    {
+      "rust_path": "service/membership/knock.rs",
+      "crate": "service",
+      "module": "membership",
+      "function_count": 4,
+      "functions": [
+        "knock",
+        "knock_room_helper_local",
+        "knock_room_helper_remote",
+        "make_knock_request"
+      ]
+    },
+    {
+      "rust_path": "service/membership/leave.rs",
+      "crate": "service",
+      "module": "membership",
+      "function_count": 2,
+      "functions": [
+        "leave",
+        "remote_leave"
+      ]
+    },
+    {
+      "rust_path": "service/membership/mod.rs",
+      "crate": "service",
+      "module": "membership",
+      "function_count": 2,
+      "functions": [
+        "build",
+        "name"
+      ]
+    },
+    {
+      "rust_path": "service/membership/unban.rs",
+      "crate": "service",
+      "module": "membership",
+      "function_count": 1,
+      "functions": [
+        "unban"
+      ]
+    },
+    {
+      "rust_path": "service/migrations.rs",
+      "crate": "service",
+      "module": "migrations.rs",
+      "function_count": 8,
+      "functions": [
+        "fresh",
+        "migrate",
+        "db_lt_12",
+        "db_lt_13",
+        "fix_bad_double_separator_in_state_cache",
+        "retroactively_fix_bad_data_from_roomuserid_joined",
+        "fix_referencedevents_missing_sep",
+        "fix_readreceiptid_readreceipt_duplicates"
+      ]
+    },
+    {
+      "rust_path": "service/mod.rs",
+      "crate": "service",
+      "module": "mod.rs",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/oauth/mod.rs",
+      "crate": "service",
+      "module": "oauth",
+      "function_count": 17,
+      "functions": [
+        "build",
+        "name",
+        "delete_user_sessions",
+        "revoke_user_tokens",
+        "user_sessions",
+        "request_userinfo",
+        "request_tokeninfo",
+        "revoke_token",
+        "request_token",
+        "request",
+        "unique_id",
+        "unique_id_sub",
+        "unique_id_iss",
+        "unique_id_iss_sub",
+        "unique_id_parts",
+        "unique_id_sub_parts",
+        "unique_id_iss_parts"
+      ]
+    },
+    {
+      "rust_path": "service/oauth/providers.rs",
+      "crate": "service",
+      "module": "oauth",
+      "function_count": 8,
+      "functions": [
+        "get",
+        "get_config",
+        "get_cached",
+        "configure",
+        "discover",
+        "discovery_url",
+        "check_issuer",
+        "make_url"
+      ]
+    },
+    {
+      "rust_path": "service/oauth/sessions/association.rs",
+      "crate": "service",
+      "module": "oauth",
+      "function_count": 5,
+      "functions": [
+        "set_user_association_pending",
+        "find_user_association_pending",
+        "remove_provider_associations_pending",
+        "remove_user_association_pending",
+        "is_user_association_pending"
+      ]
+    },
+    {
+      "rust_path": "service/oauth/sessions.rs",
+      "crate": "service",
+      "module": "oauth",
+      "function_count": 10,
+      "functions": [
+        "delete",
+        "put",
+        "get_by_unique_id",
+        "get_by_user",
+        "get",
+        "get_sess_id_by_user",
+        "get_sess_id_by_unique_id",
+        "users",
+        "stream",
+        "provider"
+      ]
+    },
+    {
+      "rust_path": "service/oauth/user_info.rs",
+      "crate": "service",
+      "module": "oauth",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/once_services.rs",
+      "crate": "service",
+      "module": "once_services.rs",
+      "function_count": 1,
+      "functions": [
+        "deref"
+      ]
+    },
+    {
+      "rust_path": "service/presence/aggregate.rs",
+      "crate": "service",
+      "module": "presence",
+      "function_count": 5,
+      "functions": [
+        "effective_device_state",
+        "state_rank",
+        "aggregates_rank_and_status_msg",
+        "degrades_online_to_unavailable_after_idle",
+        "drops_stale_devices_on_aggregate"
+      ]
+    },
+    {
+      "rust_path": "service/presence/data.rs",
+      "crate": "service",
+      "module": "presence",
+      "function_count": 3,
+      "functions": [
+        "presenceid_key",
+        "presenceid_parse",
+        "user_id_from_bytes"
+      ]
+    },
+    {
+      "rust_path": "service/presence/mod.rs",
+      "crate": "service",
+      "module": "presence",
+      "function_count": 11,
+      "functions": [
+        "build",
+        "worker",
+        "interrupt",
+        "name",
+        "note_sync",
+        "last_sync_gap_ms",
+        "get_presence",
+        "remove_presence",
+        "unset_all_presence",
+        "presence_since",
+        "from_json_bytes_to_event"
+      ]
+    },
+    {
+      "rust_path": "service/presence/pipeline.rs",
+      "crate": "service",
+      "module": "presence",
+      "function_count": 11,
+      "functions": [
+        "device_key",
+        "schedule_presence_timer",
+        "refresh_skip_decision",
+        "timer_is_stale",
+        "apply_device_presence_update",
+        "maybe_ping_presence",
+        "set_presence_for_device",
+        "set_presence_from_federation",
+        "set_presence",
+        "refresh_window_skip_decision",
+        "timer_stale_detection"
+      ]
+    },
+    {
+      "rust_path": "service/presence/presence.rs",
+      "crate": "service",
+      "module": "presence",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/pusher/append.rs",
+      "crate": "service",
+      "module": "pusher",
+      "function_count": 3,
+      "functions": [
+        "increment_notificationcount",
+        "increment_highlightcount",
+        "increment"
+      ]
+    },
+    {
+      "rust_path": "service/pusher/mod.rs",
+      "crate": "service",
+      "module": "pusher",
+      "function_count": 11,
+      "functions": [
+        "build",
+        "name",
+        "set_pusher",
+        "delete_pusher",
+        "get_device_pushkeys",
+        "get_pusher_device",
+        "get_pusher",
+        "get_pushers",
+        "get_pushkeys",
+        "get_notifications",
+        "get_actions"
+      ]
+    },
+    {
+      "rust_path": "service/pusher/notification.rs",
+      "crate": "service",
+      "module": "pusher",
+      "function_count": 5,
+      "functions": [
+        "reset_notification_counts",
+        "notification_count",
+        "highlight_count",
+        "last_notification_read",
+        "delete_room_notification_read"
+      ]
+    },
+    {
+      "rust_path": "service/pusher/request.rs",
+      "crate": "service",
+      "module": "pusher",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/pusher/send.rs",
+      "crate": "service",
+      "module": "pusher",
+      "function_count": 2,
+      "functions": [
+        "send_push_notice",
+        "send_notice"
+      ]
+    },
+    {
+      "rust_path": "service/pusher/suppressed.rs",
+      "crate": "service",
+      "module": "pusher",
+      "function_count": 8,
+      "functions": [
+        "lock",
+        "drain_room",
+        "drop_one_front",
+        "queue_suppressed_push",
+        "take_suppressed_for_pushkey",
+        "take_suppressed_for_user",
+        "clear_suppressed_room",
+        "clear_suppressed_pushkey"
+      ]
+    },
+    {
+      "rust_path": "service/registration_tokens/data.rs",
+      "crate": "service",
+      "module": "registration_tokens",
+      "function_count": 3,
+      "functions": [
+        "is_valid",
+        "fmt",
+        "fmt"
+      ]
+    },
+    {
+      "rust_path": "service/registration_tokens/mod.rs",
+      "crate": "service",
+      "module": "registration_tokens",
+      "function_count": 13,
+      "functions": [
+        "fmt",
+        "eq",
+        "fmt",
+        "build",
+        "name",
+        "issue_token",
+        "is_enabled",
+        "get_config_tokens",
+        "is_token_valid",
+        "try_consume",
+        "check",
+        "revoke_token",
+        "iterate_tokens"
+      ]
+    },
+    {
+      "rust_path": "service/resolver/actual.rs",
+      "crate": "service",
+      "module": "resolver",
+      "function_count": 17,
+      "functions": [
+        "resolve_actual_dest",
+        "actual_dest_1",
+        "actual_dest_2",
+        "actual_dest_3",
+        "actual_dest_3_1",
+        "actual_dest_3_2",
+        "actual_dest_3_3",
+        "actual_dest_3_4",
+        "actual_dest_4",
+        "actual_dest_5",
+        "conditional_query_and_cache",
+        "conditional_query_and_cache_override",
+        "query_and_cache_override",
+        "query_srv_record",
+        "handle_resolve_error",
+        "validate_dest",
+        "validate_dest_ip_literal"
+      ]
+    },
+    {
+      "rust_path": "service/resolver/cache.rs",
+      "crate": "service",
+      "module": "resolver",
+      "function_count": 17,
+      "functions": [
+        "clear",
+        "clear_destinations",
+        "clear_overrides",
+        "del_destination",
+        "del_override",
+        "set_destination",
+        "set_override",
+        "has_destination",
+        "has_override",
+        "get_destination",
+        "get_override",
+        "destinations",
+        "overrides",
+        "valid",
+        "size",
+        "valid",
+        "size"
+      ]
+    },
+    {
+      "rust_path": "service/resolver/dns.rs",
+      "crate": "service",
+      "module": "resolver",
+      "function_count": 10,
+      "functions": [
+        "create",
+        "configure",
+        "configure_opts",
+        "clear_cache",
+        "resolve",
+        "resolve",
+        "resolve",
+        "hooked_resolve",
+        "resolve_to_reqwest",
+        "cached_to_reqwest"
+      ]
+    },
+    {
+      "rust_path": "service/resolver/fed.rs",
+      "crate": "service",
+      "module": "resolver",
+      "function_count": 3,
+      "functions": [
+        "default_port",
+        "size",
+        "fmt"
+      ]
+    },
+    {
+      "rust_path": "service/resolver/mod.rs",
+      "crate": "service",
+      "module": "resolver",
+      "function_count": 3,
+      "functions": [
+        "build",
+        "clear_cache",
+        "name"
+      ]
+    },
+    {
+      "rust_path": "service/resolver/tests.rs",
+      "crate": "service",
+      "module": "resolver",
+      "function_count": 4,
+      "functions": [
+        "ips_get_default_ports",
+        "ips_keep_custom_ports",
+        "hostnames_get_default_ports",
+        "hostnames_keep_custom_ports"
+      ]
+    },
+    {
+      "rust_path": "service/resolver/well_known.rs",
+      "crate": "service",
+      "module": "resolver",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/rooms/alias/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 16,
+      "functions": [
+        "build",
+        "name",
+        "set_alias",
+        "remove_alias",
+        "maybe_resolve",
+        "maybe_resolve_with_servers",
+        "resolve_alias",
+        "remote_resolve",
+        "resolve_local_alias",
+        "local_aliases_for_room",
+        "all_local_aliases",
+        "user_can_remove_alias",
+        "who_created_alias",
+        "resolve_appservice_alias",
+        "check_alias_local",
+        "appservice_checks"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/auth_chain/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 10,
+      "functions": [
+        "build",
+        "clear_cache",
+        "name",
+        "event_ids_iter",
+        "get_auth_chain",
+        "get_auth_chain_outer",
+        "get_auth_chain_inner",
+        "get_pdu",
+        "put_cached_auth_chain",
+        "get_cached_auth_chain"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/delete/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 4,
+      "functions": [
+        "build",
+        "name",
+        "delete_if_empty_local",
+        "delete_room"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/directory/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 7,
+      "functions": [
+        "build",
+        "name",
+        "set_public",
+        "set_not_public",
+        "public_rooms",
+        "is_public_room",
+        "visibility"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/event_handler/acl_check.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 1,
+      "functions": [
+        "acl_check"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/event_handler/fetch_auth.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 1,
+      "functions": [
+        "fetch_auth_chain"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/event_handler/fetch_prev.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/rooms/event_handler/fetch_state.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/rooms/event_handler/handle_incoming_pdu.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 1,
+      "functions": [
+        "handle_incoming_pdu"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/event_handler/handle_outlier_pdu.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/rooms/event_handler/handle_prev_pdu.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/rooms/event_handler/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 9,
+      "functions": [
+        "build",
+        "memory_usage",
+        "clear_cache",
+        "name",
+        "back_off",
+        "is_backed_off",
+        "event_exists",
+        "event_fetch",
+        "check_room_id"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/event_handler/parse_incoming_pdu.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 1,
+      "functions": [
+        "parse_incoming_pdu"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/event_handler/resolve_state.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 1,
+      "functions": [
+        "resolve_state"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/event_handler/state_at_incoming.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 1,
+      "functions": [
+        "state_at_incoming_fork"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/event_handler/upgrade_outlier_pdu.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/rooms/lazy_loading/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 10,
+      "functions": [
+        "is_enabled",
+        "include_redundant_members",
+        "build",
+        "name",
+        "reset",
+        "witness_retain",
+        "witness",
+        "into_status",
+        "include_redundant_members",
+        "is_enabled"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/metadata/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 14,
+      "functions": [
+        "build",
+        "name",
+        "exists",
+        "public_ids_prefix",
+        "ids_prefix",
+        "iter_ids",
+        "is_public",
+        "disable_room",
+        "enable_room",
+        "ban_room",
+        "unban_room",
+        "list_banned_rooms",
+        "is_disabled",
+        "is_banned"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/rooms/pdu_metadata/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 9,
+      "functions": [
+        "build",
+        "name",
+        "add_relation",
+        "get_relations",
+        "mark_as_referenced",
+        "is_event_referenced",
+        "mark_event_soft_failed",
+        "is_event_soft_failed",
+        "delete_all_referenced_for_room"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/read_receipt/data.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/rooms/read_receipt/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 11,
+      "functions": [
+        "build",
+        "name",
+        "readreceipt_update",
+        "private_read_get",
+        "readreceipts_since",
+        "private_read_set",
+        "private_read_get_count",
+        "last_privateread_update",
+        "last_receipt_count",
+        "delete_all_read_receipts",
+        "pack_receipts"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/retention/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 6,
+      "functions": [
+        "build",
+        "worker",
+        "name",
+        "get_original_pdu",
+        "get_original_pdu_json",
+        "save_original_pdu"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/search/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 14,
+      "functions": [
+        "build",
+        "name",
+        "index_pdu",
+        "deindex_pdu",
+        "search_pdus",
+        "search_pdu_ids",
+        "search_pdu_ids_query_room",
+        "search_pdu_ids_query_words",
+        "search_pdu_ids_query_word",
+        "delete_all_search_tokenids_for_room",
+        "tokenize",
+        "make_tokenid",
+        "make_prefix",
+        "prefix_len"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/short/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 17,
+      "functions": [
+        "build",
+        "name",
+        "get_or_create_shorteventid",
+        "multi_get_or_create_shorteventid",
+        "create_shorteventid",
+        "get_shorteventid",
+        "get_or_create_shortstatekey",
+        "get_shortstatekey",
+        "get_eventid_from_short",
+        "multi_get_eventid_from_short",
+        "get_statekey_from_short",
+        "multi_get_statekey_from_short",
+        "get_or_create_shortstatehash",
+        "get_shortroomid",
+        "get_roomid_from_short",
+        "get_or_create_shortroomid",
+        "delete_shortroomid"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/spaces/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 15,
+      "functions": [
+        "build",
+        "memory_usage",
+        "clear_cache",
+        "name",
+        "get_summary_and_children_client",
+        "get_summary_and_children_local",
+        "get_summary_and_children_federation",
+        "get_room_summary",
+        "is_accessible_child",
+        "get_parent_children_via",
+        "cache_insert",
+        "get_space_child_events",
+        "get_space_children",
+        "from",
+        "summary_to_chunk"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/spaces/pagination_token.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 2,
+      "functions": [
+        "from_str",
+        "fmt"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/spaces/tests.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 5,
+      "functions": [
+        "get_summary_children",
+        "invalid_pagination_tokens",
+        "token_is_err",
+        "valid_pagination_tokens",
+        "pagination_token_to_string"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/state/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 16,
+      "functions": [
+        "build",
+        "memory_usage",
+        "name",
+        "force_state",
+        "set_event_state",
+        "append_to_state",
+        "set_room_state",
+        "get_auth_events",
+        "summary_stripped",
+        "get_room_version_rules",
+        "get_room_version",
+        "get_room_shortstatehash",
+        "pdu_shortstatehash",
+        "get_shortstatehash",
+        "get_forward_extremities",
+        "set_forward_extremities"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/state_accessor/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 16,
+      "functions": [
+        "build",
+        "name",
+        "get_power_levels",
+        "get_create",
+        "get_name",
+        "get_avatar",
+        "is_direct",
+        "get_member",
+        "is_world_readable",
+        "guest_can_join",
+        "get_canonical_alias",
+        "get_room_topic",
+        "get_join_rules",
+        "get_room_type",
+        "get_room_encryption",
+        "is_encrypted_room"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/state_accessor/room_state.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 8,
+      "functions": [
+        "room_state_get_content",
+        "room_state_type_pdus",
+        "room_state_full",
+        "room_state_full_pdus",
+        "room_state_get_id",
+        "room_state_keys_with_ids",
+        "room_state_keys",
+        "room_state_get"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/state_accessor/server_can.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 1,
+      "functions": [
+        "server_can_see_event"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/state_accessor/state.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 21,
+      "functions": [
+        "user_was_joined",
+        "user_was_invited",
+        "user_membership",
+        "state_get_content",
+        "state_contains",
+        "state_contains_type",
+        "state_contains_shortstatekey",
+        "state_get",
+        "state_get_id",
+        "state_get_shortid",
+        "state_type_pdus",
+        "state_keys_with_ids",
+        "state_keys_with_shortids",
+        "state_keys",
+        "state_removed",
+        "state_added",
+        "state_full",
+        "state_full_pdus",
+        "state_full_ids",
+        "state_full_shortids",
+        "load_full_state"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/state_accessor/user_can.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 5,
+      "functions": [
+        "user_can_redact",
+        "user_can_see_event",
+        "user_can_see_state_events",
+        "user_can_invite",
+        "user_can_tombstone"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/state_cache/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 44,
+      "functions": [
+        "build",
+        "name",
+        "appservice_in_room",
+        "get_appservice_in_room_cache_usage",
+        "clear_appservice_in_room_cache",
+        "room_servers",
+        "server_in_room",
+        "server_rooms",
+        "server_sees_user",
+        "user_sees_user",
+        "get_shared_rooms",
+        "room_members",
+        "room_joined_count",
+        "room_invited_count",
+        "room_knocked_count",
+        "active_local_users_in_room",
+        "local_users_in_room",
+        "local_users_invited_to_room",
+        "room_useroncejoined",
+        "room_members_invited",
+        "room_members_knocked",
+        "get_invite_count",
+        "get_knock_count",
+        "get_left_count",
+        "get_joined_count",
+        "all_user_memberships",
+        "user_memberships",
+        "rooms_joined",
+        "rooms_invited",
+        "rooms_knocked",
+        "rooms_left",
+        "rooms_invited_state",
+        "rooms_knocked_state",
+        "rooms_left_state",
+        "invite_state",
+        "knock_state",
+        "left_state",
+        "user_membership",
+        "once_joined",
+        "is_joined",
+        "is_knocked",
+        "is_invited",
+        "is_left",
+        "delete_room_join_counts"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/state_cache/update.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 4,
+      "functions": [
+        "update_membership",
+        "update_joined_count",
+        "forget",
+        "mark_as_once_joined"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/state_cache/via.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 3,
+      "functions": [
+        "add_servers_invite_via",
+        "servers_route_via",
+        "servers_invite_via"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/state_compressor/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 14,
+      "functions": [
+        "build",
+        "memory_usage",
+        "clear_cache",
+        "name",
+        "load_shortstatehash_info",
+        "cache_shortstatehash_info",
+        "new_shortstatehash_info",
+        "compress_state_events",
+        "compress_state_event",
+        "save_state_from_diff",
+        "save_state",
+        "get_statediff",
+        "save_statediff",
+        "compressed_state_size"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/threads/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 4,
+      "functions": [
+        "build",
+        "name",
+        "add_to_thread",
+        "threads_until"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/timeline/append.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 3,
+      "functions": [
+        "append_pdu",
+        "append_pdu_effects",
+        "append_pdu_json"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/timeline/backfill.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 3,
+      "functions": [
+        "backfill_if_required",
+        "backfill_pdu",
+        "prepend_backfill_pdu"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/timeline/build.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 2,
+      "functions": [
+        "build_and_append_pdu",
+        "check_pdu_for_admin_room"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/timeline/create.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 1,
+      "functions": [
+        "create_hash_and_sign_event"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/timeline/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 39,
+      "functions": [
+        "build",
+        "memory_usage",
+        "name",
+        "replace_pdu",
+        "add_pdu_outlier",
+        "first_pdu_in_room",
+        "latest_pdu_in_room",
+        "first_item_in_room",
+        "latest_item_in_room",
+        "prev_shortstatehash",
+        "next_shortstatehash",
+        "get_shortstatehash",
+        "prev_timeline_count",
+        "next_timeline_count",
+        "last_timeline_count",
+        "all_pdus",
+        "pdus",
+        "pdus_rev",
+        "each_pdu",
+        "count_to_id",
+        "pdu_count_to_id",
+        "get_pdu_from_shorteventid",
+        "get_pdu",
+        "get_outlier_pdu",
+        "get_non_outlier_pdu",
+        "get_pdu_from_id",
+        "get_pdu_json",
+        "get_outlier_pdu_json",
+        "get_non_outlier_pdu_json",
+        "get_pdu_json_from_id",
+        "pdu_exists",
+        "non_outlier_pdu_exists",
+        "outlier_pdu_exists",
+        "get_pdu_count",
+        "get_shorteventid_from_pdu_id",
+        "get_event_id_from_pdu_id",
+        "get_pdu_id_from_shorteventid",
+        "get_pdu_id",
+        "delete_pdus"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/timeline/redact.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 1,
+      "functions": [
+        "redact_pdu"
+      ]
+    },
+    {
+      "rust_path": "service/rooms/typing/mod.rs",
+      "crate": "service",
+      "module": "rooms",
+      "function_count": 9,
+      "functions": [
+        "build",
+        "name",
+        "typing_add",
+        "typing_remove",
+        "wait_for_update",
+        "typings_maintain",
+        "last_typing_update",
+        "typing_users_for_user",
+        "federation_send"
+      ]
+    },
+    {
+      "rust_path": "service/sending/data.rs",
+      "crate": "service",
+      "module": "sending",
+      "function_count": 5,
+      "functions": [
+        "active_requests",
+        "active_requests_for",
+        "queued_requests",
+        "get_latest_educount",
+        "parse_servercurrentevent"
+      ]
+    },
+    {
+      "rust_path": "service/sending/dest.rs",
+      "crate": "service",
+      "module": "sending",
+      "function_count": 0,
+      "functions": []
+    },
+    {
+      "rust_path": "service/sending/mod.rs",
+      "crate": "service",
+      "module": "sending",
+      "function_count": 17,
+      "functions": [
+        "build",
+        "worker",
+        "interrupt",
+        "name",
+        "unconstrained",
+        "send_pdu_push",
+        "send_pdu_appservice",
+        "send_pdu_room",
+        "send_pdu_servers",
+        "send_edu_server",
+        "send_edu_room",
+        "send_edu_servers",
+        "flush_room",
+        "flush_servers",
+        "cleanup_events",
+        "dispatch",
+        "num_senders"
+      ]
+    },
+    {
+      "rust_path": "service/sending/sender.rs",
+      "crate": "service",
+      "module": "sending",
+      "function_count": 25,
+      "functions": [
+        "work_loop",
+        "handle_response",
+        "handle_response_err",
+        "handle_response_ok",
+        "handle_request",
+        "finish_responses",
+        "startup_netburst",
+        "select_events",
+        "select_events_current",
+        "select_edus",
+        "select_edus_device_changes",
+        "select_edus_receipts",
+        "select_edus_receipts_room",
+        "select_edus_presence",
+        "send_events",
+        "send_events_dest_appservice",
+        "send_events_dest_push",
+        "schedule_flush_suppressed_for_pushkey",
+        "schedule_flush_suppressed_for_user",
+        "enqueue_suppressed_push_events",
+        "flush_suppressed_rooms",
+        "flush_suppressed_for_pushkey",
+        "flush_suppressed_for_user",
+        "pushing_suppressed",
+        "send_events_dest_federation"
+      ]
+    },
+    {
+      "rust_path": "service/server_keys/acquire.rs",
+      "crate": "service",
+      "module": "server_keys",
+      "function_count": 8,
+      "functions": [
+        "acquire_events_pubkeys",
+        "acquire_pubkeys",
+        "acquire_locals",
+        "acquire_origins",
+        "acquire_origin",
+        "acquire_notary",
+        "acquire_notary_result",
+        "keys_count"
+      ]
+    },
+    {
+      "rust_path": "service/server_keys/get.rs",
+      "crate": "service",
+      "module": "server_keys",
+      "function_count": 6,
+      "functions": [
+        "get_event_keys",
+        "get_pubkeys",
+        "get_pubkeys_for",
+        "get_verify_key",
+        "get_verify_key_from_notaries",
+        "get_verify_key_from_origin"
+      ]
+    },
+    {
+      "rust_path": "service/server_keys/keypair.rs",
+      "crate": "service",
+      "module": "server_keys",
+      "function_count": 3,
+      "functions": [
+        "load",
+        "create",
+        "remove"
+      ]
+    },
+    {
+      "rust_path": "service/server_keys/mod.rs",
+      "crate": "service",
+      "module": "server_keys",
+      "function_count": 14,
+      "functions": [
+        "build",
+        "name",
+        "keypair",
+        "active_key_id",
+        "active_verify_key",
+        "add_signing_keys",
+        "required_keys_exist",
+        "verify_key_exists",
+        "verify_keys_for",
+        "signing_keys_for",
+        "minimum_valid_ts",
+        "merge_old_keys",
+        "extract_key",
+        "key_exists"
+      ]
+    },
+    {
+      "rust_path": "service/server_keys/request.rs",
+      "crate": "service",
+      "module": "server_keys",
+      "function_count": 2,
+      "functions": [
+        "notary_request",
+        "server_request"
+      ]
+    },
+    {
+      "rust_path": "service/server_keys/sign.rs",
+      "crate": "service",
+      "module": "server_keys",
+      "function_count": 5,
+      "functions": [
+        "gen_id_hash_and_sign_event",
+        "gen_id_hash_and_sign_event_v1",
+        "gen_id_hash_and_sign_event_v3",
+        "hash_and_sign_event",
+        "sign_json"
+      ]
+    },
+    {
+      "rust_path": "service/server_keys/verify.rs",
+      "crate": "service",
+      "module": "server_keys",
+      "function_count": 4,
+      "functions": [
+        "validate_and_add_event_id",
+        "validate_and_add_event_id_no_fetch",
+        "verify_event",
+        "verify_json"
+      ]
+    },
+    {
+      "rust_path": "service/service.rs",
+      "crate": "service",
+      "module": "service.rs",
+      "function_count": 7,
+      "functions": [
+        "build",
+        "worker",
+        "interrupt",
+        "clear_cache",
+        "memory_usage",
+        "name",
+        "unconstrained"
+      ]
+    },
+    {
+      "rust_path": "service/services.rs",
+      "crate": "service",
+      "module": "services.rs",
+      "function_count": 7,
+      "functions": [
+        "build",
+        "fmt",
+        "start",
+        "stop",
+        "poll",
+        "clear_cache",
+        "memory_usage"
+      ]
+    },
+    {
+      "rust_path": "service/sync/mod.rs",
+      "crate": "service",
+      "module": "sync",
+      "function_count": 27,
+      "functions": [
+        "build",
+        "name",
+        "clear_connections",
+        "drop_connection",
+        "load_or_init_connection",
+        "load_connection",
+        "get_loaded_connection",
+        "list_loaded_connections",
+        "list_stored_connections",
+        "is_connection_loaded",
+        "is_connection_stored",
+        "into_connection_key",
+        "store",
+        "update_rooms_prologue",
+        "update_rooms_epilogue",
+        "update_cache",
+        "update_cache_lists",
+        "update_cache_list",
+        "update_cache_subscriptions",
+        "update_cache_extensions",
+        "update_cache_account_data",
+        "update_cache_receipts",
+        "update_cache_typing",
+        "update_cache_to_device",
+        "update_cache_e2ee",
+        "list_or_sticky",
+        "some_or_sticky"
+      ]
+    },
+    {
+      "rust_path": "service/sync/watch.rs",
+      "crate": "service",
+      "module": "sync",
+      "function_count": 1,
+      "functions": [
+        "watch"
+      ]
+    },
+    {
+      "rust_path": "service/transaction_ids/mod.rs",
+      "crate": "service",
+      "module": "transaction_ids",
+      "function_count": 4,
+      "functions": [
+        "build",
+        "name",
+        "add_txnid",
+        "existing_txnid"
+      ]
+    },
+    {
+      "rust_path": "service/uiaa/mod.rs",
+      "crate": "service",
+      "module": "uiaa",
+      "function_count": 8,
+      "functions": [
+        "build",
+        "name",
+        "create",
+        "try_auth",
+        "set_uiaa_request",
+        "get_uiaa_request",
+        "update_uiaa_session",
+        "get_uiaa_session"
+      ]
+    },
+    {
+      "rust_path": "service/users/dehydrated_device.rs",
+      "crate": "service",
+      "module": "users",
+      "function_count": 3,
+      "functions": [
+        "set_dehydrated_device",
+        "get_dehydrated_device_id",
+        "get_dehydrated_device"
+      ]
+    },
+    {
+      "rust_path": "service/users/device.rs",
+      "crate": "service",
+      "module": "users",
+      "function_count": 23,
+      "functions": [
+        "create_device",
+        "remove_device",
+        "all_device_ids",
+        "find_from_token",
+        "remove_tokens",
+        "set_access_token",
+        "remove_access_token",
+        "get_access_token",
+        "generate_access_token",
+        "set_refresh_token",
+        "remove_refresh_token",
+        "get_refresh_token",
+        "generate_refresh_token",
+        "add_to_device_event",
+        "get_to_device_events",
+        "remove_to_device_events",
+        "update_device_last_seen",
+        "put_device_metadata",
+        "get_device_metadata",
+        "device_exists",
+        "get_devicelist_version",
+        "all_devices_metadata",
+        "increment"
+      ]
+    },
+    {
+      "rust_path": "service/users/keys.rs",
+      "crate": "service",
+      "module": "users",
+      "function_count": 20,
+      "functions": [
+        "add_one_time_keys",
+        "add_one_time_key",
+        "last_one_time_keys_update",
+        "take_one_time_key",
+        "count_one_time_keys",
+        "prune_one_time_keys",
+        "add_device_keys",
+        "add_cross_signing_keys",
+        "sign_key",
+        "keys_changed",
+        "room_keys_changed",
+        "keys_changed_user_or_room",
+        "mark_device_key_update",
+        "get_device_keys",
+        "get_key",
+        "get_master_key",
+        "get_self_signing_key",
+        "get_user_signing_key",
+        "parse_master_key",
+        "clean_signatures"
+      ]
+    },
+    {
+      "rust_path": "service/users/ldap.rs",
+      "crate": "service",
+      "module": "users",
+      "function_count": 2,
+      "functions": [
+        "search_ldap",
+        "auth_ldap"
+      ]
+    },
+    {
+      "rust_path": "service/users/mod.rs",
+      "crate": "service",
+      "module": "users",
+      "function_count": 25,
+      "functions": [
+        "build",
+        "name",
+        "user_is_ignored",
+        "is_admin",
+        "create",
+        "deactivate_account",
+        "exists",
+        "is_deactivated",
+        "is_active",
+        "is_active_local",
+        "count",
+        "stream",
+        "list_local_users",
+        "origin",
+        "password_hash",
+        "set_password",
+        "create_filter",
+        "get_filter",
+        "create_openid_token",
+        "find_from_openid_token",
+        "create_login_token",
+        "find_from_login_token",
+        "search_ldap",
+        "auth_ldap",
+        "update_all_rooms"
+      ]
+    },
+    {
+      "rust_path": "service/users/profile.rs",
+      "crate": "service",
+      "module": "users",
+      "function_count": 13,
+      "functions": [
+        "update_displayname",
+        "set_displayname",
+        "displayname",
+        "update_avatar_url",
+        "set_avatar_url",
+        "avatar_url",
+        "set_blurhash",
+        "blurhash",
+        "set_timezone",
+        "timezone",
+        "all_profile_keys",
+        "set_profile_key",
+        "profile_key"
+      ]
+    },
+    {
+      "rust_path": "service/users/register.rs",
+      "crate": "service",
+      "module": "users",
+      "function_count": 1,
+      "functions": [
+        "full_register"
+      ]
+    }
+  ]
+}

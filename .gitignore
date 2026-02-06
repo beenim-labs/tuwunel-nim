@@ -1,0 +1,11 @@
+# Nim
+nimcache/
+*.exe
+*.pdb
+
+# Build outputs
+build/
+dist/
+
+# Local artifacts
+*.log

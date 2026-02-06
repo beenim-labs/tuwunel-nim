@@ -1,0 +1,26 @@
+{
+  "baseline": {
+    "rust_root": "/Users/martin/GitHub/beenim/tuwunel",
+    "rust_commit": "90d4bda70bf0396c38292a175f7debc2d8069109",
+    "generated_at_utc": "2026-02-06T11:21:02+00:00",
+    "policy": "baseline-frozen"
+  },
+  "totals": {
+    "rust_function_total": 2820,
+    "route_total": 207,
+    "config_field_total": 308,
+    "db_column_family_total": 103
+  },
+  "route_counts": {
+    "client_ruma_routes": 149,
+    "server_ruma_routes": 29,
+    "manual_routes": 29,
+    "total": 207
+  },
+  "complement_counts": {
+    "pass": 494,
+    "fail": 267,
+    "skip": 16,
+    "total": 777
+  }
+}

@@ -1,0 +1,733 @@
+{
+  "source": "src/database/maps.rs",
+  "column_family_count": 103,
+  "column_families": [
+    "alias_roomid",
+    "alias_userid",
+    "aliasid_alias",
+    "authchainkey_authchain",
+    "backupid_algorithm",
+    "backupid_etag",
+    "backupkeyid_backup",
+    "bannedroomids",
+    "disabledroomids",
+    "eventid_originalpdu",
+    "eventid_outlierpdu",
+    "eventid_pduid",
+    "eventid_shorteventid",
+    "global",
+    "id_appserviceregistrations",
+    "keychangeid_userid",
+    "keyid_key",
+    "lazyloadedids",
+    "logintoken_expiresatuserid",
+    "mediaid_file",
+    "mediaid_user",
+    "oauthid_session",
+    "oauthuniqid_oauthid",
+    "onetimekeyid_onetimekeys",
+    "openidtoken_expiresatuserid",
+    "pduid_pdu",
+    "publicroomids",
+    "pushkey_deviceid",
+    "presenceid_presence",
+    "readreceiptid_readreceipt",
+    "referencedevents",
+    "registrationtoken_info",
+    "roomid_knockedcount",
+    "roomid_invitedcount",
+    "roomid_inviteviaservers",
+    "roomid_joinedcount",
+    "roomid_maxremotepowerlevel",
+    "roomid_pduleaves",
+    "roomid_shortroomid",
+    "roomid_shortstatehash",
+    "roomserverids",
+    "roomsynctoken_shortstatehash",
+    "roomuserdataid_accountdata",
+    "roomuserid_invitecount",
+    "roomuserid_joined",
+    "roomuserid_lastprivatereadupdate",
+    "roomuserid_lastnotificationread",
+    "roomuserid_leftcount",
+    "roomuserid_knockedcount",
+    "roomuserid_privateread",
+    "roomuseroncejoinedids",
+    "roomusertype_roomuserdataid",
+    "senderkey_pusher",
+    "server_signingkeys",
+    "servercurrentevent_data",
+    "servername_destination",
+    "servername_educount",
+    "servername_override",
+    "servernameevent_data",
+    "serverroomids",
+    "shorteventid_authchain",
+    "shorteventid_eventid",
+    "shorteventid_shortstatehash",
+    "shortstatehash_statediff",
+    "shortstatekey_statekey",
+    "softfailedeventids",
+    "statehash_shortstatehash",
+    "statekey_shortstatekey",
+    "threadid_userids",
+    "timeredacted_eventid",
+    "todeviceid_events",
+    "tofrom_relation",
+    "token_userdeviceid",
+    "tokenids",
+    "url_previews",
+    "userdeviceid_metadata",
+    "userdeviceconnid_conn",
+    "userdeviceid_refresh",
+    "userdeviceid_token",
+    "userdevicesessionid_uiaainfo",
+    "userdevicetxnid_response",
+    "userfilterid_filter",
+    "userid_avatarurl",
+    "userid_blurhash",
+    "userid_dehydrateddevice",
+    "userid_devicelistversion",
+    "userid_displayname",
+    "userid_lastonetimekeyupdate",
+    "userid_masterkeyid",
+    "userid_oauthid",
+    "userid_origin",
+    "userid_password",
+    "userid_presenceid",
+    "userid_selfsigningkeyid",
+    "userid_usersigningkeyid",
+    "useridcount_notification",
+    "useridprofilekey_value",
+    "userroomid_highlightcount",
+    "userroomid_invitestate",
+    "userroomid_joined",
+    "userroomid_leftstate",
+    "userroomid_knockedstate",
+    "userroomid_notificationcount"
+  ],
+  "descriptor_count": 103,
+  "required_column_family_count": 102,
+  "dropped_column_family_count": 1,
+  "descriptors": [
+    {
+      "name": "alias_roomid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "alias_userid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "aliasid_alias",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "authchainkey_authchain",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "backupid_algorithm",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "backupid_etag",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "backupkeyid_backup",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "bannedroomids",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "disabledroomids",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "eventid_originalpdu",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "eventid_outlierpdu",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "eventid_pduid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "eventid_shorteventid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "global",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "id_appserviceregistrations",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "keychangeid_userid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "keyid_key",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "lazyloadedids",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "logintoken_expiresatuserid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "mediaid_file",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "mediaid_user",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "oauthid_session",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "oauthuniqid_oauthid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "onetimekeyid_onetimekeys",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "openidtoken_expiresatuserid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "pduid_pdu",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "publicroomids",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "pushkey_deviceid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "presenceid_presence",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "readreceiptid_readreceipt",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "referencedevents",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "registrationtoken_info",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomid_knockedcount",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomid_invitedcount",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomid_inviteviaservers",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomid_joinedcount",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomid_maxremotepowerlevel",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomid_pduleaves",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomid_shortroomid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomid_shortstatehash",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomserverids",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomsynctoken_shortstatehash",
+      "dropped": true,
+      "ignored": false
+    },
+    {
+      "name": "roomuserdataid_accountdata",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomuserid_invitecount",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomuserid_joined",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomuserid_lastprivatereadupdate",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomuserid_lastnotificationread",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomuserid_leftcount",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomuserid_knockedcount",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomuserid_privateread",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomuseroncejoinedids",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "roomusertype_roomuserdataid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "senderkey_pusher",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "server_signingkeys",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "servercurrentevent_data",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "servername_destination",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "servername_educount",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "servername_override",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "servernameevent_data",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "serverroomids",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "shorteventid_authchain",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "shorteventid_eventid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "shorteventid_shortstatehash",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "shortstatehash_statediff",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "shortstatekey_statekey",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "softfailedeventids",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "statehash_shortstatehash",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "statekey_shortstatekey",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "threadid_userids",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "timeredacted_eventid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "todeviceid_events",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "tofrom_relation",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "token_userdeviceid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "tokenids",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "url_previews",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userdeviceid_metadata",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userdeviceconnid_conn",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userdeviceid_refresh",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userdeviceid_token",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userdevicesessionid_uiaainfo",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userdevicetxnid_response",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userfilterid_filter",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_avatarurl",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_blurhash",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_dehydrateddevice",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_devicelistversion",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_displayname",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_lastonetimekeyupdate",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_masterkeyid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_oauthid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_origin",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_password",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_presenceid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_selfsigningkeyid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userid_usersigningkeyid",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "useridcount_notification",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "useridprofilekey_value",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userroomid_highlightcount",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userroomid_invitestate",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userroomid_joined",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userroomid_leftstate",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userroomid_knockedstate",
+      "dropped": false,
+      "ignored": false
+    },
+    {
+      "name": "userroomid_notificationcount",
+      "dropped": false,
+      "ignored": false
+    }
+  ],
+  "required_column_families": [
+    "alias_roomid",
+    "alias_userid",
+    "aliasid_alias",
+    "authchainkey_authchain",
+    "backupid_algorithm",
+    "backupid_etag",
+    "backupkeyid_backup",
+    "bannedroomids",
+    "disabledroomids",
+    "eventid_originalpdu",
+    "eventid_outlierpdu",
+    "eventid_pduid",
+    "eventid_shorteventid",
+    "global",
+    "id_appserviceregistrations",
+    "keychangeid_userid",
+    "keyid_key",
+    "lazyloadedids",
+    "logintoken_expiresatuserid",
+    "mediaid_file",
+    "mediaid_user",
+    "oauthid_session",
+    "oauthuniqid_oauthid",
+    "onetimekeyid_onetimekeys",
+    "openidtoken_expiresatuserid",
+    "pduid_pdu",
+    "publicroomids",
+    "pushkey_deviceid",
+    "presenceid_presence",
+    "readreceiptid_readreceipt",
+    "referencedevents",
+    "registrationtoken_info",
+    "roomid_knockedcount",
+    "roomid_invitedcount",
+    "roomid_inviteviaservers",
+    "roomid_joinedcount",
+    "roomid_maxremotepowerlevel",
+    "roomid_pduleaves",
+    "roomid_shortroomid",
+    "roomid_shortstatehash",
+    "roomserverids",
+    "roomuserdataid_accountdata",
+    "roomuserid_invitecount",
+    "roomuserid_joined",
+    "roomuserid_lastprivatereadupdate",
+    "roomuserid_lastnotificationread",
+    "roomuserid_leftcount",
+    "roomuserid_knockedcount",
+    "roomuserid_privateread",
+    "roomuseroncejoinedids",
+    "roomusertype_roomuserdataid",
+    "senderkey_pusher",
+    "server_signingkeys",
+    "servercurrentevent_data",
+    "servername_destination",
+    "servername_educount",
+    "servername_override",
+    "servernameevent_data",
+    "serverroomids",
+    "shorteventid_authchain",
+    "shorteventid_eventid",
+    "shorteventid_shortstatehash",
+    "shortstatehash_statediff",
+    "shortstatekey_statekey",
+    "softfailedeventids",
+    "statehash_shortstatehash",
+    "statekey_shortstatekey",
+    "threadid_userids",
+    "timeredacted_eventid",
+    "todeviceid_events",
+    "tofrom_relation",
+    "token_userdeviceid",
+    "tokenids",
+    "url_previews",
+    "userdeviceid_metadata",
+    "userdeviceconnid_conn",
+    "userdeviceid_refresh",
+    "userdeviceid_token",
+    "userdevicesessionid_uiaainfo",
+    "userdevicetxnid_response",
+    "userfilterid_filter",
+    "userid_avatarurl",
+    "userid_blurhash",
+    "userid_dehydrateddevice",
+    "userid_devicelistversion",
+    "userid_displayname",
+    "userid_lastonetimekeyupdate",
+    "userid_masterkeyid",
+    "userid_oauthid",
+    "userid_origin",
+    "userid_password",
+    "userid_presenceid",
+    "userid_selfsigningkeyid",
+    "userid_usersigningkeyid",
+    "useridcount_notification",
+    "useridprofilekey_value",
+    "userroomid_highlightcount",
+    "userroomid_invitestate",
+    "userroomid_joined",
+    "userroomid_leftstate",
+    "userroomid_knockedstate",
+    "userroomid_notificationcount"
+  ]
+}

@@ -1,0 +1,3119 @@
+{
+  "source": "tests/complement/results.jsonl",
+  "counts": {
+    "pass": 494,
+    "fail": 267,
+    "skip": 16,
+    "total": 777
+  },
+  "tests": [
+    {
+      "action": "pass",
+      "test": "TestACLs"
+    },
+    {
+      "action": "pass",
+      "test": "TestAddAccountData"
+    },
+    {
+      "action": "pass",
+      "test": "TestAddAccountData/Can_add_global_account_data"
+    },
+    {
+      "action": "pass",
+      "test": "TestAddAccountData/Can_add_room_account_data"
+    },
+    {
+      "action": "fail",
+      "test": "TestArchivedRoomsHistory"
+    },
+    {
+      "action": "fail",
+      "test": "TestArchivedRoomsHistory/timeline_has_events"
+    },
+    {
+      "action": "pass",
+      "test": "TestArchivedRoomsHistory/timeline_has_events/incremental_sync"
+    },
+    {
+      "action": "fail",
+      "test": "TestArchivedRoomsHistory/timeline_has_events/initial_sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestArchivedRoomsHistory/timeline_is_empty"
+    },
+    {
+      "action": "skip",
+      "test": "TestArchivedRoomsHistory/timeline_is_empty/incremental_sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestArchivedRoomsHistory/timeline_is_empty/initial_sync"
+    },
+    {
+      "action": "fail",
+      "test": "TestAsyncUpload"
+    },
+    {
+      "action": "fail",
+      "test": "TestAsyncUpload/Cannot_upload_to_a_media_ID_that_has_already_been_uploaded_to"
+    },
+    {
+      "action": "fail",
+      "test": "TestAsyncUpload/Create_media"
+    },
+    {
+      "action": "fail",
+      "test": "TestAsyncUpload/Download_media"
+    },
+    {
+      "action": "fail",
+      "test": "TestAsyncUpload/Download_media_over__matrix/client/v1/media/download"
+    },
+    {
+      "action": "fail",
+      "test": "TestAsyncUpload/Not_yet_uploaded"
+    },
+    {
+      "action": "fail",
+      "test": "TestAsyncUpload/Upload_media"
+    },
+    {
+      "action": "pass",
+      "test": "TestAvatarUrlUpdate"
+    },
+    {
+      "action": "pass",
+      "test": "TestBannedUserCannotSendJoin"
+    },
+    {
+      "action": "skip",
+      "test": "TestCanRegisterAdmin"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotKickLeftUser"
+    },
+    {
+      "action": "fail",
+      "test": "TestCannotKickNonPresentUser"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendKnockViaSendKnockInMSC3787Room"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendKnockViaSendKnockInMSC3787Room/event_with_mismatched_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendKnockViaSendKnockInMSC3787Room/invite_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendKnockViaSendKnockInMSC3787Room/join_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendKnockViaSendKnockInMSC3787Room/leave_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendKnockViaSendKnockInMSC3787Room/non-state_membership_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendKnockViaSendKnockInMSC3787Room/regular_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV1"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV1/event_with_mismatched_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV1/invite_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV1/knock_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV1/leave_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV1/non-state_membership_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV1/regular_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV2"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV2/event_with_mismatched_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV2/invite_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV2/knock_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV2/leave_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV2/non-state_membership_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonJoinViaSendJoinV2/regular_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonKnockViaSendKnock"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonKnockViaSendKnock/event_with_mismatched_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonKnockViaSendKnock/invite_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonKnockViaSendKnock/join_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonKnockViaSendKnock/leave_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonKnockViaSendKnock/non-state_membership_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonKnockViaSendKnock/regular_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV1"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV1/event_with_mismatched_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV1/invite_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV1/join_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV1/knock_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV1/non-state_membership_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV1/regular_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV2"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV2/event_with_mismatched_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV2/invite_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV2/join_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV2/knock_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV2/non-state_membership_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestCannotSendNonLeaveViaSendLeaveV2/regular_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestChangePassword"
+    },
+    {
+      "action": "pass",
+      "test": "TestChangePassword/After_changing_password,_a_different_session_no_longer_works_by_default"
+    },
+    {
+      "action": "pass",
+      "test": "TestChangePassword/After_changing_password,_can't_log_in_with_old_password"
+    },
+    {
+      "action": "pass",
+      "test": "TestChangePassword/After_changing_password,_can_log_in_with_new_password"
+    },
+    {
+      "action": "pass",
+      "test": "TestChangePassword/After_changing_password,_different_sessions_can_optionally_be_kept"
+    },
+    {
+      "action": "pass",
+      "test": "TestChangePassword/After_changing_password,_existing_session_still_works"
+    },
+    {
+      "action": "pass",
+      "test": "TestChangePasswordPushers"
+    },
+    {
+      "action": "pass",
+      "test": "TestChangePasswordPushers/Pushers_created_with_a_different_access_token_are_deleted_on_password_change"
+    },
+    {
+      "action": "pass",
+      "test": "TestChangePasswordPushers/Pushers_created_with_the_same_access_token_are_not_deleted_on_password_change"
+    },
+    {
+      "action": "fail",
+      "test": "TestClientSpacesSummary"
+    },
+    {
+      "action": "pass",
+      "test": "TestClientSpacesSummary/max_depth"
+    },
+    {
+      "action": "fail",
+      "test": "TestClientSpacesSummary/pagination"
+    },
+    {
+      "action": "fail",
+      "test": "TestClientSpacesSummary/query_whole_graph"
+    },
+    {
+      "action": "fail",
+      "test": "TestClientSpacesSummary/redact_link"
+    },
+    {
+      "action": "fail",
+      "test": "TestClientSpacesSummary/suggested_only"
+    },
+    {
+      "action": "fail",
+      "test": "TestClientSpacesSummaryJoinRules"
+    },
+    {
+      "action": "pass",
+      "test": "TestContent"
+    },
+    {
+      "action": "pass",
+      "test": "TestContentCSAPIMediaV1"
+    },
+    {
+      "action": "pass",
+      "test": "TestContentMediaV1"
+    },
+    {
+      "action": "fail",
+      "test": "TestCorruptedAuthChain"
+    },
+    {
+      "action": "pass",
+      "test": "TestCumulativeJoinLeaveJoinSync"
+    },
+    {
+      "action": "pass",
+      "test": "TestDeactivateAccount"
+    },
+    {
+      "action": "pass",
+      "test": "TestDeactivateAccount/After_deactivating_account,_can't_log_in_with_password"
+    },
+    {
+      "action": "pass",
+      "test": "TestDeactivateAccount/Can't_deactivate_account_with_wrong_password"
+    },
+    {
+      "action": "pass",
+      "test": "TestDeactivateAccount/Can_deactivate_account"
+    },
+    {
+      "action": "pass",
+      "test": "TestDeactivateAccount/Password_flow_is_available"
+    },
+    {
+      "action": "fail",
+      "test": "TestDelayedEvents"
+    },
+    {
+      "action": "pass",
+      "test": "TestDelayedEvents/cannot_update_a_delayed_event_with_an_invalid_action"
+    },
+    {
+      "action": "pass",
+      "test": "TestDelayedEvents/cannot_update_a_delayed_event_without_an_action"
+    },
+    {
+      "action": "fail",
+      "test": "TestDelayedEvents/delayed_event_lookups_are_authenticated"
+    },
+    {
+      "action": "fail",
+      "test": "TestDelayedEvents/delayed_events_are_empty_on_startup"
+    },
+    {
+      "action": "fail",
+      "test": "TestDelayedEvents/delayed_message_events_are_sent_on_timeout"
+    },
+    {
+      "action": "skip",
+      "test": "TestDelayedEvents/delayed_state_events_are_kept_on_server_restart"
+    },
+    {
+      "action": "fail",
+      "test": "TestDelayedEvents/delayed_state_events_are_sent_on_timeout"
+    },
+    {
+      "action": "fail",
+      "test": "TestDelayedEvents/delayed_state_events_can_be_cancelled"
+    },
+    {
+      "action": "fail",
+      "test": "TestDelayedEvents/delayed_state_events_can_be_restarted"
+    },
+    {
+      "action": "fail",
+      "test": "TestDelayedEvents/delayed_state_events_can_be_sent_on_request"
+    },
+    {
+      "action": "fail",
+      "test": "TestDelayedEvents/delayed_state_is_cancelled_by_new_state_from_another_user"
+    },
+    {
+      "action": "fail",
+      "test": "TestDelayedEvents/delayed_state_is_not_cancelled_by_new_state_from_the_same_user"
+    },
+    {
+      "action": "pass",
+      "test": "TestDelayedEvents/parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestDelayedEvents/parallel/cannot_cancel_a_delayed_event_without_a_matching_delay_ID"
+    },
+    {
+      "action": "pass",
+      "test": "TestDelayedEvents/parallel/cannot_restart_a_delayed_event_without_a_matching_delay_ID"
+    },
+    {
+      "action": "pass",
+      "test": "TestDelayedEvents/parallel/cannot_send_a_delayed_event_without_a_matching_delay_ID"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeletingDeviceRemovesDeviceLocalNotificationSettings"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeletingDeviceRemovesDeviceLocalNotificationSettings/Deleting_a_user's_device_should_delete_any_local_notification_settings_entries_from_their_account_data"
+    },
+    {
+      "action": "pass",
+      "test": "TestDemotingUsersViaUsersDefault"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListUpdates"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListUpdates/when_joining_a_room_with_a_local_user"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListUpdates/when_joining_a_room_with_a_remote_user"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListUpdates/when_leaving_a_room_with_a_local_user"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListUpdates/when_leaving_a_room_with_a_remote_user"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListUpdates/when_local_user_joins_a_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListUpdates/when_local_user_leaves_a_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListUpdates/when_local_user_rejoins_a_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListUpdates/when_remote_user_joins_a_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListUpdates/when_remote_user_leaves_a_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListUpdates/when_remote_user_rejoins_a_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListsUpdateOverFederation"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListsUpdateOverFederation/good_connectivity"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListsUpdateOverFederation/interrupted_connectivity"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListsUpdateOverFederation/stopped_server"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceListsUpdateOverFederationOnRoomJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceManagement"
+    },
+    {
+      "action": "fail",
+      "test": "TestDeviceManagement/DELETE_/device/{deviceId}"
+    },
+    {
+      "action": "pass",
+      "test": "TestDeviceManagement/DELETE_/device/{deviceId}_requires_UI_auth_user_to_match_device_owner"
+    },
+    {
+      "action": "pass",
+      "test": "TestDeviceManagement/GET_/device/{deviceId}"
+    },
+    {
+      "action": "pass",
+      "test": "TestDeviceManagement/GET_/device/{deviceId}_gives_a_404_for_unknown_devices"
+    },
+    {
+      "action": "pass",
+      "test": "TestDeviceManagement/GET_/devices"
+    },
+    {
+      "action": "pass",
+      "test": "TestDeviceManagement/PUT_/device/{deviceId}_gives_a_404_for_unknown_devices"
+    },
+    {
+      "action": "pass",
+      "test": "TestDeviceManagement/PUT_/device/{deviceId}_updates_device_fields"
+    },
+    {
+      "action": "pass",
+      "test": "TestDisplayNameUpdate"
+    },
+    {
+      "action": "pass",
+      "test": "TestE2EKeyBackupReplaceRoomKeyRules"
+    },
+    {
+      "action": "pass",
+      "test": "TestE2EKeyBackupReplaceRoomKeyRules/parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestE2EKeyBackupReplaceRoomKeyRules/parallel/{isVerified:false_firstMessageIndex:10_forwardedCount:5}"
+    },
+    {
+      "action": "pass",
+      "test": "TestE2EKeyBackupReplaceRoomKeyRules/parallel/{isVerified:true_firstMessageIndex:10_forwardedCount:5}"
+    },
+    {
+      "action": "pass",
+      "test": "TestEvent"
+    },
+    {
+      "action": "pass",
+      "test": "TestEvent/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestEvent/Parallel/Large_Event"
+    },
+    {
+      "action": "pass",
+      "test": "TestEvent/Parallel/Large_State_Event"
+    },
+    {
+      "action": "pass",
+      "test": "TestEventAuth"
+    },
+    {
+      "action": "pass",
+      "test": "TestEventAuth/returns_auth_events_for_the_requested_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestEventAuth/returns_the_auth_chain_for_the_requested_event"
+    },
+    {
+      "action": "fail",
+      "test": "TestEventRelationships"
+    },
+    {
+      "action": "fail",
+      "test": "TestFederatedClientSpaces"
+    },
+    {
+      "action": "fail",
+      "test": "TestFederatedEventRelationships"
+    },
+    {
+      "action": "fail",
+      "test": "TestFederationKeyUploadQuery"
+    },
+    {
+      "action": "fail",
+      "test": "TestFederationKeyUploadQuery/Can_claim_remote_one_time_key_using_POST"
+    },
+    {
+      "action": "fail",
+      "test": "TestFederationKeyUploadQuery/Can_query_remote_device_keys_using_POST"
+    },
+    {
+      "action": "pass",
+      "test": "TestFederationRedactSendsWithoutEvent"
+    },
+    {
+      "action": "pass",
+      "test": "TestFederationRejectInvite"
+    },
+    {
+      "action": "fail",
+      "test": "TestFederationRoomsInvite"
+    },
+    {
+      "action": "fail",
+      "test": "TestFederationRoomsInvite/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestFederationRoomsInvite/Parallel/Invited_user_can_reject_invite_over_federation"
+    },
+    {
+      "action": "pass",
+      "test": "TestFederationRoomsInvite/Parallel/Invited_user_can_reject_invite_over_federation_for_empty_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestFederationRoomsInvite/Parallel/Invited_user_can_reject_invite_over_federation_several_times"
+    },
+    {
+      "action": "pass",
+      "test": "TestFederationRoomsInvite/Parallel/Invited_user_has_'is_direct'_flag_in_prev_content_after_joining"
+    },
+    {
+      "action": "fail",
+      "test": "TestFederationRoomsInvite/Parallel/Inviter_user_can_rescind_invite_over_federation"
+    },
+    {
+      "action": "pass",
+      "test": "TestFederationRoomsInvite/Parallel/Non-invitee_user_cannot_rescind_invite_over_federation"
+    },
+    {
+      "action": "pass",
+      "test": "TestFederationRoomsInvite/Parallel/Remote_invited_user_can_join_the_room_when_homeserver_is_already_participating_in_the_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestFederationRoomsInvite/Parallel/Remote_invited_user_can_reject_invite_when_homeserver_is_already_participating_in_the_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestFederationRoomsInvite/Parallel/Remote_invited_user_can_see_room_metadata"
+    },
+    {
+      "action": "pass",
+      "test": "TestFederationThumbnail"
+    },
+    {
+      "action": "pass",
+      "test": "TestFetchEvent"
+    },
+    {
+      "action": "fail",
+      "test": "TestFetchEventNonWorldReadable"
+    },
+    {
+      "action": "pass",
+      "test": "TestFetchEventWorldReadable"
+    },
+    {
+      "action": "fail",
+      "test": "TestFetchHistoricalInvitedEventFromBeforeInvite"
+    },
+    {
+      "action": "pass",
+      "test": "TestFetchHistoricalInvitedEventFromBetweenInvite"
+    },
+    {
+      "action": "fail",
+      "test": "TestFetchHistoricalJoinedEventDenied"
+    },
+    {
+      "action": "pass",
+      "test": "TestFetchHistoricalSharedEvent"
+    },
+    {
+      "action": "pass",
+      "test": "TestFetchMessagesFromNonExistentRoom"
+    },
+    {
+      "action": "pass",
+      "test": "TestFilter"
+    },
+    {
+      "action": "fail",
+      "test": "TestFilterMessagesByRelType"
+    },
+    {
+      "action": "pass",
+      "test": "TestGappedSyncLeaveSection"
+    },
+    {
+      "action": "pass",
+      "test": "TestGetFilteredRoomMembers"
+    },
+    {
+      "action": "pass",
+      "test": "TestGetFilteredRoomMembers/membership/join"
+    },
+    {
+      "action": "pass",
+      "test": "TestGetFilteredRoomMembers/membership/leave"
+    },
+    {
+      "action": "pass",
+      "test": "TestGetFilteredRoomMembers/not_membership"
+    },
+    {
+      "action": "fail",
+      "test": "TestGetMissingEventsGapFilling"
+    },
+    {
+      "action": "pass",
+      "test": "TestGetRoomMembers"
+    },
+    {
+      "action": "fail",
+      "test": "TestGetRoomMembersAtPoint"
+    },
+    {
+      "action": "fail",
+      "test": "TestInboundCanReturnMissingEvents"
+    },
+    {
+      "action": "fail",
+      "test": "TestInboundCanReturnMissingEvents/Inbound_federation_can_return_missing_events_for_invited_visibility"
+    },
+    {
+      "action": "fail",
+      "test": "TestInboundCanReturnMissingEvents/Inbound_federation_can_return_missing_events_for_joined_visibility"
+    },
+    {
+      "action": "fail",
+      "test": "TestInboundCanReturnMissingEvents/Inbound_federation_can_return_missing_events_for_shared_visibility"
+    },
+    {
+      "action": "fail",
+      "test": "TestInboundCanReturnMissingEvents/Inbound_federation_can_return_missing_events_for_world_readable_visibility"
+    },
+    {
+      "action": "pass",
+      "test": "TestInboundFederationKeys"
+    },
+    {
+      "action": "pass",
+      "test": "TestInboundFederationProfile"
+    },
+    {
+      "action": "pass",
+      "test": "TestInboundFederationProfile/Inbound_federation_can_query_profile_data"
+    },
+    {
+      "action": "pass",
+      "test": "TestInboundFederationProfile/Non-numeric_ports_in_server_names_are_rejected"
+    },
+    {
+      "action": "fail",
+      "test": "TestInboundFederationRejectsEventsWithRejectedAuthEvents"
+    },
+    {
+      "action": "fail",
+      "test": "TestInviteFiltering"
+    },
+    {
+      "action": "fail",
+      "test": "TestInviteFiltering/Can_allow_a_user_from_a_blocked_server"
+    },
+    {
+      "action": "fail",
+      "test": "TestInviteFiltering/Can_block_a_single_user"
+    },
+    {
+      "action": "fail",
+      "test": "TestInviteFiltering/Can_block_a_user_from_an_allowed_server"
+    },
+    {
+      "action": "fail",
+      "test": "TestInviteFiltering/Can_block_a_whole_server"
+    },
+    {
+      "action": "fail",
+      "test": "TestInviteFiltering/Can_glob_serveral_servers"
+    },
+    {
+      "action": "fail",
+      "test": "TestInviteFiltering/Can_glob_serveral_users"
+    },
+    {
+      "action": "fail",
+      "test": "TestInviteFiltering/Can_ignore_a_single_user"
+    },
+    {
+      "action": "fail",
+      "test": "TestInviteFiltering/Can_ignore_a_whole_server"
+    },
+    {
+      "action": "pass",
+      "test": "TestInviteFiltering/Can_invite_users_normally_without_any_rules"
+    },
+    {
+      "action": "pass",
+      "test": "TestInviteFiltering/Will_allow_users_when_a_user_appears_in_multiple_fields"
+    },
+    {
+      "action": "pass",
+      "test": "TestInviteFiltering/Will_ignore_null_fields"
+    },
+    {
+      "action": "pass",
+      "test": "TestInviteFromIgnoredUsersDoesNotAppearInSync"
+    },
+    {
+      "action": "pass",
+      "test": "TestIsDirectFlagFederation"
+    },
+    {
+      "action": "pass",
+      "test": "TestIsDirectFlagLocal"
+    },
+    {
+      "action": "pass",
+      "test": "TestJoinFederatedRoomFailOver"
+    },
+    {
+      "action": "fail",
+      "test": "TestJoinFederatedRoomFromApplicationServiceBridgeUser"
+    },
+    {
+      "action": "pass",
+      "test": "TestJoinFederatedRoomWithUnverifiableEvents"
+    },
+    {
+      "action": "pass",
+      "test": "TestJoinFederatedRoomWithUnverifiableEvents//send_join_response_missing_signatures_shouldn't_block_room_join"
+    },
+    {
+      "action": "pass",
+      "test": "TestJoinFederatedRoomWithUnverifiableEvents//send_join_response_with_bad_signatures_shouldn't_block_room_join"
+    },
+    {
+      "action": "pass",
+      "test": "TestJoinFederatedRoomWithUnverifiableEvents//send_join_response_with_state_with_unverifiable_auth_events_shouldn't_block_room_join"
+    },
+    {
+      "action": "pass",
+      "test": "TestJoinFederatedRoomWithUnverifiableEvents//send_join_response_with_unobtainable_keys_shouldn't_block_room_join"
+    },
+    {
+      "action": "pass",
+      "test": "TestJoinViaRoomIDAndServerName"
+    },
+    {
+      "action": "fail",
+      "test": "TestJson"
+    },
+    {
+      "action": "fail",
+      "test": "TestJson/Parallel"
+    },
+    {
+      "action": "fail",
+      "test": "TestJson/Parallel/Invalid_JSON_special_values"
+    },
+    {
+      "action": "fail",
+      "test": "TestJson/Parallel/Invalid_numerical_values"
+    },
+    {
+      "action": "fail",
+      "test": "TestJumpToDateEndpoint"
+    },
+    {
+      "action": "fail",
+      "test": "TestKeyChangesLocal"
+    },
+    {
+      "action": "fail",
+      "test": "TestKeyChangesLocal/New_login_should_create_a_device_lists.changed_entry"
+    },
+    {
+      "action": "fail",
+      "test": "TestKeyClaimOrdering"
+    },
+    {
+      "action": "pass",
+      "test": "TestKeysQueryWithDeviceIDAsObjectFails"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockRoomsInPublicRoomsDirectory"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockRoomsInPublicRoomsDirectoryInMSC3787Room"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/A_user_can_knock_on_a_room_without_a_reason"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/A_user_can_knock_on_a_room_without_a_reason#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/A_user_cannot_knock_on_a_room_they_are_already_in"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/A_user_cannot_knock_on_a_room_they_are_already_in#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/A_user_cannot_knock_on_a_room_they_are_already_invited_to"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/A_user_cannot_knock_on_a_room_they_are_already_invited_to#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/A_user_in_the_room_can_accept_a_knock"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/A_user_in_the_room_can_accept_a_knock#01"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/A_user_in_the_room_can_reject_a_knock"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/A_user_in_the_room_can_reject_a_knock#01"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/A_user_that_has_already_knocked_is_allowed_to_knock_again_on_the_same_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/A_user_that_has_already_knocked_is_allowed_to_knock_again_on_the_same_room#01"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/A_user_that_has_knocked_on_a_local_room_can_rescind_their_knock_and_then_knock_again"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/A_user_that_is_banned_from_a_room_cannot_knock_on_it"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/A_user_that_is_banned_from_a_room_cannot_knock_on_it#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/Attempting_to_join_a_room_with_join_rule_'knock'_without_an_invite_should_fail"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/Attempting_to_join_a_room_with_join_rule_'knock'_without_an_invite_should_fail#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/Change_the_join_rule_of_a_room_from_'invite'_to_'knock'"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnocking/Change_the_join_rule_of_a_room_from_'invite'_to_'knock'#01"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/Knocking_on_a_room_with_a_join_rule_other_than_'knock'_should_fail"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/Knocking_on_a_room_with_a_join_rule_other_than_'knock'_should_fail#01"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/Knocking_on_a_room_with_join_rule_'knock'_should_succeed"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/Knocking_on_a_room_with_join_rule_'knock'_should_succeed#01"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/Users_in_the_room_see_a_user's_membership_update_when_they_knock"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnocking/Users_in_the_room_see_a_user's_membership_update_when_they_knock#01"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnockingInMSC3787Room"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnockingInMSC3787Room/A_user_can_knock_on_a_room_without_a_reason"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnockingInMSC3787Room/A_user_can_knock_on_a_room_without_a_reason#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/A_user_cannot_knock_on_a_room_they_are_already_in"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/A_user_cannot_knock_on_a_room_they_are_already_in#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/A_user_cannot_knock_on_a_room_they_are_already_invited_to"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/A_user_cannot_knock_on_a_room_they_are_already_invited_to#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/A_user_in_the_room_can_accept_a_knock"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/A_user_in_the_room_can_accept_a_knock#01"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnockingInMSC3787Room/A_user_in_the_room_can_reject_a_knock"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnockingInMSC3787Room/A_user_in_the_room_can_reject_a_knock#01"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnockingInMSC3787Room/A_user_that_has_already_knocked_is_allowed_to_knock_again_on_the_same_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnockingInMSC3787Room/A_user_that_has_already_knocked_is_allowed_to_knock_again_on_the_same_room#01"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnockingInMSC3787Room/A_user_that_has_knocked_on_a_local_room_can_rescind_their_knock_and_then_knock_again"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/A_user_that_is_banned_from_a_room_cannot_knock_on_it"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/A_user_that_is_banned_from_a_room_cannot_knock_on_it#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/Attempting_to_join_a_room_with_join_rule_'knock'_without_an_invite_should_fail"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/Attempting_to_join_a_room_with_join_rule_'knock'_without_an_invite_should_fail#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/Change_the_join_rule_of_a_room_from_'invite'_to_'knock'"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/Change_the_join_rule_of_a_room_from_'invite'_to_'knock'#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/Knocking_on_a_room_with_a_join_rule_other_than_'knock'_should_fail"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/Knocking_on_a_room_with_a_join_rule_other_than_'knock'_should_fail#01"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnockingInMSC3787Room/Knocking_on_a_room_with_join_rule_'knock'_should_succeed"
+    },
+    {
+      "action": "fail",
+      "test": "TestKnockingInMSC3787Room/Knocking_on_a_room_with_join_rule_'knock'_should_succeed#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/Users_in_the_room_see_a_user's_membership_update_when_they_knock"
+    },
+    {
+      "action": "pass",
+      "test": "TestKnockingInMSC3787Room/Users_in_the_room_see_a_user's_membership_update_when_they_knock#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestLeakyTyping"
+    },
+    {
+      "action": "pass",
+      "test": "TestLeaveEventInviteRejection"
+    },
+    {
+      "action": "fail",
+      "test": "TestLeaveEventVisibility"
+    },
+    {
+      "action": "fail",
+      "test": "TestLeftRoomFixture"
+    },
+    {
+      "action": "fail",
+      "test": "TestLeftRoomFixture/Can_get_'m.room.name'_state_for_a_departed_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestLeftRoomFixture/Can_get_rooms/{roomId}/members_for_a_departed_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestLeftRoomFixture/Can_get_rooms/{roomId}/messages_for_a_departed_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestLeftRoomFixture/Can_get_rooms/{roomId}/state_for_a_departed_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestLeftRoomFixture/Getting_messages_going_forward_is_limited_for_a_departed_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestLocalPngThumbnail"
+    },
+    {
+      "action": "pass",
+      "test": "TestLocalPngThumbnail/test_/_matrix/client/v1/media_endpoint"
+    },
+    {
+      "action": "pass",
+      "test": "TestLocalPngThumbnail/test_/_matrix/media/v3_endpoint"
+    },
+    {
+      "action": "pass",
+      "test": "TestLogin"
+    },
+    {
+      "action": "pass",
+      "test": "TestLogin/parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestLogin/parallel/GET_/login_yields_a_set_of_flows"
+    },
+    {
+      "action": "pass",
+      "test": "TestLogin/parallel/Login_with_uppercase_username_works_and_GET_/whoami_afterwards_also"
+    },
+    {
+      "action": "pass",
+      "test": "TestLogout"
+    },
+    {
+      "action": "pass",
+      "test": "TestLogout/Can_logout_all_devices"
+    },
+    {
+      "action": "pass",
+      "test": "TestLogout/Can_logout_current_device"
+    },
+    {
+      "action": "pass",
+      "test": "TestLogout/Request_to_logout_with_invalid_an_access_token_is_rejected"
+    },
+    {
+      "action": "pass",
+      "test": "TestLogout/Request_to_logout_without_an_access_token_is_rejected"
+    },
+    {
+      "action": "fail",
+      "test": "TestMSC3757OwnedState"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC3967"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators/PL_event_is_missing_creator_in_users_map"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators/admin_with_>PL100_cannot_kick_creator"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators/admin_with_>PL100_sorts_after_the_room_creator_for_state_resolution"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators/creator_can_kick_admin"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators/creator_can_kick_admin_above_PL100"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators/creator_can_kick_admin_at_JSON_max_value"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators/creator_cannot_set_self_in_PL_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators/m.room.tombstone_needs_PL150_in_the_PL_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators/power_level_cannot_be_set_beyond_max_canonical_JSON_int"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators/power_level_content_override_can_be_set"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators/power_level_content_override_cannot_set_the_room_creator"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators_Additional"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators_AdditionalCreatorsAndInvited"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators_AdditionalValidation"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators_AdditionalValidation/additional_creators_are_valid"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators_AdditionalValidation/additional_creators_elements_aren't_strings"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators_AdditionalValidation/additional_creators_elements_aren't_user_ID_strings"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators_AdditionalValidation/additional_creators_elements_aren't_valid_user_ID_strings_(domain)"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators_AdditionalValidation/additional_creators_isn't_an_array"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators_InvitedAreCreators"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4289PrivilegedRoomCreators_Upgrades"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4291RoomIDAsHashOfCreateEvent"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4291RoomIDAsHashOfCreateEvent_AuthEventsOmitsCreateEvent"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4291RoomIDAsHashOfCreateEvent_CannotSendCreateEvent"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4291RoomIDAsHashOfCreateEvent_RoomIDIsOnCreateEvent"
+    },
+    {
+      "action": "fail",
+      "test": "TestMSC4291RoomIDAsHashOfCreateEvent_UpgradedRooms"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4297StateResolutionV2_1_includes_conflicted_subgraph"
+    },
+    {
+      "action": "pass",
+      "test": "TestMSC4297StateResolutionV2_1_starts_from_empty_set"
+    },
+    {
+      "action": "fail",
+      "test": "TestMSC4308ThreadSubscriptionsSlidingSync"
+    },
+    {
+      "action": "fail",
+      "test": "TestMSC4308ThreadSubscriptionsSlidingSync/Receives_thread_subscriptions_over_incremental_sliding_sync"
+    },
+    {
+      "action": "fail",
+      "test": "TestMSC4308ThreadSubscriptionsSlidingSync/Receives_thread_subscriptions_over_initial_sliding_sync"
+    },
+    {
+      "action": "fail",
+      "test": "TestMSC4311FullCreateEventOnStrippedState"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaConfig"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/ASCII"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/ASCII/Can_download_file_'ascii'"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/ASCII/Can_download_file_'ascii'_over_/_matrix/client/v1/media/download"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/ASCII/Can_download_file_'name;with;semicolons'"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/ASCII/Can_download_file_'name;with;semicolons'_over_/_matrix/client/v1/media/download"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/ASCII/Can_download_file_'name_with_spaces'"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/ASCII/Can_download_file_'name_with_spaces'_over_/_matrix/client/v1/media/download"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/ASCII/Can_download_specifying_a_different_ASCII_file_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/ASCII/Can_download_specifying_a_different_ASCII_file_name_over__matrix/client/v1/media/download"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/ASCII/Can_upload_with_ASCII_file_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Can_download_specifying_a_different_Unicode_file_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Can_download_specifying_a_different_Unicode_file_name_over__matrix/client/v1/media/download"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Can_download_with_Unicode_file_name_locally"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Can_download_with_Unicode_file_name_locally_over__matrix/client/v1/media/download"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Can_download_with_Unicode_file_name_over_federation"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Can_download_with_Unicode_file_name_over_federation_via__matrix/client/v1/media/download"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Can_upload_with_Unicode_file_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Will_serve_safe_media_types_as_inline"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Will_serve_safe_media_types_as_inline_via__matrix/client/v1/media/download"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Will_serve_safe_media_types_with_parameters_as_inline"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Will_serve_safe_media_types_with_parameters_as_inline_via__matrix/client/v1/media/download"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Will_serve_unsafe_media_types_as_attachments"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaFilenames/Parallel/Unicode/Will_serve_unsafe_media_types_as_attachments_via__matrix/client/v1/media/download"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaWithoutFileName"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaWithoutFileName/parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaWithoutFileName/parallel/Can_download_without_a_file_name_locally"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaWithoutFileName/parallel/Can_download_without_a_file_name_over_federation"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaWithoutFileName/parallel/Can_upload_without_a_file_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaWithoutFileNameCSMediaV1"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaWithoutFileNameCSMediaV1/parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaWithoutFileNameCSMediaV1/parallel/Can_download_without_a_file_name_locally"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaWithoutFileNameCSMediaV1/parallel/Can_download_without_a_file_name_over_federation"
+    },
+    {
+      "action": "pass",
+      "test": "TestMediaWithoutFileNameCSMediaV1/parallel/Can_upload_without_a_file_name"
+    },
+    {
+      "action": "fail",
+      "test": "TestMembersLocal"
+    },
+    {
+      "action": "fail",
+      "test": "TestMembersLocal/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestMembersLocal/Parallel/Existing_members_see_new_members'_join_events"
+    },
+    {
+      "action": "fail",
+      "test": "TestMembersLocal/Parallel/Existing_members_see_new_members'_presence_(in_incremental_sync)"
+    },
+    {
+      "action": "pass",
+      "test": "TestMembersLocal/Parallel/Existing_members_see_new_members'_presence_(in_initial_sync)"
+    },
+    {
+      "action": "pass",
+      "test": "TestMembersLocal/Parallel/New_room_members_see_their_own_join_event"
+    },
+    {
+      "action": "fail",
+      "test": "TestMembershipOnEvents"
+    },
+    {
+      "action": "fail",
+      "test": "TestMessagesOverFederation"
+    },
+    {
+      "action": "pass",
+      "test": "TestMessagesOverFederation/Visible_shared_history_after_joining_new_room_(backfill)"
+    },
+    {
+      "action": "pass",
+      "test": "TestMessagesOverFederation/Visible_shared_history_after_joining_new_room_(backfill)/`messagesRequestLimit`_is_greater_than_the_number_of_messages_backfilled_(in_Synapse,_100)"
+    },
+    {
+      "action": "pass",
+      "test": "TestMessagesOverFederation/Visible_shared_history_after_joining_new_room_(backfill)/`messagesRequestLimit`_is_lower_than_the_number_of_messages_backfilled_(assumed)"
+    },
+    {
+      "action": "fail",
+      "test": "TestMessagesOverFederation/Visible_shared_history_after_re-joining_room_(backfill)"
+    },
+    {
+      "action": "fail",
+      "test": "TestMessagesOverFederation/Visible_shared_history_after_re-joining_room_(backfill)/`messagesRequestLimit`_is_lower_than_the_number_of_messages_backfilled_(assumed)"
+    },
+    {
+      "action": "pass",
+      "test": "TestNetworkPartitionOrdering"
+    },
+    {
+      "action": "pass",
+      "test": "TestNotPresentUserCannotBanOthers"
+    },
+    {
+      "action": "pass",
+      "test": "TestOlderLeftRoomsNotInLeaveSection"
+    },
+    {
+      "action": "fail",
+      "test": "TestOutboundFederationEventSizeGetMissingEvents"
+    },
+    {
+      "action": "fail",
+      "test": "TestOutboundFederationIgnoresMissingEventWithBadJSONForRoomVersion6"
+    },
+    {
+      "action": "pass",
+      "test": "TestOutboundFederationProfile"
+    },
+    {
+      "action": "pass",
+      "test": "TestOutboundFederationProfile/Outbound_federation_can_query_profile_data"
+    },
+    {
+      "action": "pass",
+      "test": "TestOutboundFederationSend"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanFastJoinDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanLazyLoadingSyncDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanReceiveDeviceListUpdateDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanReceiveEventsDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanReceiveEventsWithHalfMissingGrandparentsDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanReceiveEventsWithHalfMissingParentsDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanReceiveEventsWithMissingParentsDuringPartialStateJoin"
+    },
+    {
+      "action": "skip",
+      "test": "TestPartialStateJoin/CanReceivePresenceDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanReceiveReceiptDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanReceiveSigningKeyUpdateDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanReceiveToDeviceDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanReceiveTypingDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/CanSendEventsDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Can_change_display_name_during_partial_state_join"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Device_list_tracking"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Device_list_tracking/Device_list_no_longer_tracked_for_user_incorrectly_believed_to_be_in_room"
+    },
+    {
+      "action": "skip",
+      "test": "TestPartialStateJoin/Device_list_tracking/Device_list_no_longer_tracked_when_failing_to_complete_partial_state_join"
+    },
+    {
+      "action": "skip",
+      "test": "TestPartialStateJoin/Device_list_tracking/Device_list_no_longer_tracked_when_leaving_partial_state_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Device_list_tracking/Device_list_no_longer_tracked_when_new_member_leaves_partial_state_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Device_list_tracking/Device_list_tracked_for_new_members_in_partial_state_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Device_list_tracking/Device_list_tracking_for_pre-existing_members_in_partial_state_room"
+    },
+    {
+      "action": "skip",
+      "test": "TestPartialStateJoin/Device_list_tracking/Device_list_tracking_for_user_incorrectly_believed_to_be_in_room_when_they_join_another_shared_room_before_partial_state_join_completes"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Device_list_tracking/Device_list_tracking_for_user_incorrectly_believed_to_be_in_room_when_they_rejoin_after_partial_state_join_completes"
+    },
+    {
+      "action": "skip",
+      "test": "TestPartialStateJoin/Device_list_tracking/Device_list_tracking_for_user_incorrectly_believed_to_be_in_room_when_they_rejoin_before_partial_state_join_completes"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Device_list_tracking/Device_list_tracking_when_pre-existing_members_in_partial_state_room_join_another_shared_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/EagerIncrementalSyncDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/EagerInitialSyncDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/EagerLongPollingSyncWokenWhenResyncCompletes"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/GappySyncAfterPartialStateSynced"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Lazy-loading_gappy_sync_includes_remote_memberships_during_partial_state_join"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Lazy-loading_incremental_sync_includes_remote_memberships_during_partial_state_join"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Lazy-loading_initial_sync_includes_remote_memberships_during_partial_state_join"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Leave_during_resync"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Leave_during_resync/can_be_triggered_by_remote_ban"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Leave_during_resync/can_be_triggered_by_remote_kick"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Leave_during_resync/does_not_wait_for_resync"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Leave_during_resync/is_seen_after_the_resync"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Leave_during_resync/succeeds,_then_another_user_can_join_without_resync_completing"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Leave_during_resync/succeeds,_then_rejoin_succeeds_without_resync_completing"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Leave_during_resync/works_after_a_second_partial_join"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/MembersRequestBlocksDuringPartialStateJoin"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Outgoing_device_list_updates"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Outgoing_device_list_updates/Device_list_updates_no_longer_reach_departed_servers_after_partial_state_join_completes"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Outgoing_device_list_updates/Device_list_updates_reach_all_servers_in_partial_state_rooms"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Outgoing_device_list_updates/Device_list_updates_reach_incorrectly_absent_servers_once_partial_state_join_completes"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Outgoing_device_list_updates/Device_list_updates_reach_incorrectly_absent_servers_once_partial_state_join_completes_even_though_remote_server_left_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Outgoing_device_list_updates/Device_list_updates_reach_incorrectly_kicked_servers_once_partial_state_join_completes"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Outgoing_device_list_updates/Device_list_updates_reach_incorrectly_kicked_servers_once_partial_state_join_completes_even_though_remote_server_left_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Outgoing_device_list_updates/Device_list_updates_reach_newly_joined_servers_in_partial_state_rooms"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/PartialStateJoinContinuesAfterRestart"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/PartialStateJoinSyncsUsingOtherHomeservers"
+    },
+    {
+      "action": "skip",
+      "test": "TestPartialStateJoin/Purge_during_resync"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Rejected_events_remain_rejected_after_resync"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Rejects_make_join_during_partial_join"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Rejects_make_knock_during_partial_join"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Rejects_send_join_during_partial_join"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Rejects_send_knock_during_partial_join"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Resync_completes_even_when_events_arrive_before_their_prev_events"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Room_aliases_can_be_added_and_deleted_during_a_resync"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/Room_aliases_can_be_added_and_queried_during_a_resync"
+    },
+    {
+      "action": "skip",
+      "test": "TestPartialStateJoin/Room_stats_are_correctly_updated_once_state_re-sync_completes"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/State_accepted_incorrectly"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/State_rejected_incorrectly"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/User_directory_is_correctly_updated_once_state_re-sync_completes"
+    },
+    {
+      "action": "fail",
+      "test": "TestPartialStateJoin/joined_members_blocks_during_partial_state_join"
+    },
+    {
+      "action": "fail",
+      "test": "TestPollsLocalPushRules"
+    },
+    {
+      "action": "fail",
+      "test": "TestPollsLocalPushRules/Polls_push_rules_are_correctly_presented_to_the_client"
+    },
+    {
+      "action": "pass",
+      "test": "TestPowerLevels"
+    },
+    {
+      "action": "pass",
+      "test": "TestPowerLevels/GET_/rooms/:room_id/state/m.room.power_levels_can_fetch_levels"
+    },
+    {
+      "action": "pass",
+      "test": "TestPowerLevels/PUT_/rooms/:room_id/state/m.room.power_levels_can_set_levels"
+    },
+    {
+      "action": "pass",
+      "test": "TestPowerLevels/PUT_power_levels_should_not_explode_if_the_old_power_levels_were_empty"
+    },
+    {
+      "action": "fail",
+      "test": "TestPresence"
+    },
+    {
+      "action": "fail",
+      "test": "TestPresence/GET_/presence/:user_id/status_fetches_initial_status"
+    },
+    {
+      "action": "pass",
+      "test": "TestPresence/PUT_/presence/:user_id/status_updates_my_presence"
+    },
+    {
+      "action": "pass",
+      "test": "TestPresence/Presence_can_be_set_from_sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestPresence/Presence_changes_are_reported_to_local_room_members"
+    },
+    {
+      "action": "pass",
+      "test": "TestPresence/Presence_changes_to_UNAVAILABLE_are_reported_to_local_room_members"
+    },
+    {
+      "action": "pass",
+      "test": "TestPresenceSyncDifferentRooms"
+    },
+    {
+      "action": "pass",
+      "test": "TestProfileAvatarURL"
+    },
+    {
+      "action": "pass",
+      "test": "TestProfileAvatarURL/GET_/profile/:user_id/avatar_url_publicly_accessible"
+    },
+    {
+      "action": "pass",
+      "test": "TestProfileAvatarURL/PUT_/profile/:user_id/avatar_url_sets_my_avatar"
+    },
+    {
+      "action": "pass",
+      "test": "TestProfileDisplayName"
+    },
+    {
+      "action": "pass",
+      "test": "TestProfileDisplayName/GET_/profile/:user_id/displayname_publicly_accessible"
+    },
+    {
+      "action": "pass",
+      "test": "TestProfileDisplayName/PUT_/profile/:user_id/displayname_sets_my_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestPublicRooms"
+    },
+    {
+      "action": "pass",
+      "test": "TestPublicRooms/Can_search_public_room_list"
+    },
+    {
+      "action": "pass",
+      "test": "TestPublicRooms/Name/topic_keys_are_correct"
+    },
+    {
+      "action": "pass",
+      "test": "TestPublicRooms/Name/topic_keys_are_correct/Creating_room_with_alias_publicroom_with_unicode_chars_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestPublicRooms/Name/topic_keys_are_correct/Creating_room_with_alias_publicroom_with_unicode_chars_name_topic"
+    },
+    {
+      "action": "pass",
+      "test": "TestPublicRooms/Name/topic_keys_are_correct/Creating_room_with_alias_publicroom_with_unicode_chars_topic"
+    },
+    {
+      "action": "pass",
+      "test": "TestPublicRooms/Name/topic_keys_are_correct/Creating_room_with_alias_publicroomalias_no_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestPublicRooms/Name/topic_keys_are_correct/Creating_room_with_alias_publicroomalias_with_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestPublicRooms/Name/topic_keys_are_correct/Creating_room_with_alias_publicroomalias_with_name_topic"
+    },
+    {
+      "action": "pass",
+      "test": "TestPublicRooms/Name/topic_keys_are_correct/Creating_room_with_alias_publicroomalias_with_topic"
+    },
+    {
+      "action": "pass",
+      "test": "TestPushRuleCacheHealth"
+    },
+    {
+      "action": "fail",
+      "test": "TestPushRuleRoomUpgrade"
+    },
+    {
+      "action": "fail",
+      "test": "TestPushRuleRoomUpgrade/parallel"
+    },
+    {
+      "action": "fail",
+      "test": "TestPushRuleRoomUpgrade/parallel/joining_a_remote_manually_upgraded_room_carries_over_existing_push_rules"
+    },
+    {
+      "action": "fail",
+      "test": "TestPushRuleRoomUpgrade/parallel/joining_a_remote_upgraded_room_carries_over_existing_push_rules"
+    },
+    {
+      "action": "fail",
+      "test": "TestPushRuleRoomUpgrade/parallel/manually_upgrading_a_room_carries_over_existing_push_rules_for_local_users"
+    },
+    {
+      "action": "fail",
+      "test": "TestPushRuleRoomUpgrade/parallel/upgrading_a_room_carries_over_existing_push_rules_for_local_users"
+    },
+    {
+      "action": "pass",
+      "test": "TestPushSync"
+    },
+    {
+      "action": "pass",
+      "test": "TestPushSync/Adding_a_push_rule_wakes_up_an_incremental_/sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestPushSync/Disabling_a_push_rule_wakes_up_an_incremental_/sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestPushSync/Enabling_a_push_rule_wakes_up_an_incremental_/sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestPushSync/Push_rules_come_down_in_an_initial_/sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestPushSync/Setting_actions_for_a_push_rule_wakes_up_an_incremental_/sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/GET_/register/available_returns_M_INVALID_USERNAME_for_invalid_user_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/GET_/register/available_returns_M_USER_IN_USE_for_registered_user_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/GET_/register/available_returns_available_for_unregistered_user_name"
+    },
+    {
+      "action": "skip",
+      "test": "TestRegistration/parallel/POST_/_synapse/admin/v1/register_admin_with_shared_secret"
+    },
+    {
+      "action": "skip",
+      "test": "TestRegistration/parallel/POST_/_synapse/admin/v1/register_with_shared_secret"
+    },
+    {
+      "action": "skip",
+      "test": "TestRegistration/parallel/POST_/_synapse/admin/v1/register_with_shared_secret_disallows_symbols"
+    },
+    {
+      "action": "skip",
+      "test": "TestRegistration/parallel/POST_/_synapse/admin/v1/register_with_shared_secret_downcases_capitals"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_allows_registration_of_usernames_with_"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_allows_registration_of_usernames_with_/-"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_allows_registration_of_usernames_with_/."
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_allows_registration_of_usernames_with_//"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_allows_registration_of_usernames_with_/3"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_allows_registration_of_usernames_with_/="
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_allows_registration_of_usernames_with_/_"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_allows_registration_of_usernames_with_/q"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_can_create_a_user"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_downcases_capitals_in_usernames"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_rejects_if_user_already_exists"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_rejects_usernames_with_special_characters"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_/register_returns_the_same_device_id_as_that_in_the_request"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/POST_{}_returns_a_set_of_flows"
+    },
+    {
+      "action": "pass",
+      "test": "TestRegistration/parallel/Registration_accepts_non-ascii_passwords"
+    },
+    {
+      "action": "pass",
+      "test": "TestRelations"
+    },
+    {
+      "action": "pass",
+      "test": "TestRelationsPagination"
+    },
+    {
+      "action": "pass",
+      "test": "TestRelationsPaginationSync"
+    },
+    {
+      "action": "pass",
+      "test": "TestRemoteAliasRequestsUnderstandUnicode"
+    },
+    {
+      "action": "pass",
+      "test": "TestRemotePngThumbnail"
+    },
+    {
+      "action": "pass",
+      "test": "TestRemotePngThumbnail/test_/_matrix/client/v1/media_endpoint"
+    },
+    {
+      "action": "pass",
+      "test": "TestRemotePngThumbnail/test_/_matrix/media/v3_endpoint"
+    },
+    {
+      "action": "fail",
+      "test": "TestRemotePresence"
+    },
+    {
+      "action": "fail",
+      "test": "TestRemotePresence/Presence_changes_are_also_reported_to_remote_room_members"
+    },
+    {
+      "action": "fail",
+      "test": "TestRemotePresence/Presence_changes_to_UNAVAILABLE_are_reported_to_remote_room_members"
+    },
+    {
+      "action": "pass",
+      "test": "TestRemoteTyping"
+    },
+    {
+      "action": "fail",
+      "test": "TestRemovingAccountData"
+    },
+    {
+      "action": "fail",
+      "test": "TestRemovingAccountData/Deleting_a_user's_account_data_via_DELETE_works"
+    },
+    {
+      "action": "fail",
+      "test": "TestRemovingAccountData/Deleting_a_user's_account_data_via_PUT_works"
+    },
+    {
+      "action": "fail",
+      "test": "TestRemovingAccountData/Deleting_a_user's_room_account_data_via_PUT_works"
+    },
+    {
+      "action": "fail",
+      "test": "TestRemovingAccountData/Deleting_a_user's_room_data_via_DELETE_works"
+    },
+    {
+      "action": "fail",
+      "test": "TestRequestEncodingFails"
+    },
+    {
+      "action": "fail",
+      "test": "TestRequestEncodingFails/POST_rejects_invalid_utf-8_in_JSON"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsLocalJoin"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsLocalJoin/Join_should_fail_initially"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsLocalJoin/Join_should_fail_when_left_allowed_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsLocalJoin/Join_should_fail_with_mangled_join_rules"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsLocalJoin/Join_should_succeed_when_invited"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsLocalJoin/Join_should_succeed_when_joined_to_allowed_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsLocalJoinInMSC3787Room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsLocalJoinInMSC3787Room/Join_should_fail_initially"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsLocalJoinInMSC3787Room/Join_should_fail_when_left_allowed_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsLocalJoinInMSC3787Room/Join_should_fail_with_mangled_join_rules"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsLocalJoinInMSC3787Room/Join_should_succeed_when_invited"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsLocalJoinInMSC3787Room/Join_should_succeed_when_joined_to_allowed_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsRemoteJoin"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsRemoteJoin/Join_should_fail_initially"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsRemoteJoin/Join_should_fail_when_left_allowed_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsRemoteJoin/Join_should_fail_with_mangled_join_rules"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsRemoteJoin/Join_should_succeed_when_invited"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsRemoteJoin/Join_should_succeed_when_joined_to_allowed_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsRemoteJoinFailOver"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsRemoteJoinFailOverInMSC3787Room"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsRemoteJoinInMSC3787Room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsRemoteJoinInMSC3787Room/Join_should_fail_initially"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsRemoteJoinInMSC3787Room/Join_should_fail_when_left_allowed_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsRemoteJoinInMSC3787Room/Join_should_fail_with_mangled_join_rules"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsRemoteJoinInMSC3787Room/Join_should_succeed_when_invited"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsRemoteJoinInMSC3787Room/Join_should_succeed_when_joined_to_allowed_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsRemoteJoinLocalUser"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsRemoteJoinLocalUserInMSC3787Room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRestrictedRoomsSpacesSummaryFederation"
+    },
+    {
+      "action": "fail",
+      "test": "TestRestrictedRoomsSpacesSummaryLocal"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomAlias"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomAlias/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomAlias/Parallel/GET_/rooms/:room_id/aliases_lists_aliases"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomAlias/Parallel/Only_room_members_can_list_aliases_of_a_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomAlias/Parallel/PUT_/directory/room/:room_alias_creates_alias"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomAlias/Parallel/Room_aliases_can_contain_Unicode"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCanonicalAlias"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCanonicalAlias/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCanonicalAlias/Parallel/m.room.canonical_alias_accepts_present_aliases"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCanonicalAlias/Parallel/m.room.canonical_alias_accepts_present_alt_aliases"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCanonicalAlias/Parallel/m.room.canonical_alias_rejects_alias_pointing_to_different_local_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCanonicalAlias/Parallel/m.room.canonical_alias_rejects_alt_alias_pointing_to_different_local_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCanonicalAlias/Parallel/m.room.canonical_alias_rejects_invalid_aliases"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCanonicalAlias/Parallel/m.room.canonical_alias_rejects_invalid_aliases#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCanonicalAlias/Parallel/m.room.canonical_alias_rejects_missing_aliases"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCanonicalAlias/Parallel/m.room.canonical_alias_rejects_missing_aliases#01"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCanonicalAlias/Parallel/m.room.canonical_alias_setting_rejects_deleted_aliases"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/Can_/sync_newly_created_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/POST_/createRoom_creates_a_room_with_the_given_version"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/POST_/createRoom_ignores_attempts_to_set_the_room_version_via_creation_content"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/POST_/createRoom_makes_a_private_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/POST_/createRoom_makes_a_private_room_with_invites"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/POST_/createRoom_makes_a_public_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/POST_/createRoom_makes_a_room_with_a_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/POST_/createRoom_makes_a_room_with_a_topic"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/POST_/createRoom_makes_a_room_with_a_topic_via_initial_state"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/POST_/createRoom_rejects_attempts_to_create_rooms_with_numeric_versions"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/POST_/createRoom_rejects_attempts_to_create_rooms_with_unknown_versions"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreate/Parallel/Rooms_can_be_created_with_an_initial_invite_list_(SYN-205)"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomCreationReportsEventsToMyself"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomCreationReportsEventsToMyself/parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreationReportsEventsToMyself/parallel/Joining_room_twice_is_idempotent"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomCreationReportsEventsToMyself/parallel/Room_creation_reports_m.room.create_to_myself"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreationReportsEventsToMyself/parallel/Room_creation_reports_m.room.member_to_myself"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomCreationReportsEventsToMyself/parallel/Setting_room_topic_reports_m.room.topic_to_myself"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomCreationReportsEventsToMyself/parallel/Setting_state_twice_is_idempotent"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomDeleteAlias"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomDeleteAlias/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomDeleteAlias/Parallel/Alias_creators_can_delete_alias_with_no_ops"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomDeleteAlias/Parallel/Alias_creators_can_delete_canonical_alias_with_no_ops"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomDeleteAlias/Parallel/Can_delete_canonical_alias"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomDeleteAlias/Parallel/Deleting_a_non-existent_alias_should_return_a_404"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomDeleteAlias/Parallel/Regular_users_can_add_and_delete_aliases_in_the_default_room_configuration"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomDeleteAlias/Parallel/Regular_users_can_add_and_delete_aliases_when_m.room.aliases_is_restricted"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomDeleteAlias/Parallel/Users_can't_delete_other's_aliases"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomDeleteAlias/Parallel/Users_with_sufficient_power-level_can_delete_other's_aliases"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomForget"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomForget/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomForget/Parallel/Can't_forget_room_you're_still_in"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomForget/Parallel/Can_forget_room_we_weren't_an_actual_member"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomForget/Parallel/Can_forget_room_you've_been_kicked_from"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomForget/Parallel/Can_re-join_room_if_re-invited"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomForget/Parallel/Forgetting_room_does_not_show_up_in_v2_initial_/sync"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomForget/Parallel/Forgotten_room_messages_cannot_be_paginated"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomForget/Parallel/Leave_for_forgotten_room_shows_up_in_v2_incremental_/sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomImageRoundtrip"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomMembers"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomMembers/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomMembers/Parallel/POST_/join/:room_alias_can_join_a_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomMembers/Parallel/POST_/join/:room_alias_can_join_a_room_with_custom_content"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomMembers/Parallel/POST_/join/:room_id_can_join_a_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomMembers/Parallel/POST_/join/:room_id_can_join_a_room_with_custom_content"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomMembers/Parallel/POST_/rooms/:room_id/ban_can_ban_a_user"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomMembers/Parallel/POST_/rooms/:room_id/invite_can_send_an_invite"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomMembers/Parallel/POST_/rooms/:room_id/join_can_join_a_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomMembers/Parallel/POST_/rooms/:room_id/leave_can_leave_a_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomMembers/Parallel/Test_that_we_can_be_reinvited_to_a_room_we_created"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomMessagesLazyLoading"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomMessagesLazyLoadingLocalUser"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomReadMarkers"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomReceipts"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomReceipts/Receipts_DO_NOT_include_a_`room_id`_field"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameAtJoin"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameAtJoin/Bob_can_find_Alice_by_mxid"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameAtJoin/Bob_can_find_Alice_by_profile_display_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameAtJoin/Eve_can_find_Alice_by_mxid"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameAtJoin/Eve_can_find_Alice_by_profile_display_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameAtJoin/Eve_cannot_find_Alice_by_room-specific_name_that_Eve_is_not_privy_to"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameChange"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameChange/Bob_can_find_Alice_by_mxid"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameChange/Bob_can_find_Alice_by_profile_display_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameChange/Eve_can_find_Alice_by_mxid"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameChange/Eve_can_find_Alice_by_profile_display_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSpecificUsernameChange/Eve_cannot_find_Alice_by_room-specific_name_that_Eve_is_not_privy_to"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomState"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomState/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/GET_/directory/room/:room_alias_yields_room_ID"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/GET_/joined_rooms_lists_newly-created_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestRoomState/Parallel/GET_/rooms/:room_id/joined_members_fetches_my_membership"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/GET_/rooms/:room_id/joined_members_is_forbidden_after_leaving_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/GET_/rooms/:room_id/state/m.room.member/:user_id?format=event_fetches_my_membership_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/GET_/rooms/:room_id/state/m.room.member/:user_id_fetches_my_membership"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/GET_/rooms/:room_id/state/m.room.name_gets_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/GET_/rooms/:room_id/state/m.room.power_levels_fetches_powerlevels"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/GET_/rooms/:room_id/state/m.room.topic_gets_topic"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/GET_/rooms/:room_id/state_fetches_entire_room_state"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/POST_/rooms/:room_id/state/m.room.name_sets_name"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/PUT_/createRoom_with_creation_content"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomState/Parallel/PUT_/rooms/:room_id/state/m.room.topic_sets_topic"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomSummary"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomsInvite"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomsInvite/Parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomsInvite/Parallel/Can_invite_users_to_invite-only_rooms"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomsInvite/Parallel/Invited_user_can_reject_invite"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomsInvite/Parallel/Invited_user_can_reject_invite_for_empty_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomsInvite/Parallel/Invited_user_can_see_room_metadata"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomsInvite/Parallel/Test_that_we_can_be_reinvited_to_a_room_we_created"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomsInvite/Parallel/Uninvited_users_cannot_join_the_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomsInvite/Parallel/Users_cannot_invite_a_user_that_is_already_in_the_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestRoomsInvite/Parallel/Users_cannot_invite_themselves_to_a_room"
+    },
+    {
+      "action": "fail",
+      "test": "TestSearch"
+    },
+    {
+      "action": "fail",
+      "test": "TestSearch/parallel"
+    },
+    {
+      "action": "fail",
+      "test": "TestSearch/parallel/Can_back-paginate_search_results"
+    },
+    {
+      "action": "fail",
+      "test": "TestSearch/parallel/Can_get_context_around_search_results"
+    },
+    {
+      "action": "pass",
+      "test": "TestSearch/parallel/Can_search_for_an_event_by_body"
+    },
+    {
+      "action": "pass",
+      "test": "TestSearch/parallel/Search_results_with_rank_ordering_do_not_include_redacted_events"
+    },
+    {
+      "action": "pass",
+      "test": "TestSearch/parallel/Search_results_with_recent_ordering_do_not_include_redacted_events"
+    },
+    {
+      "action": "pass",
+      "test": "TestSearch/parallel/Search_works_across_an_upgraded_room_and_its_predecessor"
+    },
+    {
+      "action": "fail",
+      "test": "TestSendAndFetchMessage"
+    },
+    {
+      "action": "skip",
+      "test": "TestSendJoinPartialStateResponse"
+    },
+    {
+      "action": "pass",
+      "test": "TestSendMessageWithTxn"
+    },
+    {
+      "action": "pass",
+      "test": "TestServerCapabilities"
+    },
+    {
+      "action": "skip",
+      "test": "TestServerNotices"
+    },
+    {
+      "action": "fail",
+      "test": "TestSync"
+    },
+    {
+      "action": "fail",
+      "test": "TestSync/parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestSync/parallel/Can_sync_a_joined_room"
+    },
+    {
+      "action": "pass",
+      "test": "TestSync/parallel/Device_list_tracking"
+    },
+    {
+      "action": "pass",
+      "test": "TestSync/parallel/Device_list_tracking/User_is_correctly_listed_when_they_leave,_even_when_lazy_loading_is_enabled"
+    },
+    {
+      "action": "pass",
+      "test": "TestSync/parallel/Full_state_sync_includes_joined_rooms"
+    },
+    {
+      "action": "fail",
+      "test": "TestSync/parallel/Get_presence_for_newly_joined_members_in_incremental_sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestSync/parallel/Newly_joined_room_has_correct_timeline_in_incremental_sync"
+    },
+    {
+      "action": "fail",
+      "test": "TestSync/parallel/Newly_joined_room_includes_presence_in_incremental_sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestSync/parallel/Newly_joined_room_is_included_in_an_incremental_sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestSync/parallel/sync_should_succeed_even_if_the_sync_token_points_to_a_redaction_of_an_unknown_event"
+    },
+    {
+      "action": "pass",
+      "test": "TestSyncFilter"
+    },
+    {
+      "action": "pass",
+      "test": "TestSyncFilter/Can_create_filter"
+    },
+    {
+      "action": "pass",
+      "test": "TestSyncFilter/Can_download_filter"
+    },
+    {
+      "action": "pass",
+      "test": "TestSyncLeaveSection"
+    },
+    {
+      "action": "pass",
+      "test": "TestSyncLeaveSection/Left_rooms_appear_in_the_leave_section_of_full_state_sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestSyncLeaveSection/Left_rooms_appear_in_the_leave_section_of_sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestSyncLeaveSection/Newly_left_rooms_appear_in_the_leave_section_of_incremental_sync"
+    },
+    {
+      "action": "pass",
+      "test": "TestSyncOmitsStateChangeOnFilteredEvents"
+    },
+    {
+      "action": "pass",
+      "test": "TestSyncTimelineGap"
+    },
+    {
+      "action": "pass",
+      "test": "TestSyncTimelineGap/full"
+    },
+    {
+      "action": "pass",
+      "test": "TestSyncTimelineGap/incremental"
+    },
+    {
+      "action": "pass",
+      "test": "TestTentativeEventualJoiningAfterRejecting"
+    },
+    {
+      "action": "fail",
+      "test": "TestThreadSubscriptions"
+    },
+    {
+      "action": "fail",
+      "test": "TestThreadSubscriptions/Can_create_automatic_subscription_to_a_thread"
+    },
+    {
+      "action": "fail",
+      "test": "TestThreadSubscriptions/Can_subscribe_to_and_unsubscribe_from_a_thread"
+    },
+    {
+      "action": "fail",
+      "test": "TestThreadSubscriptions/Cannot_use_thread_root_as_automatic_subscription_cause_event"
+    },
+    {
+      "action": "fail",
+      "test": "TestThreadSubscriptions/Error_when_using_invalid_automatic_event_ID"
+    },
+    {
+      "action": "fail",
+      "test": "TestThreadSubscriptions/Manual_subscriptions_overwrite_automatic_subscriptions"
+    },
+    {
+      "action": "pass",
+      "test": "TestThreadSubscriptions/Nonexistent_threads_return_404"
+    },
+    {
+      "action": "fail",
+      "test": "TestThreadSubscriptions/Server-side_automatic_subscription_ordering_conflict"
+    },
+    {
+      "action": "fail",
+      "test": "TestThreadSubscriptions/Unsubscribe_succeeds_even_with_no_subscription"
+    },
+    {
+      "action": "fail",
+      "test": "TestThreadedReceipts"
+    },
+    {
+      "action": "fail",
+      "test": "TestThreadsEndpoint"
+    },
+    {
+      "action": "pass",
+      "test": "TestToDeviceMessages"
+    },
+    {
+      "action": "pass",
+      "test": "TestToDeviceMessagesOverFederation"
+    },
+    {
+      "action": "pass",
+      "test": "TestToDeviceMessagesOverFederation/good_connectivity"
+    },
+    {
+      "action": "pass",
+      "test": "TestTxnIdWithRefreshToken"
+    },
+    {
+      "action": "fail",
+      "test": "TestTxnIdempotency"
+    },
+    {
+      "action": "pass",
+      "test": "TestTxnIdempotencyScopedToDevice"
+    },
+    {
+      "action": "pass",
+      "test": "TestTxnInEvent"
+    },
+    {
+      "action": "pass",
+      "test": "TestTxnScopeOnLocalEcho"
+    },
+    {
+      "action": "pass",
+      "test": "TestTyping"
+    },
+    {
+      "action": "pass",
+      "test": "TestTyping/Typing_can_be_explicitly_stopped"
+    },
+    {
+      "action": "pass",
+      "test": "TestTyping/Typing_events_DO_NOT_include_a_`room_id`_field"
+    },
+    {
+      "action": "pass",
+      "test": "TestTyping/Typing_notification_sent_to_local_room_members"
+    },
+    {
+      "action": "fail",
+      "test": "TestUnknownEndpoints"
+    },
+    {
+      "action": "pass",
+      "test": "TestUnknownEndpoints/Client-server_endpoints"
+    },
+    {
+      "action": "fail",
+      "test": "TestUnknownEndpoints/Key_endpoints"
+    },
+    {
+      "action": "pass",
+      "test": "TestUnknownEndpoints/Media_endpoints"
+    },
+    {
+      "action": "pass",
+      "test": "TestUnknownEndpoints/Server-server_endpoints"
+    },
+    {
+      "action": "pass",
+      "test": "TestUnknownEndpoints/Unknown_prefix"
+    },
+    {
+      "action": "pass",
+      "test": "TestUnrejectRejectedEvents"
+    },
+    {
+      "action": "fail",
+      "test": "TestUploadKey"
+    },
+    {
+      "action": "fail",
+      "test": "TestUploadKey/Parallel"
+    },
+    {
+      "action": "fail",
+      "test": "TestUploadKey/Parallel/Can_claim_one_time_key_using_POST"
+    },
+    {
+      "action": "pass",
+      "test": "TestUploadKey/Parallel/Can_query_device_keys_using_POST"
+    },
+    {
+      "action": "pass",
+      "test": "TestUploadKey/Parallel/Can_query_specific_device_keys_using_POST"
+    },
+    {
+      "action": "pass",
+      "test": "TestUploadKey/Parallel/Can_upload_device_keys"
+    },
+    {
+      "action": "pass",
+      "test": "TestUploadKey/Parallel/Rejects_invalid_device_keys"
+    },
+    {
+      "action": "pass",
+      "test": "TestUploadKey/Parallel/Should_reject_keys_claiming_to_belong_to_a_different_user"
+    },
+    {
+      "action": "pass",
+      "test": "TestUploadKey/Parallel/query_for_user_with_no_keys_returns_empty_key_dict"
+    },
+    {
+      "action": "pass",
+      "test": "TestUploadKeyIdempotency"
+    },
+    {
+      "action": "pass",
+      "test": "TestUploadKeyIdempotencyOverlap"
+    },
+    {
+      "action": "fail",
+      "test": "TestUrlPreview"
+    },
+    {
+      "action": "pass",
+      "test": "TestUserAppearsInChangedDeviceListOnJoinOverFederation"
+    },
+    {
+      "action": "pass",
+      "test": "TestVersionStructure"
+    },
+    {
+      "action": "pass",
+      "test": "TestVersionStructure/Version_responds_200_OK_with_valid_structure"
+    },
+    {
+      "action": "pass",
+      "test": "TestWithoutOwnedState"
+    },
+    {
+      "action": "pass",
+      "test": "TestWithoutOwnedState/parallel"
+    },
+    {
+      "action": "pass",
+      "test": "TestWithoutOwnedState/parallel/room_creator_cannot_set_state_with_a_non-member_user_ID_as_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestWithoutOwnedState/parallel/room_creator_cannot_set_state_with_another_suffixed_user_ID_as_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestWithoutOwnedState/parallel/room_creator_cannot_set_state_with_another_user_ID_as_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestWithoutOwnedState/parallel/room_creator_cannot_set_state_with_malformed_user_ID_as_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestWithoutOwnedState/parallel/room_creator_cannot_set_state_with_their_own_suffixed_user_ID_as_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestWithoutOwnedState/parallel/user_can_set_state_with_their_own_user_ID_as_state_key"
+    },
+    {
+      "action": "pass",
+      "test": "TestWriteMDirectAccountData"
+    }
+  ]
+}

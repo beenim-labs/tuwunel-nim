@@ -1,0 +1,5 @@
+import generated_route_inventory
+import generated_route_types
+
+export generated_route_inventory
+export generated_route_types
