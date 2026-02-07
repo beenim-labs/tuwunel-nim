@@ -55,3 +55,14 @@ export rev_stream_prefix
 export rev_stream_from
 export watch
 export compact
+
+type
+  MapModuleInfo* = object
+    name*: string
+    featureCount*: int
+
+proc mapModuleInfo*(): MapModuleInfo =
+  MapModuleInfo(name: "database.map", featureCount: 27)
+
+proc mapFeatureCount*(): int =
+  mapModuleInfo().featureCount

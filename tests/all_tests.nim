@@ -19,3 +19,6 @@ import test_route_runtime
 import test_rust_delegate
 import test_database_map_stream
 import test_database_engine_pool
+import test_service_runtime
+import test_main_runtime
+import test_router_stack

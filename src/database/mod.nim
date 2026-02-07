@@ -43,3 +43,14 @@ export cork
 export engine
 export pool
 export tests
+
+type
+  DatabaseModuleInfo* = object
+    name*: string
+    apiReady*: bool
+
+proc databaseModuleInfo*(): DatabaseModuleInfo =
+  DatabaseModuleInfo(name: "database", apiReady: true)
+
+proc databaseApiReady*(): bool =
+  databaseModuleInfo().apiReady

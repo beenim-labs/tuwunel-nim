@@ -1,9 +1,9 @@
 {
   "total_modules": 548,
   "summary": {
-    "scaffold": 526,
-    "partial": 17,
-    "implemented": 5,
+    "scaffold": 460,
+    "partial": 0,
+    "implemented": 88,
     "missing": 0
   },
   "status_by_crate": [
@@ -11,64 +11,64 @@
       "crate": "admin",
       "total": 45,
       "scaffold": 44,
-      "partial": 1,
-      "implemented": 0,
+      "partial": 0,
+      "implemented": 1,
       "missing": 0
     },
     {
       "crate": "api",
       "total": 115,
       "scaffold": 114,
-      "partial": 1,
-      "implemented": 0,
+      "partial": 0,
+      "implemented": 1,
       "missing": 0
     },
     {
       "crate": "core",
       "total": 161,
       "scaffold": 160,
-      "partial": 1,
-      "implemented": 0,
+      "partial": 0,
+      "implemented": 1,
       "missing": 0
     },
     {
       "crate": "database",
       "total": 57,
-      "scaffold": 42,
-      "partial": 12,
-      "implemented": 3,
+      "scaffold": 0,
+      "partial": 0,
+      "implemented": 57,
       "missing": 0
     },
     {
       "crate": "macros",
       "total": 9,
       "scaffold": 8,
-      "partial": 1,
-      "implemented": 0,
+      "partial": 0,
+      "implemented": 1,
       "missing": 0
     },
     {
       "crate": "main",
       "total": 14,
-      "scaffold": 13,
+      "scaffold": 5,
       "partial": 0,
-      "implemented": 1,
+      "implemented": 9,
       "missing": 0
     },
     {
       "crate": "router",
       "total": 9,
-      "scaffold": 8,
+      "scaffold": 0,
       "partial": 0,
-      "implemented": 1,
+      "implemented": 9,
       "missing": 0
     },
     {
       "crate": "service",
       "total": 138,
-      "scaffold": 137,
-      "partial": 1,
-      "implemented": 0,
+      "scaffold": 129,
+      "partial": 0,
+      "implemented": 9,
       "missing": 0
     }
   ],
@@ -155,7 +155,7 @@
       "nim_path": "src/admin/mod.nim",
       "rust_path": "admin/mod.rs",
       "crate": "admin",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/admin/processor.nim",
@@ -821,7 +821,7 @@
       "nim_path": "src/api/mod.nim",
       "rust_path": "api/mod.rs",
       "crate": "api",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/api/router/args.nim",
@@ -1517,7 +1517,7 @@
       "nim_path": "src/core/mod.nim",
       "rust_path": "core/mod.rs",
       "crate": "core",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/core/mods/canary.nim",
@@ -2003,13 +2003,13 @@
       "nim_path": "src/database/benches/ser.nim",
       "rust_path": "database/benches/ser.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/cork.nim",
       "rust_path": "database/cork.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/de.nim",
@@ -2021,79 +2021,79 @@
       "nim_path": "src/database/deserialized.nim",
       "rust_path": "database/deserialized.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/engine/backup.nim",
       "rust_path": "database/engine/backup.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/engine/cf_opts.nim",
       "rust_path": "database/engine/cf_opts.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/engine/context.nim",
       "rust_path": "database/engine/context.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/engine/db_opts.nim",
       "rust_path": "database/engine/db_opts.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/engine/descriptor.nim",
       "rust_path": "database/engine/descriptor.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/engine/files.nim",
       "rust_path": "database/engine/files.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/engine/logger.nim",
       "rust_path": "database/engine/logger.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/engine/memory_usage.nim",
       "rust_path": "database/engine/memory_usage.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/engine/open.nim",
       "rust_path": "database/engine/open.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/engine/repair.nim",
       "rust_path": "database/engine/repair.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/engine.nim",
       "rust_path": "database/engine.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/handle.nim",
       "rust_path": "database/handle.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/keyval.nim",
@@ -2105,193 +2105,193 @@
       "nim_path": "src/database/map/clear.nim",
       "rust_path": "database/map/clear.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/compact.nim",
       "rust_path": "database/map/compact.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/contains.nim",
       "rust_path": "database/map/contains.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/count.nim",
       "rust_path": "database/map/count.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/del.nim",
       "rust_path": "database/map/del.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/get.nim",
       "rust_path": "database/map/get.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/get_batch.nim",
       "rust_path": "database/map/get_batch.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/insert.nim",
       "rust_path": "database/map/insert.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/keys.nim",
       "rust_path": "database/map/keys.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/keys_from.nim",
       "rust_path": "database/map/keys_from.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/keys_prefix.nim",
       "rust_path": "database/map/keys_prefix.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/open.nim",
       "rust_path": "database/map/open.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/options.nim",
       "rust_path": "database/map/options.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/put.nim",
       "rust_path": "database/map/put.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/qry.nim",
       "rust_path": "database/map/qry.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/qry_batch.nim",
       "rust_path": "database/map/qry_batch.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/remove.nim",
       "rust_path": "database/map/remove.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/rev_keys.nim",
       "rust_path": "database/map/rev_keys.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/rev_keys_from.nim",
       "rust_path": "database/map/rev_keys_from.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/rev_keys_prefix.nim",
       "rust_path": "database/map/rev_keys_prefix.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/rev_stream.nim",
       "rust_path": "database/map/rev_stream.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/rev_stream_from.nim",
       "rust_path": "database/map/rev_stream_from.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/rev_stream_prefix.nim",
       "rust_path": "database/map/rev_stream_prefix.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/stream.nim",
       "rust_path": "database/map/stream.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/stream_from.nim",
       "rust_path": "database/map/stream_from.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/stream_prefix.nim",
       "rust_path": "database/map/stream_prefix.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map/watch.nim",
       "rust_path": "database/map/watch.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/map.nim",
       "rust_path": "database/map.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/maps.nim",
       "rust_path": "database/maps.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/mod.nim",
       "rust_path": "database/mod.rs",
       "crate": "database",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/pool/configure.nim",
       "rust_path": "database/pool/configure.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/pool.nim",
       "rust_path": "database/pool.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/ser.nim",
@@ -2303,43 +2303,43 @@
       "nim_path": "src/database/stream/items.nim",
       "rust_path": "database/stream/items.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/stream/items_rev.nim",
       "rust_path": "database/stream/items_rev.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/stream/keys.nim",
       "rust_path": "database/stream/keys.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/stream/keys_rev.nim",
       "rust_path": "database/stream/keys_rev.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/stream.nim",
       "rust_path": "database/stream.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/tests.nim",
       "rust_path": "database/tests.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/database/util.nim",
       "rust_path": "database/util.rs",
       "crate": "database",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/macros/admin.nim",
@@ -2381,7 +2381,7 @@
       "nim_path": "src/macros/mod.nim",
       "rust_path": "macros/mod.rs",
       "crate": "macros",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/macros/rustc.nim",
@@ -2411,37 +2411,37 @@
       "nim_path": "src/main/lib.nim",
       "rust_path": "main/lib.rs",
       "crate": "main",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/main/logging.nim",
       "rust_path": "main/logging.rs",
       "crate": "main",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/main/main.nim",
       "rust_path": "main/main.rs",
       "crate": "main",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/main/mods.nim",
       "rust_path": "main/mods.rs",
       "crate": "main",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/main/restart.nim",
       "rust_path": "main/restart.rs",
       "crate": "main",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/main/runtime.nim",
       "rust_path": "main/runtime.rs",
       "crate": "main",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/main/sentry.nim",
@@ -2453,13 +2453,13 @@
       "nim_path": "src/main/server.nim",
       "rust_path": "main/server.rs",
       "crate": "main",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/main/signals.nim",
       "rust_path": "main/signals.rs",
       "crate": "main",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/main/tests/smoke.nim",
@@ -2483,7 +2483,7 @@
       "nim_path": "src/router/layers.nim",
       "rust_path": "router/layers.rs",
       "crate": "router",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/router/mod.nim",
@@ -2495,43 +2495,43 @@
       "nim_path": "src/router/request.nim",
       "rust_path": "router/request.rs",
       "crate": "router",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/router/router.nim",
       "rust_path": "router/router.rs",
       "crate": "router",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/router/run.nim",
       "rust_path": "router/run.rs",
       "crate": "router",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/router/serve/mod.nim",
       "rust_path": "router/serve/mod.rs",
       "crate": "router",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/router/serve/plain.nim",
       "rust_path": "router/serve/plain.rs",
       "crate": "router",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/router/serve/tls.nim",
       "rust_path": "router/serve/tls.rs",
       "crate": "router",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/router/serve/unix.nim",
       "rust_path": "router/serve/unix.rs",
       "crate": "router",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/service/account_data/direct.nim",
@@ -2621,7 +2621,7 @@
       "nim_path": "src/service/config/mod.nim",
       "rust_path": "service/config/mod.rs",
       "crate": "service",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/service/deactivate/mod.nim",
@@ -2657,13 +2657,13 @@
       "nim_path": "src/service/globals/data.nim",
       "rust_path": "service/globals/data.rs",
       "crate": "service",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/service/globals/mod.nim",
       "rust_path": "service/globals/mod.rs",
       "crate": "service",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/service/key_backups/mod.nim",
@@ -2675,7 +2675,7 @@
       "nim_path": "src/service/manager.nim",
       "rust_path": "service/manager.rs",
       "crate": "service",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/service/media/blurhash.nim",
@@ -2777,13 +2777,13 @@
       "nim_path": "src/service/migrations.nim",
       "rust_path": "service/migrations.rs",
       "crate": "service",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/service/mod.nim",
       "rust_path": "service/mod.rs",
       "crate": "service",
-      "status": "partial"
+      "status": "implemented"
     },
     {
       "nim_path": "src/service/oauth/mod.nim",
@@ -2819,7 +2819,7 @@
       "nim_path": "src/service/once_services.nim",
       "rust_path": "service/once_services.rs",
       "crate": "service",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/service/presence/aggregate.nim",
@@ -3287,13 +3287,13 @@
       "nim_path": "src/service/service.nim",
       "rust_path": "service/service.rs",
       "crate": "service",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/service/services.nim",
       "rust_path": "service/services.rs",
       "crate": "service",
-      "status": "scaffold"
+      "status": "implemented"
     },
     {
       "nim_path": "src/service/sync/mod.nim",
@@ -3364,6 +3364,6 @@
   ],
   "thresholds": {
     "all_modules_implemented": false,
-    "database_modules_implemented": false
+    "database_modules_implemented": true
   }
 }

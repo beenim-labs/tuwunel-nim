@@ -28,3 +28,9 @@ proc revStreamPairs*(map: MapHandle; options = defaultMapReadOptions()): seq[(se
 
 proc revStreamCount*(map: MapHandle; options = defaultMapReadOptions()): int =
   map.revStream(options).len
+
+proc revStreamHead*(map: MapHandle; options = defaultMapReadOptions()): DbEntry =
+  let entries = map.revStream(options.withLimit(1))
+  if entries.len == 0:
+    return (key: @[], value: @[])
+  entries[0]

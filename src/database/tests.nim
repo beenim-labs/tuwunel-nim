@@ -1,5 +1,6 @@
 ## Runtime self-check helpers for database module behavior.
 
+import std/options
 import db
 import serialization
 

@@ -30,3 +30,9 @@ proc hasKeysRev*(entries: openArray[DbEntry]): bool =
 
 proc toUniqueKeysRev*(entries: openArray[DbEntry]): seq[seq[byte]] =
   toKeysRev(entries).toUniqueKeys()
+
+proc nthKeyRev*(entries: openArray[DbEntry]; index: int): seq[byte] =
+  let keys = toKeysRev(entries)
+  if index < 0 or index >= keys.len:
+    return @[]
+  keys[index]

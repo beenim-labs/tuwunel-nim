@@ -3,6 +3,7 @@
 import options
 import rev_keys
 import open
+import keys
 
 proc revKeysFrom*(map: MapHandle; startKey: openArray[byte]; includeStart = true): seq[seq[byte]] =
   map.revKeys(defaultMapReadOptions().withStart(startKey, includeStart))
@@ -28,3 +29,11 @@ proc revKeysFromPrefix*(
     map: MapHandle; startKey, prefix: openArray[byte]; includeStart = true): seq[seq[byte]] =
   let opts = defaultMapReadOptions().withStart(startKey, includeStart).withPrefix(prefix).reversed()
   map.keys(opts)
+
+proc revKeysFromRange*(
+    map: MapHandle; startKey, stopKey: openArray[byte]; includeStart = true): seq[seq[byte]] =
+  result = @[]
+  for key in map.revKeysFrom(startKey, includeStart):
+    if compareBytes(key, stopKey) < 0:
+      break
+    result.add(key)

@@ -21,3 +21,18 @@ export memory_usage
 export open
 export repair
 export backup
+
+type
+  EngineModuleInfo* = object
+    name*: string
+    hasBackup*: bool
+    hasRepair*: bool
+
+proc engineModuleInfo*(): EngineModuleInfo =
+  EngineModuleInfo(name: "database.engine", hasBackup: true, hasRepair: true)
+
+proc engineSupportsBackup*(): bool =
+  engineModuleInfo().hasBackup
+
+proc engineSupportsRepair*(): bool =
+  engineModuleInfo().hasRepair

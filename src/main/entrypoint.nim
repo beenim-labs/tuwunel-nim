@@ -1,6 +1,7 @@
 import std/[strformat, os]
 import main/args
 import main/rust_delegate
+import main/lib
 import core/logging
 import core/config_loader
 import core/config_values
@@ -41,5 +42,10 @@ proc main*(): int =
     fmt"env_overrides={cfgRes.cfg.stats.envOverrides.len} option_overrides={cfgRes.cfg.stats.optionOverrides.len}"
   )
   debug("effective_config:\n" & renderFlatConfig(cfgRes.cfg.values))
-  info("Runtime/server execution is not implemented yet in this milestone")
+
+  let run = runCompatibilityRuntime(cfgRes.cfg)
+  if not run.ok:
+    return die("Compatibility runtime failed: " & run.err)
+
+  info("Compatibility runtime completed: " & run.summary)
   0

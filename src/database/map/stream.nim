@@ -27,3 +27,9 @@ proc streamKeys*(map: MapHandle; options = defaultMapReadOptions()): seq[seq[byt
 
 proc streamCount*(map: MapHandle; options = defaultMapReadOptions()): int =
   map.stream(options).len
+
+proc streamHead*(map: MapHandle; options = defaultMapReadOptions()): DbEntry =
+  let entries = map.stream(options.withLimit(1))
+  if entries.len == 0:
+    return (key: @[], value: @[])
+  entries[0]

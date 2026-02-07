@@ -20,6 +20,7 @@ proc delMany*(map: MapHandle; keys: openArray[seq[byte]]): int =
 
 proc delPrefix*(map: MapHandle; prefix: openArray[byte]): int =
   map.ensureOpen()
+  result = 0
   var toDelete: seq[seq[byte]] = @[]
   for entry in map.readPrefix(prefix):
     toDelete.add(entry.key)

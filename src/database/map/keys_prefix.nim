@@ -27,3 +27,8 @@ proc hasPrefixKeys*(map: MapHandle; prefix: openArray[byte]): bool =
 
 proc keysPrefixLimited*(map: MapHandle; prefix: openArray[byte]; limit: int): seq[seq[byte]] =
   map.keys(defaultMapReadOptions().withPrefix(prefix).withLimit(limit))
+
+proc keysPrefixFrom*(
+    map: MapHandle; prefix, startKey: openArray[byte]; includeStart = true): seq[seq[byte]] =
+  let opts = defaultMapReadOptions().withPrefix(prefix).withStart(startKey, includeStart)
+  map.keys(opts)

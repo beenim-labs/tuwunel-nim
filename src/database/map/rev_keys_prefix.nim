@@ -3,6 +3,8 @@
 import options
 import rev_keys
 import open
+import keys_prefix
+import keys
 
 proc revKeysPrefix*(map: MapHandle; prefix: openArray[byte]): seq[seq[byte]] =
   map.revKeys(defaultMapReadOptions().withPrefix(prefix))
@@ -27,3 +29,8 @@ proc revKeyPrefixCount*(map: MapHandle; prefix: openArray[byte]): int =
 
 proc revHasPrefixKeys*(map: MapHandle; prefix: openArray[byte]): bool =
   map.revKeysPrefix(prefix).len > 0
+
+proc revKeysPrefixFrom*(
+    map: MapHandle; prefix, startKey: openArray[byte]; includeStart = true): seq[seq[byte]] =
+  let opts = defaultMapReadOptions().withPrefix(prefix).withStart(startKey, includeStart).reversed()
+  map.keys(opts)

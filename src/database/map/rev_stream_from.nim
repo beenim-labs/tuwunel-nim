@@ -27,3 +27,9 @@ proc revStreamFromValues*(
 
 proc revStreamFromCount*(map: MapHandle; startKey: openArray[byte]; includeStart = true): int =
   map.revStreamFrom(startKey, includeStart).len
+
+proc revStreamFromHead*(map: MapHandle; startKey: openArray[byte]; includeStart = true): DbEntry =
+  let entries = map.revStreamFromLimited(startKey, 1, includeStart)
+  if entries.len == 0:
+    return (key: @[], value: @[])
+  entries[0]

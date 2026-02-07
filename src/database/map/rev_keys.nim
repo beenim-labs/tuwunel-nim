@@ -27,3 +27,9 @@ proc revHasAnyKey*(map: MapHandle; options = defaultMapReadOptions()): bool =
 
 proc revKeysLimited*(map: MapHandle; limit: int): seq[seq[byte]] =
   map.revKeys(defaultMapReadOptions().withLimit(limit))
+
+proc revNthKey*(map: MapHandle; index: int; options = defaultMapReadOptions()): seq[byte] =
+  let listed = map.revKeys(options)
+  if index < 0 or index >= listed.len:
+    return @[]
+  listed[index]

@@ -25,6 +25,13 @@ proc insertUnique*(map: MapHandle; entries: openArray[(seq[byte], seq[byte])]): 
       inc result
 
 proc insertedCount*(map: MapHandle; entries: openArray[(seq[byte], seq[byte])]): int =
+  result = 0
   for entry in entries:
     if map.insertIfMissing(entry[0], entry[1]):
       inc result
+
+proc insertedAny*(map: MapHandle; entries: openArray[(seq[byte], seq[byte])]): bool =
+  map.insertedCount(entries) > 0
+
+proc insertedAll*(map: MapHandle; entries: openArray[(seq[byte], seq[byte])]): bool =
+  map.insertedCount(entries) == entries.len

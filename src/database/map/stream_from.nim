@@ -26,3 +26,9 @@ proc streamFromKeys*(map: MapHandle; startKey: openArray[byte]; includeStart = t
 
 proc streamFromCount*(map: MapHandle; startKey: openArray[byte]; includeStart = true): int =
   map.streamFrom(startKey, includeStart).len
+
+proc streamFromHead*(map: MapHandle; startKey: openArray[byte]; includeStart = true): DbEntry =
+  let entries = map.streamFromLimited(startKey, 1, includeStart)
+  if entries.len == 0:
+    return (key: @[], value: @[])
+  entries[0]

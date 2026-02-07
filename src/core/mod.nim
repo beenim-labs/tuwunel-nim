@@ -8,6 +8,30 @@ import generated_config_model
 import generated_config_defaults
 import generated_function_inventory
 
+type
+  CoreSurfaceSummary* = object
+    configKeyCount*: int
+    rustFunctionTotal*: int
+    hasConfigLoader*: bool
+    hasConfigMerge*: bool
+    hasConfigValues*: bool
+
+proc buildCoreSurfaceSummary*(): CoreSurfaceSummary =
+  CoreSurfaceSummary(
+    configKeyCount: ConfigKeyCount,
+    rustFunctionTotal: RustFunctionTotal,
+    hasConfigLoader: true,
+    hasConfigMerge: true,
+    hasConfigValues: true,
+  )
+
+proc coreSummaryLine*(summary: CoreSurfaceSummary): string =
+  "config_keys=" & $summary.configKeyCount &
+    " rust_functions=" & $summary.rustFunctionTotal &
+    " loader=" & $summary.hasConfigLoader &
+    " merge=" & $summary.hasConfigMerge &
+    " values=" & $summary.hasConfigValues
+
 export logging
 export config_bootstrap
 export config_loader

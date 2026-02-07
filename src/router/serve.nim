@@ -1,8 +1,8 @@
-import plain
-import tls
-import unix
-import ../run
-import ../request
+import router/serve/plain
+import router/serve/tls
+import router/serve/unix
+import router/run
+import router/request
 
 const
   RustPath* = "router/serve/mod.rs"

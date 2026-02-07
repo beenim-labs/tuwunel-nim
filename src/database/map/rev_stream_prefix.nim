@@ -29,3 +29,9 @@ proc revStreamPrefixPairs*(
 
 proc revStreamPrefixCount*(map: MapHandle; prefix: openArray[byte]): int =
   map.revStreamPrefix(prefix).len
+
+proc revStreamPrefixHead*(map: MapHandle; prefix: openArray[byte]): DbEntry =
+  let entries = map.revStreamPrefixLimited(prefix, 1)
+  if entries.len == 0:
+    return (key: @[], value: @[])
+  entries[0]

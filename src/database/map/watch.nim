@@ -1,5 +1,6 @@
 ## Watch-like helpers for map state changes.
 
+import std/options
 import open
 import get
 import put

@@ -1,5 +1,6 @@
 import std/[os, unittest]
 import database/[db, engine, pool, tests]
+import database/pool/configure
 
 suite "Database engine and pool wrappers":
   test "engine option mapping and context selection":

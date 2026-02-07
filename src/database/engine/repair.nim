@@ -3,6 +3,7 @@
 import open
 import context
 import db_opts
+import ../db
 
 type
   RepairReport* = object

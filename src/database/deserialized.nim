@@ -29,3 +29,11 @@ proc deserializeStringOptional*(payload: Option[seq[byte]]): Option[string] =
   if payload.isNone:
     return none(string)
   some(deserializeStringValue(payload.get))
+
+proc hasSecondKey*(pair: DeserializedPair): bool =
+  pair.keyB.isSome
+
+proc secondKeyOr*(pair: DeserializedPair; fallback: string): string =
+  if pair.keyB.isSome:
+    return pair.keyB.get
+  fallback

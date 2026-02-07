@@ -28,3 +28,11 @@ proc keysFromPrefix*(
     map: MapHandle; startKey, prefix: openArray[byte]; includeStart = true): seq[seq[byte]] =
   let opts = defaultMapReadOptions().withStart(startKey, includeStart).withPrefix(prefix)
   map.keys(opts)
+
+proc keysFromRange*(
+    map: MapHandle; startKey, stopKey: openArray[byte]; includeStart = true): seq[seq[byte]] =
+  result = @[]
+  for key in map.keysFrom(startKey, includeStart):
+    if compareBytes(key, stopKey) > 0:
+      break
+    result.add(key)

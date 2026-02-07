@@ -45,8 +45,10 @@ suite "Database map API":
     check m.remove(key)
     check not m.contains(key)
 
-  test "clear reports not implemented":
+  test "clear removes entries":
     let d = openInMemory()
     let m = openMap(d, "global")
-    expect DbError:
-      m.clear()
+    m.put(toByteSeq("k"), toByteSeq("v"))
+    check m.count() == 1
+    check m.clear() == 1
+    check m.count() == 0

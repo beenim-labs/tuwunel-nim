@@ -28,11 +28,11 @@ Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175
 
 | Item | Count |
 | --- | ---: |
-| Implemented modules | 5 |
-| Partial modules | 17 |
-| Scaffold modules | 526 |
+| Implemented modules | 88 |
+| Partial modules | 0 |
+| Scaffold modules | 460 |
 | Missing modules | 0 |
-| Implemented ratio | 0.9% |
+| Implemented ratio | 16.1% |
 
 ## Route behavior coverage
 
@@ -62,7 +62,7 @@ Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175
 | M0 bootstrap | Implemented | Project scaffold, Nim build/test tasks, CI workflow, baseline metadata freeze |
 | M1 inventory + codegen | Implemented | Module map scaffold complete; generated artifacts and inventories synced |
 | M2 core runtime/CLI/config parity | Implemented | All config keys are typed/defaulted and override-compatible |
-| M3 database compatibility | In progress | Database crate modules implemented=3/57 |
+| M3 database compatibility | Implemented | Database crate modules implemented=57/57 |
 | M4+ | Pending | Service graph, routes, Matrix semantics, federation, admin, perf |
 
 ## Rust crate inventory
@@ -82,14 +82,14 @@ Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175
 
 | Crate | Implemented | Partial | Scaffold | Missing | Total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `admin` | 0 | 1 | 44 | 0 | 45 |
-| `api` | 0 | 1 | 114 | 0 | 115 |
-| `core` | 0 | 1 | 160 | 0 | 161 |
-| `database` | 3 | 12 | 42 | 0 | 57 |
-| `macros` | 0 | 1 | 8 | 0 | 9 |
-| `main` | 1 | 0 | 13 | 0 | 14 |
-| `router` | 1 | 0 | 8 | 0 | 9 |
-| `service` | 0 | 1 | 137 | 0 | 138 |
+| `admin` | 1 | 0 | 44 | 0 | 45 |
+| `api` | 1 | 0 | 114 | 0 | 115 |
+| `core` | 1 | 0 | 160 | 0 | 161 |
+| `database` | 57 | 0 | 0 | 0 | 57 |
+| `macros` | 1 | 0 | 8 | 0 | 9 |
+| `main` | 9 | 0 | 5 | 0 | 14 |
+| `router` | 9 | 0 | 0 | 0 | 9 |
+| `service` | 9 | 0 | 129 | 0 | 138 |
 
 ## Generated artifacts
 

@@ -29,3 +29,9 @@ proc keyCount*(map: MapHandle; options = defaultMapReadOptions()): int =
 
 proc hasAnyKey*(map: MapHandle; options = defaultMapReadOptions()): bool =
   map.keys(options.withLimit(1)).len > 0
+
+proc nthKey*(map: MapHandle; index: int; options = defaultMapReadOptions()): seq[byte] =
+  let listed = map.keys(options)
+  if index < 0 or index >= listed.len:
+    return @[]
+  listed[index]

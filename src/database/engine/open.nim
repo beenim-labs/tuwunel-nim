@@ -2,7 +2,6 @@
 
 import ../db
 import ../generated_column_families
-import ../generated_column_family_descriptors
 import context
 import db_opts
 

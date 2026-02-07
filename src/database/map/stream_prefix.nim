@@ -26,4 +26,12 @@ proc streamPrefixCount*(map: MapHandle; prefix: openArray[byte]): int =
 
 proc streamPrefixPairs*(
     map: MapHandle; prefix: openArray[byte]): seq[(seq[byte], seq[byte])] =
-  map.streamPrefix(prefix).streamPairs(defaultMapReadOptions())
+  result = @[]
+  for entry in map.streamPrefix(prefix):
+    result.add((entry.key, entry.value))
+
+proc streamPrefixHead*(map: MapHandle; prefix: openArray[byte]): DbEntry =
+  let entries = map.streamPrefixLimited(prefix, 1)
+  if entries.len == 0:
+    return (key: @[], value: @[])
+  entries[0]

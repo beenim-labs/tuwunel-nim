@@ -1,4 +1,4 @@
-import std/unittest
+import std/[options, unittest]
 import database/[db, map, serialization]
 
 suite "Database map stream and query API":

@@ -2,6 +2,7 @@
 
 import ../db
 import open
+import options
 
 proc count*(map: MapHandle): int =
   map.ensureOpen()
