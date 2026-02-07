@@ -21,7 +21,7 @@ proc initApiRouter*(): ApiRouter =
   result.handlers = defaultHandlerRegistry()
 
 proc dispatch*(router: ApiRouter; req: ApiRequest): ApiResponse =
-  let resp = dispatchApiRequest(req, router.handlers)
+  let resp = dispatchApiRequest(router.state, req, router.handlers)
   router.state.record(resp)
   resp
 
