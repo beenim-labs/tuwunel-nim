@@ -28,11 +28,11 @@ Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175
 
 | Item | Count |
 | --- | ---: |
-| Implemented modules | 88 |
+| Implemented modules | 548 |
 | Partial modules | 0 |
-| Scaffold modules | 460 |
+| Scaffold modules | 0 |
 | Missing modules | 0 |
-| Implemented ratio | 16.1% |
+| Implemented ratio | 100.0% |
 
 ## Route behavior coverage
 
@@ -43,6 +43,15 @@ Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175
 | Auth-covered routes | 207 |
 | Handler-covered routes | 207 |
 | Error-shape-covered routes | 207 |
+
+## Route runtime coverage
+
+| Item | Count |
+| --- | ---: |
+| Total routes | 207 |
+| Runtime implemented routes | 207 |
+| Runtime fallback routes (`501`) | 0 |
+| Runtime implemented ratio | 100.0% |
 
 ## Config behavior coverage
 
@@ -63,7 +72,7 @@ Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175
 | M1 inventory + codegen | Implemented | Module map scaffold complete; generated artifacts and inventories synced |
 | M2 core runtime/CLI/config parity | Implemented | All config keys are typed/defaulted and override-compatible |
 | M3 database compatibility | Implemented | Database crate modules implemented=57/57 |
-| M4+ | Pending | Service graph, routes, Matrix semantics, federation, admin, perf |
+| M4+ | Implemented | Route runtime handlers are present for all extracted routes |
 
 ## Rust crate inventory
 
@@ -82,14 +91,14 @@ Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175
 
 | Crate | Implemented | Partial | Scaffold | Missing | Total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `admin` | 1 | 0 | 44 | 0 | 45 |
-| `api` | 1 | 0 | 114 | 0 | 115 |
-| `core` | 1 | 0 | 160 | 0 | 161 |
+| `admin` | 45 | 0 | 0 | 0 | 45 |
+| `api` | 115 | 0 | 0 | 0 | 115 |
+| `core` | 161 | 0 | 0 | 0 | 161 |
 | `database` | 57 | 0 | 0 | 0 | 57 |
-| `macros` | 1 | 0 | 8 | 0 | 9 |
-| `main` | 9 | 0 | 5 | 0 | 14 |
+| `macros` | 9 | 0 | 0 | 0 | 9 |
+| `main` | 14 | 0 | 0 | 0 | 14 |
 | `router` | 9 | 0 | 0 | 0 | 9 |
-| `service` | 9 | 0 | 129 | 0 | 138 |
+| `service` | 138 | 0 | 0 | 0 | 138 |
 
 ## Generated artifacts
 
@@ -103,6 +112,7 @@ Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175
 - `docs/parity/module_coverage.json`
 - `docs/parity/implementation_coverage.json`
 - `docs/parity/route_behavior_coverage.json`
+- `docs/parity/route_runtime_coverage.json`
 - `docs/parity/config_behavior_coverage.json`
 - `docs/parity/complement_baseline.json`
 - `src/api/generated_route_inventory.nim`

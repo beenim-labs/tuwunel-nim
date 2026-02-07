@@ -64,6 +64,22 @@ def main() -> int:
             },
         },
     )
+    route_runtime = load_optional(
+        "route_runtime_coverage.json",
+        {
+            "summary": {
+                "total_routes": 0,
+                "implemented_routes": 0,
+                "fallback_routes": 0,
+                "requires_auth_routes": 0,
+                "public_routes": 0,
+            },
+            "thresholds": {
+                "has_runtime_dispatch": False,
+                "all_routes_runtime_implemented": False,
+            },
+        },
+    )
     config_behavior = load_optional(
         "config_behavior_coverage.json",
         {
@@ -132,6 +148,17 @@ def main() -> int:
         if db_total > 0
         else "Database crate implementation coverage unavailable"
     )
+    route_runtime_summary = route_runtime.get("summary", {})
+    runtime_total = int(route_runtime_summary.get("total_routes", 0))
+    runtime_implemented = int(route_runtime_summary.get("implemented_routes", 0))
+    runtime_fallback = int(route_runtime_summary.get("fallback_routes", 0))
+    m4_complete = bool(route_runtime.get("thresholds", {}).get("all_routes_runtime_implemented", False))
+    m4_status = "Implemented" if m4_complete else "In progress"
+    m4_note = (
+        "Route runtime handlers are present for all extracted routes"
+        if m4_complete
+        else f"Route runtime handlers={runtime_implemented}/{runtime_total}, fallback={runtime_fallback}"
+    )
 
     crate_rows = "\n".join(
         f"| `{item['crate']}` | {item['function_count']} | {item['file_count']} |"
@@ -198,6 +225,15 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 | Handler-covered routes | {int(route_summary.get('handler_covered_routes', 0))} |
 | Error-shape-covered routes | {int(route_summary.get('error_shape_covered_routes', 0))} |
 
+## Route runtime coverage
+
+| Item | Count |
+| --- | ---: |
+| Total routes | {runtime_total} |
+| Runtime implemented routes | {runtime_implemented} |
+| Runtime fallback routes (`501`) | {runtime_fallback} |
+| Runtime implemented ratio | {pct(runtime_implemented, runtime_total)} |
+
 ## Config behavior coverage
 
 | Item | Count |
@@ -217,7 +253,7 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 | M1 inventory + codegen | {m1_status} | {m1_note} |
 | M2 core runtime/CLI/config parity | {m2_status} | {m2_note} |
 | M3 database compatibility | {m3_status} | {m3_note} |
-| M4+ | Pending | Service graph, routes, Matrix semantics, federation, admin, perf |
+| M4+ | {m4_status} | {m4_note} |
 
 ## Rust crate inventory
 
@@ -243,6 +279,7 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 - `docs/parity/module_coverage.json`
 - `docs/parity/implementation_coverage.json`
 - `docs/parity/route_behavior_coverage.json`
+- `docs/parity/route_runtime_coverage.json`
 - `docs/parity/config_behavior_coverage.json`
 - `docs/parity/complement_baseline.json`
 - `src/api/generated_route_inventory.nim`

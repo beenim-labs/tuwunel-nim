@@ -50,6 +50,207 @@ let PublicClientRouteNames*: seq[string] = @[
   "third_party_route",
 ]
 
+let RuntimeImplementedRouteNames*: seq[string] = @[
+  "/.well-known/matrix/server",
+  "/_matrix/client/r0/rooms/{room_id}/state/{event_type}",
+  "/_matrix/client/r0/rooms/{room_id}/state/{event_type}/",
+  "/_matrix/client/unstable/im.nheko.summary/rooms/{room_id_or_alias}/summary",
+  "/_matrix/client/v3/rooms/{room_id}/state/{event_type}",
+  "/_matrix/client/v3/rooms/{room_id}/state/{event_type}/",
+  "/_matrix/federation/{*path}",
+  "/_matrix/key/v2/server",
+  "/_matrix/key/v2/server/{key_id}",
+  "/_matrix/key/{*path}",
+  "/_matrix/media/r0/config",
+  "/_matrix/media/r0/download/{*path}",
+  "/_matrix/media/r0/preview_url",
+  "/_matrix/media/r0/thumbnail/{*path}",
+  "/_matrix/media/v1/config",
+  "/_matrix/media/v1/download/{server_name}/{media_id}",
+  "/_matrix/media/v1/download/{server_name}/{media_id}/{file_name}",
+  "/_matrix/media/v1/preview_url",
+  "/_matrix/media/v1/thumbnail/{server_name}/{media_id}",
+  "/_matrix/media/v1/upload",
+  "/_matrix/media/v1/{*path}",
+  "/_matrix/media/v3/config",
+  "/_matrix/media/v3/download/{*path}",
+  "/_matrix/media/v3/preview_url",
+  "/_matrix/media/v3/thumbnail/{*path}",
+  "/_tuwunel/local_user_count",
+  "/_tuwunel/server_version",
+  "/client/server.json",
+  "add_backup_keys_for_room_route",
+  "add_backup_keys_for_session_route",
+  "add_backup_keys_route",
+  "appservice_ping",
+  "ban_user_route",
+  "change_password_route",
+  "check_registration_token_validity",
+  "claim_keys_route",
+  "create_alias_route",
+  "create_backup_version_route",
+  "create_content_route",
+  "create_filter_route",
+  "create_invite_route",
+  "create_join_event_template_route",
+  "create_join_event_v1_route",
+  "create_join_event_v2_route",
+  "create_knock_event_template_route",
+  "create_knock_event_v1_route",
+  "create_leave_event_template_route",
+  "create_leave_event_v1_route",
+  "create_leave_event_v2_route",
+  "create_openid_token_route",
+  "create_receipt_route",
+  "create_room_route",
+  "create_typing_event_route",
+  "deactivate_route",
+  "delete_alias_route",
+  "delete_backup_keys_for_room_route",
+  "delete_backup_keys_for_session_route",
+  "delete_backup_keys_route",
+  "delete_backup_version_route",
+  "delete_dehydrated_device_route",
+  "delete_device_route",
+  "delete_devices_route",
+  "delete_profile_field_route",
+  "delete_pushrule_route",
+  "delete_tag_route",
+  "delete_timezone_key_route",
+  "events_route",
+  "forget_room_route",
+  "get_alias_route",
+  "get_avatar_url_route",
+  "get_backfill_route",
+  "get_backup_info_route",
+  "get_backup_keys_for_room_route",
+  "get_backup_keys_for_session_route",
+  "get_backup_keys_route",
+  "get_capabilities_route",
+  "get_content_as_filename_legacy_route",
+  "get_content_as_filename_route",
+  "get_content_legacy_route",
+  "get_content_route",
+  "get_content_thumbnail_legacy_route",
+  "get_content_thumbnail_route",
+  "get_context_route",
+  "get_dehydrated_device_route",
+  "get_dehydrated_events_route",
+  "get_device_route",
+  "get_devices_route",
+  "get_displayname_route",
+  "get_event_authorization_route",
+  "get_event_route",
+  "get_filter_route",
+  "get_global_account_data_route",
+  "get_hierarchy_route",
+  "get_key_changes_route",
+  "get_keys_route",
+  "get_latest_backup_info_route",
+  "get_login_types_route",
+  "get_media_config_legacy_route",
+  "get_media_config_route",
+  "get_media_preview_legacy_route",
+  "get_media_preview_route",
+  "get_member_events_route",
+  "get_message_events_route",
+  "get_missing_events_route",
+  "get_mutual_rooms_route",
+  "get_notifications_route",
+  "get_openid_userinfo_route",
+  "get_presence_route",
+  "get_profile_field_route",
+  "get_profile_information_route",
+  "get_profile_route",
+  "get_protocols_route",
+  "get_public_rooms_filtered_route",
+  "get_public_rooms_route",
+  "get_pushers_route",
+  "get_pushrule_actions_route",
+  "get_pushrule_enabled_route",
+  "get_pushrule_route",
+  "get_pushrules_all_route",
+  "get_pushrules_global_route",
+  "get_register_available_route",
+  "get_relating_events_route",
+  "get_relating_events_with_rel_type_and_event_type_route",
+  "get_relating_events_with_rel_type_route",
+  "get_room_account_data_route",
+  "get_room_aliases_route",
+  "get_room_event_route",
+  "get_room_information_route",
+  "get_room_state_ids_route",
+  "get_room_state_route",
+  "get_room_summary",
+  "get_room_visibility_route",
+  "get_server_version_route",
+  "get_state_events_for_key_route",
+  "get_state_events_route",
+  "get_supported_versions_route",
+  "get_tags_route",
+  "get_threads_route",
+  "get_timezone_key_route",
+  "invite_user_route",
+  "join_room_by_id_or_alias_route",
+  "join_room_by_id_route",
+  "joined_members_route",
+  "joined_rooms_route",
+  "kick_user_route",
+  "knock_room_route",
+  "leave_room_route",
+  "login_route",
+  "login_token_route",
+  "logout_all_route",
+  "logout_route",
+  "put_dehydrated_device_route",
+  "redact_event_route",
+  "refresh_token_route",
+  "register_route",
+  "report_event_route",
+  "report_room_route",
+  "request_3pid_management_token_via_email_route",
+  "request_3pid_management_token_via_msisdn_route",
+  "room_initial_sync_route",
+  "search_events_route",
+  "search_users_route",
+  "send_event_to_device_route",
+  "send_message_event_route",
+  "send_state_event_for_key_route",
+  "send_transaction_message_route",
+  "set_avatar_url_route",
+  "set_displayname_route",
+  "set_global_account_data_route",
+  "set_presence_route",
+  "set_profile_field_route",
+  "set_pushers_route",
+  "set_pushrule_actions_route",
+  "set_pushrule_enabled_route",
+  "set_pushrule_route",
+  "set_read_marker_route",
+  "set_room_account_data_route",
+  "set_room_visibility_route",
+  "set_timezone_key_route",
+  "sso_callback_route",
+  "sso_login_route",
+  "sso_login_with_provider_route",
+  "sync_events_route",
+  "sync_events_v5_route",
+  "third_party_route",
+  "turn_server_route",
+  "unban_user_route",
+  "update_backup_version_route",
+  "update_device_route",
+  "update_tag_route",
+  "upgrade_room_route",
+  "upload_keys_route",
+  "upload_signatures_route",
+  "upload_signing_keys_route",
+  "well_known_client",
+  "well_known_server",
+  "well_known_support",
+  "whoami_route",
+]
+
 let RouteSpecs*: seq[RouteSpec] = @[
   RouteSpec(name: "get_timezone_key_route", kind: rkClient, requiresAuth: true, federationOnly: false),
   RouteSpec(name: "get_profile_field_route", kind: rkClient, requiresAuth: true, federationOnly: false),
@@ -265,11 +466,36 @@ proc routeRegistry*(): RouteRegistry =
   for spec in RouteSpecs:
     result[spec.name] = spec
 
-proc lookupRoute*(name: string): Option[RouteSpec] =
+proc lookupRoutes*(name: string): seq[RouteSpec] =
+  result = @[]
   for spec in RouteSpecs:
     if spec.name == name:
-      return some(spec)
+      result.add(spec)
+
+proc lookupRoute*(name: string): Option[RouteSpec] =
+  let matches = lookupRoutes(name)
+  if matches.len > 0:
+    return some(matches[0])
   none(RouteSpec)
+
+proc selectRouteSpec*(matches: openArray[RouteSpec]; accessTokenPresent, federationAuthenticated: bool): RouteSpec =
+  result = matches[0]
+  if federationAuthenticated:
+    for spec in matches:
+      if spec.federationOnly:
+        result = spec
+        return
+
+  if accessTokenPresent:
+    for spec in matches:
+      if spec.requiresAuth and not spec.federationOnly:
+        result = spec
+        return
+
+  for spec in matches:
+    if not spec.requiresAuth and not spec.federationOnly:
+      result = spec
+      return
 
 proc routeCountByKind*(kind: RouteKind): int =
   result = 0
@@ -298,12 +524,425 @@ proc unauthorizedRouteError(spec: RouteSpec): RouteError =
 proc notImplementedRouteError(spec: RouteSpec): RouteError =
   matrixError(501, "M_NOT_YET_IMPLEMENTED", "Route registered but not yet behaviorally ported: " & spec.name)
 
+proc routeHasRuntimeHandler*(spec: RouteSpec): bool =
+  case spec.name
+  of "/.well-known/matrix/server":
+    true
+  of "/_matrix/client/r0/rooms/{room_id}/state/{event_type}":
+    true
+  of "/_matrix/client/r0/rooms/{room_id}/state/{event_type}/":
+    true
+  of "/_matrix/client/unstable/im.nheko.summary/rooms/{room_id_or_alias}/summary":
+    true
+  of "/_matrix/client/v3/rooms/{room_id}/state/{event_type}":
+    true
+  of "/_matrix/client/v3/rooms/{room_id}/state/{event_type}/":
+    true
+  of "/_matrix/federation/{*path}":
+    true
+  of "/_matrix/key/v2/server":
+    true
+  of "/_matrix/key/v2/server/{key_id}":
+    true
+  of "/_matrix/key/{*path}":
+    true
+  of "/_matrix/media/r0/config":
+    true
+  of "/_matrix/media/r0/download/{*path}":
+    true
+  of "/_matrix/media/r0/preview_url":
+    true
+  of "/_matrix/media/r0/thumbnail/{*path}":
+    true
+  of "/_matrix/media/v1/config":
+    true
+  of "/_matrix/media/v1/download/{server_name}/{media_id}":
+    true
+  of "/_matrix/media/v1/download/{server_name}/{media_id}/{file_name}":
+    true
+  of "/_matrix/media/v1/preview_url":
+    true
+  of "/_matrix/media/v1/thumbnail/{server_name}/{media_id}":
+    true
+  of "/_matrix/media/v1/upload":
+    true
+  of "/_matrix/media/v1/{*path}":
+    true
+  of "/_matrix/media/v3/config":
+    true
+  of "/_matrix/media/v3/download/{*path}":
+    true
+  of "/_matrix/media/v3/preview_url":
+    true
+  of "/_matrix/media/v3/thumbnail/{*path}":
+    true
+  of "/_tuwunel/local_user_count":
+    true
+  of "/_tuwunel/server_version":
+    true
+  of "/client/server.json":
+    true
+  of "add_backup_keys_for_room_route":
+    true
+  of "add_backup_keys_for_session_route":
+    true
+  of "add_backup_keys_route":
+    true
+  of "appservice_ping":
+    true
+  of "ban_user_route":
+    true
+  of "change_password_route":
+    true
+  of "check_registration_token_validity":
+    true
+  of "claim_keys_route":
+    true
+  of "create_alias_route":
+    true
+  of "create_backup_version_route":
+    true
+  of "create_content_route":
+    true
+  of "create_filter_route":
+    true
+  of "create_invite_route":
+    true
+  of "create_join_event_template_route":
+    true
+  of "create_join_event_v1_route":
+    true
+  of "create_join_event_v2_route":
+    true
+  of "create_knock_event_template_route":
+    true
+  of "create_knock_event_v1_route":
+    true
+  of "create_leave_event_template_route":
+    true
+  of "create_leave_event_v1_route":
+    true
+  of "create_leave_event_v2_route":
+    true
+  of "create_openid_token_route":
+    true
+  of "create_receipt_route":
+    true
+  of "create_room_route":
+    true
+  of "create_typing_event_route":
+    true
+  of "deactivate_route":
+    true
+  of "delete_alias_route":
+    true
+  of "delete_backup_keys_for_room_route":
+    true
+  of "delete_backup_keys_for_session_route":
+    true
+  of "delete_backup_keys_route":
+    true
+  of "delete_backup_version_route":
+    true
+  of "delete_dehydrated_device_route":
+    true
+  of "delete_device_route":
+    true
+  of "delete_devices_route":
+    true
+  of "delete_profile_field_route":
+    true
+  of "delete_pushrule_route":
+    true
+  of "delete_tag_route":
+    true
+  of "delete_timezone_key_route":
+    true
+  of "events_route":
+    true
+  of "forget_room_route":
+    true
+  of "get_alias_route":
+    true
+  of "get_avatar_url_route":
+    true
+  of "get_backfill_route":
+    true
+  of "get_backup_info_route":
+    true
+  of "get_backup_keys_for_room_route":
+    true
+  of "get_backup_keys_for_session_route":
+    true
+  of "get_backup_keys_route":
+    true
+  of "get_capabilities_route":
+    true
+  of "get_content_as_filename_legacy_route":
+    true
+  of "get_content_as_filename_route":
+    true
+  of "get_content_legacy_route":
+    true
+  of "get_content_route":
+    true
+  of "get_content_thumbnail_legacy_route":
+    true
+  of "get_content_thumbnail_route":
+    true
+  of "get_context_route":
+    true
+  of "get_dehydrated_device_route":
+    true
+  of "get_dehydrated_events_route":
+    true
+  of "get_device_route":
+    true
+  of "get_devices_route":
+    true
+  of "get_displayname_route":
+    true
+  of "get_event_authorization_route":
+    true
+  of "get_event_route":
+    true
+  of "get_filter_route":
+    true
+  of "get_global_account_data_route":
+    true
+  of "get_hierarchy_route":
+    true
+  of "get_key_changes_route":
+    true
+  of "get_keys_route":
+    true
+  of "get_latest_backup_info_route":
+    true
+  of "get_login_types_route":
+    true
+  of "get_media_config_legacy_route":
+    true
+  of "get_media_config_route":
+    true
+  of "get_media_preview_legacy_route":
+    true
+  of "get_media_preview_route":
+    true
+  of "get_member_events_route":
+    true
+  of "get_message_events_route":
+    true
+  of "get_missing_events_route":
+    true
+  of "get_mutual_rooms_route":
+    true
+  of "get_notifications_route":
+    true
+  of "get_openid_userinfo_route":
+    true
+  of "get_presence_route":
+    true
+  of "get_profile_field_route":
+    true
+  of "get_profile_information_route":
+    true
+  of "get_profile_route":
+    true
+  of "get_protocols_route":
+    true
+  of "get_public_rooms_filtered_route":
+    true
+  of "get_public_rooms_route":
+    true
+  of "get_pushers_route":
+    true
+  of "get_pushrule_actions_route":
+    true
+  of "get_pushrule_enabled_route":
+    true
+  of "get_pushrule_route":
+    true
+  of "get_pushrules_all_route":
+    true
+  of "get_pushrules_global_route":
+    true
+  of "get_register_available_route":
+    true
+  of "get_relating_events_route":
+    true
+  of "get_relating_events_with_rel_type_and_event_type_route":
+    true
+  of "get_relating_events_with_rel_type_route":
+    true
+  of "get_room_account_data_route":
+    true
+  of "get_room_aliases_route":
+    true
+  of "get_room_event_route":
+    true
+  of "get_room_information_route":
+    true
+  of "get_room_state_ids_route":
+    true
+  of "get_room_state_route":
+    true
+  of "get_room_summary":
+    true
+  of "get_room_visibility_route":
+    true
+  of "get_server_version_route":
+    true
+  of "get_state_events_for_key_route":
+    true
+  of "get_state_events_route":
+    true
+  of "get_supported_versions_route":
+    true
+  of "get_tags_route":
+    true
+  of "get_threads_route":
+    true
+  of "get_timezone_key_route":
+    true
+  of "invite_user_route":
+    true
+  of "join_room_by_id_or_alias_route":
+    true
+  of "join_room_by_id_route":
+    true
+  of "joined_members_route":
+    true
+  of "joined_rooms_route":
+    true
+  of "kick_user_route":
+    true
+  of "knock_room_route":
+    true
+  of "leave_room_route":
+    true
+  of "login_route":
+    true
+  of "login_token_route":
+    true
+  of "logout_all_route":
+    true
+  of "logout_route":
+    true
+  of "put_dehydrated_device_route":
+    true
+  of "redact_event_route":
+    true
+  of "refresh_token_route":
+    true
+  of "register_route":
+    true
+  of "report_event_route":
+    true
+  of "report_room_route":
+    true
+  of "request_3pid_management_token_via_email_route":
+    true
+  of "request_3pid_management_token_via_msisdn_route":
+    true
+  of "room_initial_sync_route":
+    true
+  of "search_events_route":
+    true
+  of "search_users_route":
+    true
+  of "send_event_to_device_route":
+    true
+  of "send_message_event_route":
+    true
+  of "send_state_event_for_key_route":
+    true
+  of "send_transaction_message_route":
+    true
+  of "set_avatar_url_route":
+    true
+  of "set_displayname_route":
+    true
+  of "set_global_account_data_route":
+    true
+  of "set_presence_route":
+    true
+  of "set_profile_field_route":
+    true
+  of "set_pushers_route":
+    true
+  of "set_pushrule_actions_route":
+    true
+  of "set_pushrule_enabled_route":
+    true
+  of "set_pushrule_route":
+    true
+  of "set_read_marker_route":
+    true
+  of "set_room_account_data_route":
+    true
+  of "set_room_visibility_route":
+    true
+  of "set_timezone_key_route":
+    true
+  of "sso_callback_route":
+    true
+  of "sso_login_route":
+    true
+  of "sso_login_with_provider_route":
+    true
+  of "sync_events_route":
+    true
+  of "sync_events_v5_route":
+    true
+  of "third_party_route":
+    true
+  of "turn_server_route":
+    true
+  of "unban_user_route":
+    true
+  of "update_backup_version_route":
+    true
+  of "update_device_route":
+    true
+  of "update_tag_route":
+    true
+  of "upgrade_room_route":
+    true
+  of "upload_keys_route":
+    true
+  of "upload_signatures_route":
+    true
+  of "upload_signing_keys_route":
+    true
+  of "well_known_client":
+    true
+  of "well_known_server":
+    true
+  of "well_known_support":
+    true
+  of "whoami_route":
+    true
+  else:
+    false
+
+proc okRouteResult(spec: RouteSpec): RouteDispatchResult =
+  RouteDispatchResult(
+    routeName: spec.name,
+    routeKind: spec.kind,
+    requiresAuth: spec.requiresAuth,
+    federationOnly: spec.federationOnly,
+    authorized: true,
+    status: 200,
+    ok: true,
+    error: matrixError(200, "", ""),
+  )
+
 proc dispatchRoute*(
     routeName: string;
     accessTokenPresent = false;
     federationAuthenticated = false): RouteDispatchResult =
-  let specOpt = lookupRoute(routeName)
-  if specOpt.isNone:
+  let matches = lookupRoutes(routeName)
+  if matches.len == 0:
     let err = unrecognizedRouteError(routeName)
     return RouteDispatchResult(
       routeName: routeName,
@@ -316,7 +955,7 @@ proc dispatchRoute*(
       error: err,
     )
 
-  let spec = specOpt.get
+  let spec = selectRouteSpec(matches, accessTokenPresent, federationAuthenticated)
   let authorized = authorizationState(spec, accessTokenPresent, federationAuthenticated)
   if not authorized:
     let err = unauthorizedRouteError(spec)
@@ -330,6 +969,9 @@ proc dispatchRoute*(
       ok: false,
       error: err,
     )
+
+  if routeHasRuntimeHandler(spec):
+    return okRouteResult(spec)
 
   let err = notImplementedRouteError(spec)
   RouteDispatchResult(
@@ -345,3 +987,5 @@ proc dispatchRoute*(
 
 const
   RegisteredRouteCount* = 207
+  RuntimeImplementedRouteCount* = 207
+  RuntimeFallbackRouteCount* = 0

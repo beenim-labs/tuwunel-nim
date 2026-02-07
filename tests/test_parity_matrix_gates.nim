@@ -19,6 +19,7 @@ suite "Parity matrix status gating":
     let moduleCoverage = loadJson("docs/parity/module_coverage.json")
     let implementation = loadJson("docs/parity/implementation_coverage.json")
     let configBehavior = loadJson("docs/parity/config_behavior_coverage.json")
+    let routeRuntime = loadJson("docs/parity/route_runtime_coverage.json")
     let md = readFile("docs/parity_matrix.md")
 
     let expectedM1 =
@@ -36,7 +37,13 @@ suite "Parity matrix status gating":
         "Implemented"
       else:
         "In progress"
+    let expectedM4 =
+      if routeRuntime["thresholds"]["all_routes_runtime_implemented"].getBool():
+        "Implemented"
+      else:
+        "In progress"
 
     check milestoneStatus(md, "M1 inventory + codegen") == expectedM1
     check milestoneStatus(md, "M2 core runtime/CLI/config parity") == expectedM2
     check milestoneStatus(md, "M3 database compatibility") == expectedM3
+    check milestoneStatus(md, "M4+") == expectedM4

@@ -14,6 +14,7 @@ be edited manually.
 - `module_coverage.json`: scaffold module coverage against `module_map.json`.
 - `implementation_coverage.json`: behavioral module status (`scaffold`/`partial`/`implemented`) and crate rollups.
 - `route_behavior_coverage.json`: per-route behavioral coverage (`registered`/`auth`/`handler`/`error-shape`).
+- `route_runtime_coverage.json`: dispatch/runtime coverage (`implemented` vs `501` fallback) derived from generated route runtime wiring.
 - `config_behavior_coverage.json`: key-level config behavior coverage (`typed`/`default`/`env alias`/`override`).
 - `module_map.json`: Rust source path to planned Nim module path mapping.
 - `complement_baseline.json`: parsed baseline Complement results.

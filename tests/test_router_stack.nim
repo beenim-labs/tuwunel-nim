@@ -26,16 +26,16 @@ suite "Router stack compatibility":
     var engine = initRouterEngine()
 
     let publicDispatch = engine.dispatchRouteName("get_supported_versions_route")
-    check not publicDispatch.result.ok
-    check publicDispatch.result.status == 501
+    check publicDispatch.result.ok
+    check publicDispatch.result.status == 200
 
     let authDenied = engine.dispatchRouteName("whoami_route")
     check not authDenied.result.ok
     check authDenied.result.status == 401
 
     let authAllowed = engine.dispatchRouteName("whoami_route", accessTokenPresent = true)
-    check not authAllowed.result.ok
-    check authAllowed.result.status == 501
+    check authAllowed.result.ok
+    check authAllowed.result.status == 200
 
   test "batch run reports":
     let report = runRouterRouteNames(@[
@@ -45,9 +45,9 @@ suite "Router stack compatibility":
     ])
 
     check report.total == 3
-    check report.ok == 0
-    check report.denied == 3
-    check report.status200 == 0
+    check report.ok == 1
+    check report.denied == 2
+    check report.status200 == 1
     check report.status401 == 1
     check report.status404 == 1
 
