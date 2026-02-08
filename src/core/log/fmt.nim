@@ -1,51 +1,19 @@
+## Log formatting utilities.
+##
+## Ported from Rust core/log/fmt.rs
+
 const
   RustPath* = "core/log/fmt.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc formatLogLevel*(level: string): string =
+  ## Format a log level string with consistent width.
+  case level.toLowerAscii()
+  of "error": "ERROR"
+  of "warn", "warning": " WARN"
+  of "info": " INFO"
+  of "debug": "DEBUG"
+  of "trace": "TRACE"
+  else: level
 
-proc moduleId*(): string =
-  "core.log.fmt"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+import std/strutils

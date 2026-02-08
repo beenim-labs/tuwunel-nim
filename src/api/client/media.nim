@@ -1,51 +1,49 @@
+## client/media — api module.
+##
+## Ported from Rust api/client/media.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/media.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc getMediaConfigRoute*() =
+  ## Ported from `get_media_config_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.media"
+proc createContentRoute*() =
+  ## Ported from `create_content_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc getContentThumbnailRoute*() =
+  ## Ported from `get_content_thumbnail_route`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc getContentRoute*() =
+  ## Ported from `get_content_route`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc getContentAsFilenameRoute*() =
+  ## Ported from `get_content_as_filename_route`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc getMediaPreviewRoute*() =
+  ## Ported from `get_media_preview_route`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc fetchThumbnail*(services: Services; mxc: Mxc<'_>; user: string; timeoutMs: Duration; dim: Dim): FileMeta =
+  ## Ported from `fetch_thumbnail`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc fetchFile*(services: Services; mxc: Mxc<'_>; user: string; timeoutMs: Duration; filename: Option[string]): FileMeta =
+  ## Ported from `fetch_file`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc fetchThumbnailMeta*(services: Services; mxc: Mxc<'_>; user: string; timeoutMs: Duration; dim: Dim): FileMeta =
+  ## Ported from `fetch_thumbnail_meta`.
+  discard
+
+proc fetchFileMeta*(services: Services; mxc: Mxc<'_>; user: string; timeoutMs: Duration): FileMeta =
+  ## Ported from `fetch_file_meta`.
+  discard

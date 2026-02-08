@@ -1,50 +1,77 @@
+## state_accessor/mod — service module.
+##
+## Ported from Rust service/rooms/state_accessor/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/rooms/state_accessor/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "rooms.state_accessor.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc getPowerLevels*(self: Service; roomId: string): RoomPowerLevels =
+  ## Ported from `get_power_levels`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc getCreate*(self: Service; roomId: string): RoomCreateEvent<Pdu> =
+  ## Ported from `get_create`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc getName*(self: Service; roomId: string): string =
+  ## Ported from `get_name`.
+  ""
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc getAvatar*(self: Service; roomId: string): RoomAvatarEventContent =
+  ## Ported from `get_avatar`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc isDirect*(self: Service; roomId: string; userId: string): bool =
+  ## Ported from `is_direct`.
+  false
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getMember*(self: Service; roomId: string; userId: string): RoomMemberEventContent =
+  ## Ported from `get_member`.
+  discard
+
+proc isWorldReadable*(self: Service; roomId: string): bool =
+  ## Ported from `is_world_readable`.
+  false
+
+proc guestCanJoin*(self: Service; roomId: string): bool =
+  ## Ported from `guest_can_join`.
+  false
+
+proc getCanonicalAlias*(self: Service; roomId: string): OwnedRoomAliasId =
+  ## Ported from `get_canonical_alias`.
+  discard
+
+proc getRoomTopic*(self: Service; roomId: string): string =
+  ## Ported from `get_room_topic`.
+  ""
+
+proc getJoinRules*(self: Service; roomId: string): JoinRule =
+  ## Ported from `get_join_rules`.
+  discard
+
+proc getRoomType*(self: Service; roomId: string): RoomType =
+  ## Ported from `get_room_type`.
+  discard
+
+proc getRoomEncryption*(self: Service; roomId: string): EventEncryptionAlgorithm =
+  ## Ported from `get_room_encryption`.
+  discard
+
+proc isEncryptedRoom*(self: Service; roomId: string): bool =
+  ## Ported from `is_encrypted_room`.
+  false

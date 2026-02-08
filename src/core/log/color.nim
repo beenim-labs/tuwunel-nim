@@ -1,51 +1,26 @@
+## Log color configuration.
+##
+## Ported from Rust core/log/color.rs
+
 const
   RustPath* = "core/log/color.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  LogColor* = enum
+    lcAuto   ## Detect based on terminal capability
+    lcAlways ## Always use ANSI colors
+    lcNever  ## Never use colors
 
-proc moduleId*(): string =
-  "core.log.color"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc shouldColorize*(color: LogColor): bool =
+  ## Determine if output should be colorized.
+  case color
+  of lcAlways: true
+  of lcNever: false
+  of lcAuto:
+    # Check if stdout is a terminal
+    when defined(posix):
+      import std/terminal
+      isatty(stdout)
+    else:
+      false

@@ -1,51 +1,16 @@
+## query/presence — admin module.
+##
+## Ported from Rust admin/query/presence.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "admin/query/presence.rs"
   RustCrate* = "admin"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc process*(subcommand: PresenceCommand; context: Context<'_>) =
+  ## Ported from `process`.
+  discard
 
-proc moduleId*(): string =
-  "admin.query.presence"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+## This module's Rust source has minimal public API.
+## Service integration happens through the database layer.

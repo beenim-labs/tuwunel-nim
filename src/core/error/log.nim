@@ -1,51 +1,53 @@
+## Error logging helpers.
+##
+## Ported from Rust core/error/log.rs — provides convenience procs for
+## logging errors at various levels and returning defaults.
+
+import std/logging
+import mod as errormod
+
 const
   RustPath* = "core/error/log.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  LogLevel* = enum
+    llError
+    llWarn
+    llInfo
+    llDebug
+    llTrace
 
-proc moduleId*(): string =
-  "core.error.log"
+proc inspectLog*(e: Error; level: LogLevel = llError) =
+  ## Log an error at the given level.
+  let msg = e.message()
+  case level
+  of llError: error(msg)
+  of llWarn: warn(msg)
+  of llInfo: info(msg)
+  of llDebug: debug(msg)
+  of llTrace: debug(msg) # Nim std/logging has no trace level
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc inspectDebugLog*(e: Error; level: LogLevel = llError) =
+  ## Log an error's debug representation at the given level.
+  inspectLog(e, level)
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc mapLog*(e: Error): Error =
+  ## Log an error and return it.
+  inspectLog(e)
+  e
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc mapDebugLog*(e: Error): Error =
+  ## Log an error at debug level and return it.
+  inspectLog(e, llDebug)
+  e
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc defaultLog*[T](e: Error): T =
+  ## Log an error and return the default value for the type.
+  inspectLog(e)
+  result = default(T)
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc defaultDebugLog*[T](e: Error): T =
+  ## Log an error at debug level and return the default value.
+  inspectLog(e, llDebug)
+  result = default(T)

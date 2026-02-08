@@ -1,51 +1,53 @@
+## admin/processor — admin module.
+##
+## Ported from Rust admin/processor.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "admin/processor.rs"
   RustCrate* = "admin"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc complete*(line: string): string =
+  ## Ported from `complete`.
+  ""
 
-proc moduleId*(): string =
-  "admin.processor"
+proc dispatch*(services: Services; command: CommandInput): ProcessorFuture =
+  ## Ported from `dispatch`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc handleCommand*(services: Services; command: CommandInput): Processor =
+  ## Ported from `handle_command`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc processCommand*(services: Services; input: CommandInput): Processor =
+  ## Ported from `process_command`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc handlePanic*(error: Error; command: CommandInput): Processor =
+  ## Ported from `handle_panic`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc process*(context: Context<'_>; command: AdminCommand; args: [string]): (, string) =
+  ## Ported from `process`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc captureCreate*(context: Context<'_>): (Capture, Mutex<string>) =
+  ## Ported from `capture_create`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc parseCommand*(line: string): (AdminCommand)> =
+  ## Ported from `parse_command`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc completeCommand*(cmd: clap::Command; line: string): string =
+  ## Ported from `complete_command`.
+  ""
+
+proc parseLine*(commandLine: string): seq[string] =
+  ## Ported from `parse_line`.
+  @[]
+
+proc reply*(content: RoomMessageEventContent; replyId: Option[string]): RoomMessageEventContent =
+  ## Ported from `reply`.
+  discard

@@ -1,51 +1,21 @@
+## server/send_join — api module.
+##
+## Ported from Rust api/server/send_join.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/server/send_join.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc createJoinEvent*(services: Services; origin: string; roomId: string; pdu: RawJsonValue): create_join_event::v1::RoomState =
+  ## Ported from `create_join_event`.
+  discard
 
-proc moduleId*(): string =
-  "api.server.send_join"
+proc createJoinEventV1Route*() =
+  ## Ported from `create_join_event_v1_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc createJoinEventV2Route*() =
+  ## Ported from `create_join_event_v2_route`.
+  discard

@@ -1,51 +1,89 @@
+## debug/commands — admin module.
+##
+## Ported from Rust admin/debug/commands.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "admin/debug/commands.rs"
   RustCrate* = "admin"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc echo*(message: seq[string]) =
+  ## Ported from `echo`.
+  discard
 
-proc moduleId*(): string =
-  "admin.debug.commands"
+proc getAuthChain*(eventId: string) =
+  ## Ported from `get_auth_chain`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc parsePdu*() =
+  ## Ported from `parse_pdu`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc getPdu*(eventId: string) =
+  ## Ported from `get_pdu`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc getShortPdu*(shortroomid: Shortstring; count: int64) =
+  ## Ported from `get_short_pdu`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc getRemotePduList*(server: string; force: bool) =
+  ## Ported from `get_remote_pdu_list`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc getRemotePdu*(eventId: string; server: string) =
+  ## Ported from `get_remote_pdu`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc getRoomState*(room: OwnedRoomOrAliasId) =
+  ## Ported from `get_room_state`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc ping*(server: string) =
+  ## Ported from `ping`.
+  discard
+
+proc forceDeviceListUpdates*() =
+  ## Ported from `force_device_list_updates`.
+  discard
+
+proc changeLogLevel*(filter: Option[string]; reset: bool) =
+  ## Ported from `change_log_level`.
+  discard
+
+proc signJson*() =
+  ## Ported from `sign_json`.
+  discard
+
+proc verifyJson*() =
+  ## Ported from `verify_json`.
+  discard
+
+proc verifyPdu*(eventId: string) =
+  ## Ported from `verify_pdu`.
+  discard
+
+proc firstPduInRoom*(roomId: string) =
+  ## Ported from `first_pdu_in_room`.
+  discard
+
+proc latestPduInRoom*(roomId: string) =
+  ## Ported from `latest_pdu_in_room`.
+  discard
+
+proc forceSetRoomStateFromServer*(roomId: string; serverName: string) =
+  ## Ported from `force_set_room_state_from_server`.
+  discard
+
+proc getSigningKeys*(serverName: Option[string]; notary: Option[string]; query: bool) =
+  ## Ported from `get_signing_keys`.
+  discard
+
+proc getVerifyKeys*(serverName: Option[string]) =
+  ## Ported from `get_verify_keys`.
+  discard
+
+proc resolveTrueDestination*(serverName: string; noCache: bool) =
+  ## Ported from `resolve_true_destination`.
+  discard

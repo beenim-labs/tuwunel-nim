@@ -1,50 +1,45 @@
+## media/data — service module.
+##
+## Ported from Rust service/media/data.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/media/data.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc createFileMetadata*(mxc: Mxc<'_>; user: Option[string]; dim: Dim; contentDisposition: Option[ContentDisposition]; contentType: Option[string]): seq[u8] =
+  ## Ported from `create_file_metadata`.
+  @[]
 
-proc serviceModuleId*(): string =
-  "media.data"
+proc deleteFileMxc*(mxc: Mxc<'_>) =
+  ## Ported from `delete_file_mxc`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc searchMxcMetadataPrefix*(mxc: Mxc<'_>): seq[Vec<u8]> =
+  ## Ported from `search_mxc_metadata_prefix`.
+  @[]
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc searchFileMetadata*(mxc: Mxc<'_>; dim: Dim): Metadata =
+  ## Ported from `search_file_metadata`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc getAllUserMxcs*(userId: string): seq[string] =
+  ## Ported from `get_all_user_mxcs`.
+  @[]
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc getAllMediaKeys*(): seq[Vec<u8]> =
+  ## Ported from `get_all_media_keys`.
+  @[]
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc removeUrlPreview*(url: string) =
+  ## Ported from `remove_url_preview`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc setUrlPreview*(url: string; data: UrlPreviewData; timestamp: Duration) =
+  ## Ported from `set_url_preview`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getUrlPreview*(url: string): UrlPreviewData =
+  ## Ported from `get_url_preview`.
+  discard

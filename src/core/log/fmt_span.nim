@@ -1,51 +1,14 @@
+## Log span formatting.
+##
+## Ported from Rust core/log/fmt_span.rs
+
 const
   RustPath* = "core/log/fmt_span.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
-
-proc moduleId*(): string =
-  "core.log.fmt_span"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc formatSpan*(name: string; fields: string = ""): string =
+  ## Format a tracing span for log output.
+  if fields.len > 0:
+    name & "{" & fields & "}"
+  else:
+    name

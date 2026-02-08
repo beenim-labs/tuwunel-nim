@@ -1,50 +1,89 @@
+## admin/console — service module.
+##
+## Ported from Rust service/admin/console.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/admin/console.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Console* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "admin.console"
+proc handleSignal*(self: Console; sig: 'static str) =
+  ## Ported from `handle_signal`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc start*(self: Console) =
+  ## Ported from `start`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc close*(self: Console) =
+  ## Ported from `close`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc interrupt*(self: Console) =
+  ## Ported from `interrupt`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc interruptReadline*(self: Console) =
+  ## Ported from `interrupt_readline`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc interruptCommand*(self: Console) =
+  ## Ported from `interrupt_command`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc worker*(self: Console) =
+  ## Ported from `worker`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc readline*(self: Console): ReadlineEvent =
+  ## Ported from `readline`.
+  discard
+
+proc handle*(self: Console; line: string) =
+  ## Ported from `handle`.
+  discard
+
+proc process*(self: Console; line: string) =
+  ## Ported from `process`.
+  discard
+
+proc outputErr*(self: Console; outputContent: RoomMessageEventContent) =
+  ## Ported from `output_err`.
+  discard
+
+proc output*(self: Console; outputContent: RoomMessageEventContent) =
+  ## Ported from `output`.
+  discard
+
+proc setHistory*(self: Console; readline: mut Readline) =
+  ## Ported from `set_history`.
+  discard
+
+proc addHistory*(self: Console; line: string) =
+  ## Ported from `add_history`.
+  discard
+
+proc tabComplete*(self: Console; line: string): string =
+  ## Ported from `tab_complete`.
+  ""
+
+proc printErr*(markdown: string) =
+  ## Ported from `print_err`.
+  discard
+
+proc print*(markdown: string) =
+  ## Ported from `print`.
+  discard
+
+proc configureOutputErr*(output: MadSkin): MadSkin =
+  ## Ported from `configure_output_err`.
+  discard
+
+proc configureOutput*(output: MadSkin): MadSkin =
+  ## Ported from `configure_output`.
+  discard

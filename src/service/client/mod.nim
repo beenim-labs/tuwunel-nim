@@ -1,50 +1,54 @@
+## client/mod — service module.
+##
+## Ported from Rust service/client/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/client/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    default*: ClientLazylock
+    urlPreview*: ClientLazylock
+    externMedia*: ClientLazylock
+    wellKnown*: ClientLazylock
+    federation*: ClientLazylock
+    synapse*: ClientLazylock
+    sender*: ClientLazylock
+    appservice*: ClientLazylock
+    pusher*: ClientLazylock
+    oauth*: ClientLazylock
 
-proc serviceModuleId*(): string =
-  "client.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc make*(services: OnceServices): reqwest::Client =
+  ## Ported from `make`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc base*(config: Config): reqwest::ClientBuilder =
+  ## Ported from `base`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc builderInterface*(builder: reqwest::ClientBuilder; config: Option[string]): reqwest::ClientBuilder =
+  ## Ported from `builder_interface`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc builderInterface*(builder: reqwest::ClientBuilder; config: Option[string]): reqwest::ClientBuilder =
+  ## Ported from `builder_interface`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc appserviceResolver*(services: OnceServices): dyn Resolve =
+  ## Ported from `appservice_resolver`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc validCidrRange*(self: Service; ip: IPAddress): bool =
+  ## Ported from `valid_cidr_range`.
+  false

@@ -1,50 +1,45 @@
+## uiaa/mod — service module.
+##
+## Ported from Rust service/uiaa/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/uiaa/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "uiaa.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc create*(self: Service; userId: string; deviceId: DeviceId; uiaainfo: UiaaInfo; jsonBody: CanonicalJsonValue) =
+  ## Ported from `create`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc tryAuth*(self: Service; userId: string; deviceId: DeviceId; auth: AuthData; uiaainfo: UiaaInfo): (bool =
+  ## Ported from `try_auth`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc setUiaaRequest*(self: Service; userId: string; deviceId: DeviceId; session: string; request: CanonicalJsonValue) =
+  ## Ported from `set_uiaa_request`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc getUiaaRequest*(self: Service; userId: string; deviceId: Option[DeviceId]; session: string): Option[CanonicalJsonValue] =
+  ## Ported from `get_uiaa_request`.
+  none(CanonicalJsonValue)
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc updateUiaaSession*(self: Service; userId: string; deviceId: DeviceId; session: string; uiaainfo: Option[UiaaInfo]) =
+  ## Ported from `update_uiaa_session`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getUiaaSession*(self: Service; userId: string; deviceId: DeviceId; session: string): UiaaInfo =
+  ## Ported from `get_uiaa_session`.
+  discard

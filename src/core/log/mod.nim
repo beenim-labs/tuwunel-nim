@@ -1,51 +1,28 @@
+## Logging subsystem — initialization and management.
+##
+## Ported from Rust core/log/mod.rs
+
+import std/logging
+
 const
   RustPath* = "core/log/mod.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  Logging* = ref object
+    ## Logging subsystem state.
+    initialized*: bool
+    level*: Level
 
-proc moduleId*(): string =
-  "core.log.mod"
+proc newLogging*(level: Level = lvlInfo): Logging =
+  Logging(initialized: false, level: level)
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc init*(lg: Logging) =
+  ## Initialize the logging subsystem.
+  if not lg.initialized:
+    addHandler(newConsoleLogger(lg.level))
+    lg.initialized = true
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc setLevel*(lg: Logging; level: Level) =
+  ## Change the active log level.
+  lg.level = level

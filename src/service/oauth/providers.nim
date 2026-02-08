@@ -1,50 +1,49 @@
+## oauth/providers — service module.
+##
+## Ported from Rust service/oauth/providers.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/oauth/providers.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Providers* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "oauth.providers"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc get*(self: Providers; id: string): Provider =
+  ## Ported from `get`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc getConfig*(self: Providers; id: string): Provider =
+  ## Ported from `get_config`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc getCached*(self: Providers; id: string): Option[Provider] =
+  ## Ported from `get_cached`.
+  none(Provider)
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc configure*(self: Providers; provider: Provider): Provider =
+  ## Ported from `configure`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc discover*(self: Providers; provider: Provider): JsonValue =
+  ## Ported from `discover`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc discoveryUrl*(provider: Provider): Url =
+  ## Ported from `discovery_url`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc checkIssuer*(response: JsonObject<string; provider: Provider): JsonObject<string> =
+  ## Ported from `check_issuer`.
+  discard
+
+proc makeUrl*(provider: Provider; path: string): Url =
+  ## Ported from `make_url`.
+  discard

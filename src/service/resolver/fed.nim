@@ -1,50 +1,49 @@
+## resolver/fed — service module.
+##
+## Ported from Rust service/resolver/fed.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/resolver/fed.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  FedDest* = enum
+    literal
+    socketaddr
+    named
+    hoststring
+    portstring
 
-proc serviceModuleId*(): string =
-  "resolver.fed"
+proc getIpWithPort*(destStr: string): Option[FedDest] =
+  ## Ported from `get_ip_with_port`.
+  none(FedDest)
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc addPortToHostname*(dest: string): FedDest =
+  ## Ported from `add_port_to_hostname`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc httpsString*(): Deststring =
+  ## Ported from `https_string`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc uriString*(): Deststring =
+  ## Ported from `uri_string`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc hostname*(): Hoststring =
+  ## Ported from `hostname`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc port*(): Option[u16] =
+  ## Ported from `port`.
+  none(u16)
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc defaultPort*(): Portstring =
+  ## Ported from `default_port`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc size*(): int =
+  ## Ported from `size`.
+  0

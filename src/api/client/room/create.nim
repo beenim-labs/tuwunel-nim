@@ -1,51 +1,41 @@
+## room/create — api module.
+##
+## Ported from Rust api/client/room/create.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/room/create.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc createRoomRoute*() =
+  ## Ported from `create_room_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.room.create"
+proc createCreateEvent*(services: Services; body: Ruma<create_room::v3::Request>; preset: RoomPreset; roomVersion: RoomVersionId; versionRules: RoomVersionRules): (string =
+  ## Ported from `create_create_event`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc createCreateEventLegacy*(services: Services; body: Ruma<create_room::v3::Request>; roomVersion: RoomVersionId; VersionRules: RoomVersionRules): (string =
+  ## Ported from `create_create_event_legacy`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc defaultPowerLevelsContent*(versionRules: RoomVersionRules; powerLevelContentOverride: Option[Raw<RoomPowerLevelsEventContent]>; visibility: room::Visibility; users: BTreeMap<string): serde_json::Value =
+  ## Ported from `default_power_levels_content`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc roomAliasCheck*(services: Services; roomAliasName: string; appserviceInfo: Option[RegistrationInfo]): OwnedRoomAliasId =
+  ## Ported from `room_alias_check`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc customRoomIdCheck*(services: Services; customRoomId: string): string =
+  ## Ported from `custom_room_id_check`.
+  ""
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc canPublishDirectoryCheck*(services: Services; body: Ruma<create_room::v3::Request>) =
+  ## Ported from `can_publish_directory_check`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc canCreateRoomCheck*(services: Services; body: Ruma<create_room::v3::Request>) =
+  ## Ported from `can_create_room_check`.
+  discard

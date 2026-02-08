@@ -1,51 +1,35 @@
+## Core Matrix Library — module re-exports.
+##
+## Ported from Rust core/matrix/mod.rs — provides a unified import
+## point for all Matrix types.
+
+import event as event_mod
+import pdu/builder as builder_mod
+import pdu/count as count_mod
+import pdu/hashes as hashes_mod
+import pdu/id as id_mod
+import event/state_key as state_key_mod
+import event/type_ext as type_ext_mod
+
 const
   RustPath* = "core/matrix/mod.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
+# Re-export core event types
+export event_mod
+
+# Re-export PDU types
+export builder_mod
+export count_mod
+export hashes_mod
+export id_mod
+
+# Re-export state key types
+export state_key_mod
+export type_ext_mod
+
+# Short ID type aliases (matching Rust)
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
-
-proc moduleId*(): string =
-  "core.matrix.mod"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+  ShortId* = uint64
+  ShortStateKey* = ShortId
+  ShortEventId* = ShortId

@@ -1,43 +1,28 @@
-import logging
-import config_bootstrap
-import config_loader
-import config_merge
-import config_values
-import generated_config_keys
-import generated_config_model
-import generated_config_defaults
-import generated_function_inventory
+## core/mod — core module.
+##
+## Ported from Rust core/mod.rs
 
-type
-  CoreSurfaceSummary* = object
-    configKeyCount*: int
-    rustFunctionTotal*: int
-    hasConfigLoader*: bool
-    hasConfigMerge*: bool
-    hasConfigValues*: bool
+import std/[options, json, tables, strutils]
 
-proc buildCoreSurfaceSummary*(): CoreSurfaceSummary =
-  CoreSurfaceSummary(
-    configKeyCount: ConfigKeyCount,
-    rustFunctionTotal: RustFunctionTotal,
-    hasConfigLoader: true,
-    hasConfigMerge: true,
-    hasConfigValues: true,
-  )
+const
+  RustPath* = "core/mod.rs"
+  RustCrate* = "core"
 
-proc coreSummaryLine*(summary: CoreSurfaceSummary): string =
-  "config_keys=" & $summary.configKeyCount &
-    " rust_functions=" & $summary.rustFunctionTotal &
-    " loader=" & $summary.hasConfigLoader &
-    " merge=" & $summary.hasConfigMerge &
-    " values=" & $summary.hasConfigValues
+type Service* = ref object
+  ## core service.
+  discard
 
-export logging
-export config_bootstrap
-export config_loader
-export config_merge
-export config_values
-export generated_config_keys
-export generated_config_model
-export generated_config_defaults
-export generated_function_inventory
+# import ./alloc
+# import ./config
+# import ./debug
+# import ./error
+# import ./info
+# import ./log
+# import ./matrix
+# import ./metrics
+# import ./mods
+# import ./server
+# import ./utils
+# import ./mods
+
+proc init*() = discard

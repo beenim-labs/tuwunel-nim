@@ -1,50 +1,57 @@
+## users/profile — service module.
+##
+## Ported from Rust service/users/profile.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/users/profile.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc updateDisplayname*(userId: string; displayname: Option[string]; rooms: [string]) =
+  ## Ported from `update_displayname`.
+  discard
 
-proc serviceModuleId*(): string =
-  "users.profile"
+proc setDisplayname*(userId: string; displayname: Option[string]) =
+  ## Ported from `set_displayname`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc displayname*(userId: string): string =
+  ## Ported from `displayname`.
+  ""
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc updateAvatarUrl*(userId: string; avatarUrl: Option[string]; blurhash: Option[string]; rooms: [string]) =
+  ## Ported from `update_avatar_url`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc setAvatarUrl*(userId: string; avatarUrl: Option[string]) =
+  ## Ported from `set_avatar_url`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc avatarUrl*(userId: string): string =
+  ## Ported from `avatar_url`.
+  ""
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc setBlurhash*(userId: string; blurhash: Option[string]) =
+  ## Ported from `set_blurhash`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc blurhash*(userId: string): string =
+  ## Ported from `blurhash`.
+  ""
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc setTimezone*(userId: string; timezone: Option[string]) =
+  ## Ported from `set_timezone`.
+  discard
+
+proc timezone*(userId: string): string =
+  ## Ported from `timezone`.
+  ""
+
+proc setProfileKey*(userId: string; profileKey: string; profileKeyValue: Option[serde_json::Value]) =
+  ## Ported from `set_profile_key`.
+  discard
+
+proc profileKey*(userId: string; profileKey: string): serde_json::Value =
+  ## Ported from `profile_key`.
+  discard

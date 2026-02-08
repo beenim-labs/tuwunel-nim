@@ -1,51 +1,108 @@
+## config — core module.
+##
+## Ported from Rust core/config/mod.rs
+
+import std/[options, json, tables]
+
 const
   RustPath* = "core/config/mod.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
+
+# import ./check
+# import ./manager
+# import ./proxy
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  Config* = ref object
+    serverName*: string
+    databasePath*: string
+    newUserDisplaynameSuffix*: string
+    tls*: string
+    unixSocketPath*: string
+    unixSocketPerms*: string
+    databaseBackupPath*: string
+    databaseBackupsToKeep*: string
 
-proc moduleId*(): string =
-  "core.config.mod"
+type
+  TlsConfig* = ref object
+    certs*: string
+    key*: string
+    dualProtocol*: string
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+type
+  WellKnownConfig* = ref object
+    client*: string
+    server*: string
+    supportPage*: string
+    supportRole*: string
+    supportEmail*: string
+    supportMxid*: string
+    rtcTransports*: string
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+type
+  BlurhashConfig* = ref object
+    componentsX*: string
+    componentsY*: string
+    blurhashMaxRawSize*: string
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+type
+  LdapConfig* = ref object
+    enable*: string
+    uri*: string
+    baseDn*: string
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc id*() =
+  ## Ported from `id`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc getClientSecret*() =
+  ## Ported from `get_client_secret`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc from*() =
+  ## Ported from `from`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc from*() =
+  ## Ported from `from`.
+  discard
+
+proc getBindAddrs*() =
+  ## Ported from `get_bind_addrs`.
+  discard
+
+proc getBindHosts*() =
+  ## Ported from `get_bind_hosts`.
+  discard
+
+proc getBindPorts*() =
+  ## Ported from `get_bind_ports`.
+  discard
+
+proc check*() =
+  ## Ported from `check`.
+  discard
+
+proc trueFn*() =
+  ## Ported from `true_fn`.
+  discard
+
+proc defaultServerName*() =
+  ## Ported from `default_server_name`.
+  discard
+
+proc defaultDatabasePath*() =
+  ## Ported from `default_database_path`.
+  discard
+
+proc defaultAddress*() =
+  ## Ported from `default_address`.
+  discard
+
+proc defaultPort*() =
+  ## Ported from `default_port`.
+  discard
+
+proc defaultUnixSocketPerms*() =
+  ## Ported from `default_unix_socket_perms`.
+  discard

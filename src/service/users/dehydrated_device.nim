@@ -1,50 +1,30 @@
+## users/dehydrated_device — service module.
+##
+## Ported from Rust service/users/dehydrated_device.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/users/dehydrated_device.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  DehydratedDevice* = ref object
+    deviceId*: OwnedDeviceId
+    deviceData*: Raw<DehydratedDeviceData>
 
-proc serviceModuleId*(): string =
-  "users.dehydrated_device"
+proc setDehydratedDevice*(self: DehydratedDevice; userId: string; request: Request) =
+  ## Ported from `set_dehydrated_device`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc removeDehydratedDevice*(self: DehydratedDevice; userId: string; maybeDeviceId: Option[DeviceId]): OwnedDeviceId =
+  ## Ported from `remove_dehydrated_device`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc getDehydratedDeviceId*(self: DehydratedDevice; userId: string): OwnedDeviceId =
+  ## Ported from `get_dehydrated_device_id`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
-
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
-
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
-
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
-
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getDehydratedDevice*(self: DehydratedDevice; userId: string): DehydratedDevice =
+  ## Ported from `get_dehydrated_device`.
+  discard

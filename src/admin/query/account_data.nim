@@ -1,51 +1,17 @@
+## query/account_data — admin module.
+##
+## Ported from Rust admin/query/account_data.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "admin/query/account_data.rs"
   RustCrate* = "admin"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc changesSince*(userId: string; since: uint64; roomId: Option[string]) =
+  ## Ported from `changes_since`.
+  discard
 
-proc moduleId*(): string =
-  "admin.query.account_data"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc accountDataGet*(userId: string; kind: string; roomId: Option[string]) =
+  ## Ported from `account_data_get`.
+  discard

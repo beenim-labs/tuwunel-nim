@@ -1,50 +1,33 @@
+## auth_chain/mod — service module.
+##
+## Ported from Rust service/rooms/auth_chain/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/rooms/auth_chain/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "rooms.auth_chain.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc clearCache*(self: Service) =
+  ## Ported from `clear_cache`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc putCachedAuthChain*(self: Service; key: [Shortstring]; authChain: [Shortstring]) =
+  ## Ported from `put_cached_auth_chain`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
-
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
-
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
-
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getCachedAuthChain*(self: Service; key: [uint64]): seq[Shortstring] =
+  ## Ported from `get_cached_auth_chain`.
+  @[]

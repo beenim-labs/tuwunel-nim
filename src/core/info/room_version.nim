@@ -1,51 +1,68 @@
+## Room version support — stable, unstable, and experimental versions.
+##
+## Ported from Rust core/info/room_version.rs — defines the supported
+## Matrix room versions and their stability status.
+
 const
   RustPath* = "core/info/room_version.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  ## Room version stability classification.
+  RoomVersionStability* = enum
+    rvsStable
+    rvsUnstable
 
-proc moduleId*(): string =
-  "core.info.room_version"
+  ## Room version with stability.
+  RoomVersion* = tuple[id: string, stability: RoomVersionStability]
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+const
+  ## Partially supported non-compliant room versions.
+  UnstableRoomVersions*: seq[string] = @["2", "3", "4", "5"]
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+  ## Supported and stable room versions.
+  StableRoomVersions*: seq[string] = @["6", "7", "8", "9", "10", "11", "12"]
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+  ## Experimental room versions under development.
+  ExperimentalRoomVersions*: seq[string] = @[]
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc availableRoomVersions*(): seq[RoomVersion] =
+  ## Get all available room versions with their stability.
+  result = @[]
+  for v in StableRoomVersions:
+    result.add((id: v, stability: rvsStable))
+  for v in UnstableRoomVersions:
+    result.add((id: v, stability: rvsUnstable))
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc isStableRoomVersion*(version: string): bool =
+  ## Check if a room version is stable.
+  version in StableRoomVersions
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc isUnstableRoomVersion*(version: string): bool =
+  ## Check if a room version is unstable.
+  version in UnstableRoomVersions
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc isSupportedRoomVersion*(version: string;
+                              allowUnstable: bool = true;
+                              allowExperimental: bool = false): bool =
+  ## Check if a room version is supported.
+  if version in StableRoomVersions:
+    return true
+  if allowUnstable and version in UnstableRoomVersions:
+    return true
+  if allowExperimental and version in ExperimentalRoomVersions:
+    return true
+  false
+
+proc supportedRoomVersions*(allowUnstable: bool = true;
+                             allowExperimental: bool = false): seq[string] =
+  ## Get all supported room version IDs.
+  result = @[]
+  for v in StableRoomVersions:
+    result.add(v)
+  if allowUnstable:
+    for v in UnstableRoomVersions:
+      result.add(v)
+  if allowExperimental:
+    for v in ExperimentalRoomVersions:
+      result.add(v)

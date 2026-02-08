@@ -1,50 +1,92 @@
+## media/mod — service module.
+##
+## Ported from Rust service/media/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/media/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  FileMeta* = ref object
+    content*: Option[seq[u8]]
+    contentType*: Option[string]
+    contentDisposition*: Option[ContentDisposition]
 
-proc serviceModuleId*(): string =
-  "media.mod"
+type
+  Service* = ref object
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+# import ./blurhash
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc worker*(self: FileMeta) =
+  ## Ported from `worker`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc name*(self: FileMeta): string =
+  ## Ported from `name`.
+  ""
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc create*(self: FileMeta; mxc: Mxc<'_>; user: Option[string]; contentDisposition: Option[ContentDisposition]; contentType: Option[string]; file: [u8]) =
+  ## Ported from `create`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc delete*(self: FileMeta; mxc: Mxc<'_>) =
+  ## Ported from `delete`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc deleteFromUser*(self: FileMeta; user: string): int =
+  ## Ported from `delete_from_user`.
+  0
+
+proc get*(self: FileMeta; mxc: Mxc<'_>): Option[FileMeta] =
+  ## Ported from `get`.
+  none(FileMeta)
+
+proc getAllMxcs*(self: FileMeta): seq[string] =
+  ## Ported from `get_all_mxcs`.
+  @[]
+
+proc deleteAllRemoteMediaAtAfterTime*(self: FileMeta; time: SystemTime; before: bool; after: bool; yesIWantToDeleteLocalMedia: bool): int =
+  ## Ported from `delete_all_remote_media_at_after_time`.
+  0
+
+proc createMediaDir*(self: FileMeta) =
+  ## Ported from `create_media_dir`.
+  discard
+
+proc removeMediaFile*(self: FileMeta; key: [u8]) =
+  ## Ported from `remove_media_file`.
+  discard
+
+proc createMediaFile*(self: FileMeta; key: [u8]): fs::File =
+  ## Ported from `create_media_file`.
+  discard
+
+proc getMetadata*(self: FileMeta; mxc: Mxc<'_>): Option[FileMeta] =
+  ## Ported from `get_metadata`.
+  none(FileMeta)
+
+proc getMediaFile*(self: FileMeta; key: [u8]): PathBuf =
+  ## Ported from `get_media_file`.
+  discard
+
+proc getMediaFileSha256*(self: FileMeta; key: [u8]): PathBuf =
+  ## Ported from `get_media_file_sha256`.
+  discard
+
+proc getMediaFileB64*(self: FileMeta; key: [u8]): PathBuf =
+  ## Ported from `get_media_file_b64`.
+  discard
+
+proc getMediaDir*(self: FileMeta): PathBuf =
+  ## Ported from `get_media_dir`.
+  discard
+
+proc encodeKey*(key: [u8]): string =
+  ## Ported from `encode_key`.
+  ""

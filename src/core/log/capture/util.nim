@@ -1,51 +1,25 @@
+## Log capture utilities.
+##
+## Ported from Rust core/log/capture/util.rs
+
+import ./data
+import std/json
+
 const
   RustPath* = "core/log/capture/util.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc logsToJson*(logs: seq[CapturedLog]): JsonNode =
+  ## Convert captured logs to a JSON array.
+  result = newJArray()
+  for log in logs:
+    result.add log.toJson()
 
-proc moduleId*(): string =
-  "core.log.capture.util"
+proc logsToString*(logs: seq[CapturedLog]; separator: string = "\n"): string =
+  ## Format captured logs as a single string.
+  var parts: seq[string] = @[]
+  for log in logs:
+    parts.add log.level & ": " & log.message
+  parts.join(separator)
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+import std/strutils

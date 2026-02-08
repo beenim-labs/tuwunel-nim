@@ -1,50 +1,54 @@
+## media/preview — service module.
+##
+## Ported from Rust service/media/preview.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/media/preview.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  UrlPreviewData* = ref object
+    title*: Option[string]
+    description*: Option[string]
+    image*: Option[string]
+    imageSize*: Option[int]
+    imageWidth*: Option[uint32]
+    imageHeight*: Option[uint32]
 
-proc serviceModuleId*(): string =
-  "media.preview"
+proc removeUrlPreview*(self: UrlPreviewData; url: string) =
+  ## Ported from `remove_url_preview`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc setUrlPreview*(self: UrlPreviewData; url: string; data: UrlPreviewData) =
+  ## Ported from `set_url_preview`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc getUrlPreview*(self: UrlPreviewData; url: Url): UrlPreviewData =
+  ## Ported from `get_url_preview`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc requestUrlPreview*(self: UrlPreviewData; url: Url): UrlPreviewData =
+  ## Ported from `request_url_preview`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc downloadImage*(self: UrlPreviewData; url: string): UrlPreviewData =
+  ## Ported from `download_image`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc downloadImage*(self: UrlPreviewData; Url: string): UrlPreviewData =
+  ## Ported from `download_image`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc downloadHtml*(self: UrlPreviewData; url: string): UrlPreviewData =
+  ## Ported from `download_html`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc downloadHtml*(self: UrlPreviewData; Url: string): UrlPreviewData =
+  ## Ported from `download_html`.
+  discard
+
+proc urlPreviewAllowed*(self: UrlPreviewData; url: Url): bool =
+  ## Ported from `url_preview_allowed`.
+  false

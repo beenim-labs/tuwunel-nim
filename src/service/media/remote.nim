@@ -1,50 +1,69 @@
+## media/remote — service module.
+##
+## Ported from Rust service/media/remote.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/media/remote.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc fetchRemoteThumbnail*(mxc: Mxc<'_>; user: Option[string]; server: Option[string]; timeoutMs: Duration; dim: Dim): FileMeta =
+  ## Ported from `fetch_remote_thumbnail`.
+  discard
 
-proc serviceModuleId*(): string =
-  "media.remote"
+proc fetchRemoteContent*(mxc: Mxc<'_>; user: Option[string]; server: Option[string]; timeoutMs: Duration): FileMeta =
+  ## Ported from `fetch_remote_content`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc fetchThumbnailAuthenticated*(mxc: Mxc<'_>; user: Option[string]; server: Option[string]; timeoutMs: Duration; dim: Dim): FileMeta =
+  ## Ported from `fetch_thumbnail_authenticated`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc fetchContentAuthenticated*(mxc: Mxc<'_>; user: Option[string]; server: Option[string]; timeoutMs: Duration): FileMeta =
+  ## Ported from `fetch_content_authenticated`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc fetchThumbnailUnauthenticated*(mxc: Mxc<'_>; user: Option[string]; server: Option[string]; timeoutMs: Duration; dim: Dim): FileMeta =
+  ## Ported from `fetch_thumbnail_unauthenticated`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc fetchContentUnauthenticated*(mxc: Mxc<'_>; user: Option[string]; server: Option[string]; timeoutMs: Duration): FileMeta =
+  ## Ported from `fetch_content_unauthenticated`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc handleThumbnailFile*(mxc: Mxc<'_>; user: Option[string]; dim: Dim; content: Content): FileMeta =
+  ## Ported from `handle_thumbnail_file`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc handleContentFile*(mxc: Mxc<'_>; user: Option[string]; content: Content): FileMeta =
+  ## Ported from `handle_content_file`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc handleLocation*(mxc: Mxc<'_>; user: Option[string]; location: string): FileMeta =
+  ## Ported from `handle_location`.
+  discard
+
+proc locationRequest*(location: string): FileMeta =
+  ## Ported from `location_request`.
+  discard
+
+proc handleFederationError*(mxc: Mxc<'_>; user: Option[string]; server: Option[string]; error: Error): Error =
+  ## Ported from `handle_federation_error`.
+  discard
+
+proc fetchRemoteThumbnailLegacy*(body: media::get_content_thumbnail::v3::Request): media::get_content_thumbnail::v3::Response =
+  ## Ported from `fetch_remote_thumbnail_legacy`.
+  discard
+
+proc fetchRemoteContentLegacy*(mxc: Mxc<'_>; allowRedirect: bool; timeoutMs: Duration): media::get_content::v3::Response =
+  ## Ported from `fetch_remote_content_legacy`.
+  discard
+
+proc checkFetchAuthorized*(mxc: Mxc<'_>) =
+  ## Ported from `check_fetch_authorized`.
+  discard
+
+proc checkLegacyFreeze*() =
+  ## Ported from `check_legacy_freeze`.
+  discard

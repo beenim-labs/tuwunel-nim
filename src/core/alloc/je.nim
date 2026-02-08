@@ -1,51 +1,37 @@
+## Jemalloc integration — memory statistics and trimming.
+##
+## Ported from Rust core/alloc/je.rs
+## Note: Full jemalloc integration requires a C FFI binding.
+## This module provides the interface; actual jemalloc calls are
+## stubbed pending native bindings.
+
+import std/strformat
+
 const
   RustPath* = "core/alloc/je.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc trim*(pad: int = 0): bool =
+  ## Request jemalloc to release unused memory.
+  ## Stubbed — requires jemalloc C bindings.
+  true
 
-proc moduleId*(): string =
-  "core.alloc.je"
+proc memoryStats*(opts: string = ""): string =
+  ## Return jemalloc memory statistics.
+  ## Stubbed — requires jemalloc C bindings.
+  &"jemalloc stats not available (native bindings required)"
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc memoryUsage*(): string =
+  ## Return memory usage summary.
+  ## Stubbed — requires jemalloc C bindings.
+  "memory usage not available (native bindings required)"
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc setProfile*(active: bool) =
+  ## Enable or disable jemalloc heap profiling.
+  ## Stubbed — requires jemalloc C bindings.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc dumpProfile*(path: string) =
+  ## Dump jemalloc heap profile to file.
+  ## Stubbed — requires jemalloc C bindings.
+  discard

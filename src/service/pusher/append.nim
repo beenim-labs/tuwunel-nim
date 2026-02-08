@@ -1,50 +1,32 @@
+## pusher/append — service module.
+##
+## Ported from Rust service/pusher/append.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/pusher/append.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Notified* = ref object
+    ts*: uint64
+    sroomid*: Shortstring
+    tag*: Option[ProfileTag]
+    actions*: Actions
 
-proc serviceModuleId*(): string =
-  "pusher.append"
+proc appendPdu*(self: Notified; pduId: RawPduId; pdu: Pdu) =
+  ## Ported from `append_pdu`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc incrementNotificationcount*(self: Notified; roomId: string; userId: string) =
+  ## Ported from `increment_notificationcount`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc incrementHighlightcount*(self: Notified; roomId: string; userId: string) =
+  ## Ported from `increment_highlightcount`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
-
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
-
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
-
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
-
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc increment*(db: Map; key: (string) =
+  ## Ported from `increment`.
+  discard

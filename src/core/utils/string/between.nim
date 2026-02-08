@@ -1,51 +1,31 @@
+## String submodule — Between extractor.
+##
+## Ported from Rust core/utils/string/between.rs
+
 const
   RustPath* = "core/utils/string/between.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc between*(s: string; left: char; right: char): string =
+  ## Extract the substring between two delimiters.
+  ## Returns empty string if delimiters not found.
+  let leftPos = s.find(left)
+  if leftPos < 0:
+    return ""
+  let rightPos = s.find(right, leftPos + 1)
+  if rightPos < 0:
+    return ""
+  s[leftPos + 1 ..< rightPos]
 
-proc moduleId*(): string =
-  "core.utils.string.between"
+proc betweenStr*(s: string; left: string; right: string): string =
+  ## Extract the substring between two string delimiters.
+  let leftPos = s.find(left)
+  if leftPos < 0:
+    return ""
+  let start = leftPos + left.len
+  let rightPos = s.find(right, start)
+  if rightPos < 0:
+    return ""
+  s[start ..< rightPos]
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+import std/strutils

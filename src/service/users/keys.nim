@@ -1,50 +1,57 @@
+## users/keys — service module.
+##
+## Ported from Rust service/users/keys.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/users/keys.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc addOneTimeKey*(userId: string; deviceId: DeviceId; oneTimeKeyKey: KeyId<OneTimeKeyAlgorithm; oneTimeKeyValue: Raw<OneTimeKey>) =
+  ## Ported from `add_one_time_key`.
+  discard
 
-proc serviceModuleId*(): string =
-  "users.keys"
+proc lastOneTimeKeysUpdate*(userId: string): uint64 =
+  ## Ported from `last_one_time_keys_update`.
+  0
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc takeOneTimeKey*(userId: string; deviceId: DeviceId; keyAlgorithm: OneTimeKeyAlgorithm): (OwnedKeyId<OneTimeKeyAlgorithm, Raw<OneTimeKey>)> =
+  ## Ported from `take_one_time_key`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc countOneTimeKeys*(userId: string; deviceId: DeviceId): BTreeMap<OneTimeKeyAlgorithm, UInt> =
+  ## Ported from `count_one_time_keys`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc pruneOneTimeKeys*(userId: string; deviceId: DeviceId) =
+  ## Ported from `prune_one_time_keys`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc addDeviceKeys*(userId: string; deviceId: DeviceId; deviceKeys: Raw<DeviceKeys>) =
+  ## Ported from `add_device_keys`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc addCrossSigningKeys*(userId: string; masterKey: Option[Raw<CrossSigningKey]>; selfSigningKey: Option[Raw<CrossSigningKey]>; userSigningKey: Option[Raw<CrossSigningKey]>; notify: bool) =
+  ## Ported from `add_cross_signing_keys`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc signKey*(targetId: string; keyId: string; signature: (string) =
+  ## Ported from `sign_key`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc markDeviceKeyUpdate*(userId: string) =
+  ## Ported from `mark_device_key_update`.
+  discard
+
+proc getUserSigningKey*(userId: string): Raw<CrossSigningKey> =
+  ## Ported from `get_user_signing_key`.
+  discard
+
+proc parseMasterKey*(userId: string; masterKey: Raw<CrossSigningKey>): (seq[u8, CrossSigningKey)] =
+  ## Ported from `parse_master_key`.
+  discard
+
+proc parseUserSigningKey*(userSigningKey: Raw<CrossSigningKey>): string =
+  ## Ported from `parse_user_signing_key`.
+  ""

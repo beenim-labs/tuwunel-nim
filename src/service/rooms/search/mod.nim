@@ -1,50 +1,65 @@
+## search/mod — service module.
+##
+## Ported from Rust service/rooms/search/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/rooms/search/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "rooms.search.mod"
+type
+  RoomQuery* = ref object
+    discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc indexPdu*(self: Service; shortroomid: Shortstring; pduId: RawPduId; messageBody: string) =
+  ## Ported from `index_pdu`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc deindexPdu*(self: Service; shortroomid: Shortstring; pduId: RawPduId; messageBody: string) =
+  ## Ported from `deindex_pdu`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc searchPduIds*(self: Service; query: RoomQuery<'_>): impl Stream<Item = RawPduId + Send + '_ + use<'_>> =
+  ## Ported from `search_pdu_ids`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc searchPduIdsQueryRoom*(self: Service; query: RoomQuery<'_>; shortroomid: Shortstring): seq[Vec<RawPduId]> =
+  ## Ported from `search_pdu_ids_query_room`.
+  @[]
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc searchPduIdsQueryWord*(self: Service; shortroomid: Shortstring; word: string): impl Stream<Item = Val<'_>> + Send + '_ + use<'_> =
+  ## Ported from `search_pdu_ids_query_word`.
+  discard
+
+proc deleteAllSearchTokenidsForRoom*(self: Service; roomId: string) =
+  ## Ported from `delete_all_search_tokenids_for_room`.
+  discard
+
+proc tokenize*(body: string): impl Iterator<Item = string> + Send + '_ =
+  ## Ported from `tokenize`.
+  discard
+
+proc makeTokenid*(shortroomid: Shortstring; word: string; pduId: RawPduId): TokenId =
+  ## Ported from `make_tokenid`.
+  discard
+
+proc makePrefix*(shortroomid: Shortstring; word: string): TokenId =
+  ## Ported from `make_prefix`.
+  discard
+
+proc prefixLen*(word: string): int =
+  ## Ported from `prefix_len`.
+  0

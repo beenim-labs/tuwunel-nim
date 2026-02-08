@@ -1,50 +1,77 @@
+## key_backups/mod — service module.
+##
+## Ported from Rust service/key_backups/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/key_backups/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "key_backups.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc createBackup*(self: Service; userId: string; backupMetadata: Raw<BackupAlgorithm>): string =
+  ## Ported from `create_backup`.
+  ""
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc deleteBackup*(self: Service; userId: string; version: string) =
+  ## Ported from `delete_backup`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc getLatestBackupVersion*(self: Service; userId: string): string =
+  ## Ported from `get_latest_backup_version`.
+  ""
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc getLatestBackup*(self: Service; userId: string): (string)> =
+  ## Ported from `get_latest_backup`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc getBackup*(self: Service; userId: string; version: string): Raw<BackupAlgorithm> =
+  ## Ported from `get_backup`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc addKey*(self: Service; userId: string; version: string; roomId: string; sessionId: string; keyData: Raw<KeyBackupData>) =
+  ## Ported from `add_key`.
+  discard
+
+proc countKeys*(self: Service; userId: string; version: string): int =
+  ## Ported from `count_keys`.
+  0
+
+proc getEtag*(self: Service; userId: string; version: string): string =
+  ## Ported from `get_etag`.
+  ""
+
+proc getAll*(self: Service; userId: string; version: string): BTreeMap<string, RoomKeyBackup> =
+  ## Ported from `get_all`.
+  discard
+
+proc getRoom*(self: Service; userId: string; version: string; roomId: string): BTreeMap<string, Raw<KeyBackupData>> =
+  ## Ported from `get_room`.
+  discard
+
+proc getSession*(self: Service; userId: string; version: string; roomId: string; sessionId: string): Raw<KeyBackupData> =
+  ## Ported from `get_session`.
+  discard
+
+proc deleteAllKeys*(self: Service; userId: string; version: string) =
+  ## Ported from `delete_all_keys`.
+  discard
+
+proc deleteRoomKeys*(self: Service; userId: string; version: string; roomId: string) =
+  ## Ported from `delete_room_keys`.
+  discard
+
+proc deleteRoomKey*(self: Service; userId: string; version: string; roomId: string; sessionId: string) =
+  ## Ported from `delete_room_key`.
+  discard

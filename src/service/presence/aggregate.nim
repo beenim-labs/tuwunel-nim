@@ -1,50 +1,41 @@
+## presence/aggregate — service module.
+##
+## Ported from Rust service/presence/aggregate.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/presence/aggregate.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc clear*() =
+  ## Ported from `clear`.
+  discard
 
-proc serviceModuleId*(): string =
-  "presence.aggregate"
+proc update*(userId: string; deviceKey: DeviceKey; state: PresenceState; currentlyActive: Option[bool]; lastActiveAgo: Option[UInt]; statusMsg: Option[string]; nowMs: uint64) =
+  ## Ported from `update`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc aggregate*(userId: string; nowMs: uint64; idleTimeoutMs: uint64; offlineTimeoutMs: uint64): AggregatedPresence =
+  ## Ported from `aggregate`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc effectiveDeviceState*(state: PresenceState; lastActiveAge: uint64; idleTimeoutMs: uint64; offlineTimeoutMs: uint64): PresenceState =
+  ## Ported from `effective_device_state`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc stateRank*(state: PresenceState): u8 =
+  ## Ported from `state_rank`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc aggregatesRankAndStatusMsg*() =
+  ## Ported from `aggregates_rank_and_status_msg`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc degradesOnlineToUnavailableAfterIdle*() =
+  ## Ported from `degrades_online_to_unavailable_after_idle`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
-
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc dropsStaleDevicesOnAggregate*() =
+  ## Ported from `drops_stale_devices_on_aggregate`.
+  discard

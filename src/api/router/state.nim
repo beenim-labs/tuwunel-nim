@@ -325,7 +325,7 @@ proc resolveRoom*(state: ApiRouterState; roomIdOrAlias: string): tuple[ok: bool,
 proc stateEventKey(eventType, stateKey: string): string =
   eventType & "\x1F" & stateKey
 
-proc updateRoomStateFromEvent(room: var RoomRecord; event: RoomEventRecord) =
+proc updateRoomStateFromEvent(state: ApiRouterState; room: var RoomRecord; event: RoomEventRecord) =
   if event.stateKey.isNone:
     return
   let key = event.stateKey.get()
@@ -369,7 +369,7 @@ proc putEvent(
   if roomId in state.rooms:
     var room = state.rooms[roomId]
     room.timeline.add(eventId)
-    updateRoomStateFromEvent(room, result)
+    updateRoomStateFromEvent(state, room, result)
     state.rooms[roomId] = room
 
 proc userCanAccessRoom(state: ApiRouterState; userId, roomId: string): bool =

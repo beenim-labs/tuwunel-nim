@@ -1,51 +1,28 @@
+## String submodule — unquote and unquoted utilities.
+##
+## Ported from Rust core/utils/string/unquote.rs and unquoted.rs
+
+import std/strutils
+
 const
   RustPath* = "core/utils/string/unquote.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc unquote*(s: string): string =
+  ## Remove surrounding quotes from a string, if present.
+  if s.len >= 2:
+    if (s[0] == '"' and s[^1] == '"') or (s[0] == '\'' and s[^1] == '\''):
+      return s[1 ..< s.len - 1]
+  s
 
-proc moduleId*(): string =
-  "core.utils.string.unquote"
+proc unquoted*(s: string): string =
+  ## Remove all quote characters from a string.
+  result = ""
+  for ch in s:
+    if ch != '"' and ch != '\'':
+      result.add ch
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc isQuoted*(s: string): bool =
+  ## Check if a string is surrounded by quotes.
+  s.len >= 2 and
+    ((s[0] == '"' and s[^1] == '"') or (s[0] == '\'' and s[^1] == '\''))

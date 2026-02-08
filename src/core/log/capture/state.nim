@@ -1,51 +1,48 @@
+## Log capture state — manages the capture buffer.
+##
+## Ported from Rust core/log/capture/state.rs
+
+import std/[locks]
+import ./data
+
 const
   RustPath* = "core/log/capture/state.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  CaptureState* = ref object
+    ## Thread-safe log capture state.
+    lock: Lock
+    capturing: bool
+    logs: seq[CapturedLog]
 
-proc moduleId*(): string =
-  "core.log.capture.state"
+proc newCaptureState*(): CaptureState =
+  result = CaptureState(logs: @[])
+  initLock(result.lock)
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc startCapture*(s: CaptureState) =
+  acquire(s.lock)
+  s.capturing = true
+  s.logs.setLen(0)
+  release(s.lock)
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc stopCapture*(s: CaptureState) =
+  acquire(s.lock)
+  s.capturing = false
+  release(s.lock)
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc isCapturing*(s: CaptureState): bool =
+  acquire(s.lock)
+  result = s.capturing
+  release(s.lock)
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc addLog*(s: CaptureState; log: CapturedLog) =
+  acquire(s.lock)
+  if s.capturing:
+    s.logs.add log
+  release(s.lock)
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc getLogs*(s: CaptureState): seq[CapturedLog] =
+  acquire(s.lock)
+  result = s.logs
+  release(s.lock)

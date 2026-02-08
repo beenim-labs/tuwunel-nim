@@ -1,51 +1,53 @@
+## client/media_legacy — api module.
+##
+## Ported from Rust api/client/media_legacy.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/media_legacy.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc getMediaConfigLegacyRoute*() =
+  ## Ported from `get_media_config_legacy_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.media_legacy"
+proc getMediaConfigLegacyLegacyRoute*() =
+  ## Ported from `get_media_config_legacy_legacy_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc getMediaPreviewLegacyRoute*() =
+  ## Ported from `get_media_preview_legacy_route`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc getMediaPreviewLegacyLegacyRoute*() =
+  ## Ported from `get_media_preview_legacy_legacy_route`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc createContentLegacyRoute*() =
+  ## Ported from `create_content_legacy_route`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc getContentLegacyRoute*() =
+  ## Ported from `get_content_legacy_route`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc getContentLegacyLegacyRoute*() =
+  ## Ported from `get_content_legacy_legacy_route`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc getContentAsFilenameLegacyRoute*() =
+  ## Ported from `get_content_as_filename_legacy_route`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc getContentAsFilenameLegacyLegacyRoute*() =
+  ## Ported from `get_content_as_filename_legacy_legacy_route`.
+  discard
+
+proc getContentThumbnailLegacyRoute*() =
+  ## Ported from `get_content_thumbnail_legacy_route`.
+  discard
+
+proc getContentThumbnailLegacyLegacyRoute*() =
+  ## Ported from `get_content_thumbnail_legacy_legacy_route`.
+  discard

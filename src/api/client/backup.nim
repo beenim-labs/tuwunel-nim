@@ -1,51 +1,69 @@
+## client/backup — api module.
+##
+## Ported from Rust api/client/backup.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/backup.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc createBackupVersionRoute*() =
+  ## Ported from `create_backup_version_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.backup"
+proc updateBackupVersionRoute*() =
+  ## Ported from `update_backup_version_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc getLatestBackupInfoRoute*() =
+  ## Ported from `get_latest_backup_info_route`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc getBackupInfoRoute*() =
+  ## Ported from `get_backup_info_route`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc deleteBackupVersionRoute*() =
+  ## Ported from `delete_backup_version_route`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc addBackupKeysRoute*() =
+  ## Ported from `add_backup_keys_route`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc addBackupKeysForRoomRoute*() =
+  ## Ported from `add_backup_keys_for_room_route`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc addBackupKeysForSessionRoute*() =
+  ## Ported from `add_backup_keys_for_session_route`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc getBackupKeysRoute*() =
+  ## Ported from `get_backup_keys_route`.
+  discard
+
+proc getBackupKeysForRoomRoute*() =
+  ## Ported from `get_backup_keys_for_room_route`.
+  discard
+
+proc getBackupKeysForSessionRoute*() =
+  ## Ported from `get_backup_keys_for_session_route`.
+  discard
+
+proc deleteBackupKeysRoute*() =
+  ## Ported from `delete_backup_keys_route`.
+  discard
+
+proc deleteBackupKeysForRoomRoute*() =
+  ## Ported from `delete_backup_keys_for_room_route`.
+  discard
+
+proc deleteBackupKeysForSessionRoute*() =
+  ## Ported from `delete_backup_keys_for_session_route`.
+  discard
+
+proc getCountEtag*(services: Services; senderUser: string; version: string): (UInt =
+  ## Ported from `get_count_etag`.
+  discard

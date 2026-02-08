@@ -1,50 +1,57 @@
+## presence/mod — service module.
+##
+## Ported from Rust service/presence/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/presence/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "presence.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc worker*(self: Service) =
+  ## Ported from `worker`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc interrupt*(self: Service) =
+  ## Ported from `interrupt`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc noteSync*(self: Service; userId: string) =
+  ## Ported from `note_sync`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc lastSyncGapMs*(self: Service; userId: string): Option[uint64] =
+  ## Ported from `last_sync_gap_ms`.
+  none(uint64)
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc getPresence*(self: Service; userId: string): PresenceEvent =
+  ## Ported from `get_presence`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc removePresence*(self: Service; userId: string) =
+  ## Ported from `remove_presence`.
+  discard
+
+proc unsetAllPresence*(self: Service) =
+  ## Ported from `unset_all_presence`.
+  discard
+
+proc presenceSince*(self: Service; since: uint64; to: Option[uint64]): impl Stream<Item = (string, uint64, [u8])> + Send + '_ =
+  ## Ported from `presence_since`.
+  discard
+
+proc fromJsonBytesToEvent*(self: Service; bytes: [u8]; userId: string): PresenceEvent =
+  ## Ported from `from_json_bytes_to_event`.
+  discard

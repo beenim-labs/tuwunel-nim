@@ -1,51 +1,38 @@
+## String submodule — split utilities.
+##
+## Ported from Rust core/utils/string/split.rs
+
+import std/strutils
+
 const
   RustPath* = "core/utils/string/split.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+iterator splitInfallible*(s: string; sep: char): string =
+  ## Split a string by a character separator, yielding each part.
+  ## Unlike Nim's split, this never returns empty strings.
+  for part in s.split(sep):
+    if part.len > 0:
+      yield part
 
-proc moduleId*(): string =
-  "core.utils.string.split"
+iterator splitInfallibleStr*(s: string; sep: string): string =
+  ## Split a string by a string separator, skipping empty parts.
+  for part in s.split(sep):
+    if part.len > 0:
+      yield part
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc splitOnce*(s: string; sep: char): (string, string) =
+  ## Split a string at the first occurrence of sep, returning both halves.
+  let pos = s.find(sep)
+  if pos < 0:
+    (s, "")
+  else:
+    (s[0 ..< pos], s[pos + 1 ..< s.len])
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc splitOnceStr*(s: string; sep: string): (string, string) =
+  ## Split a string at the first occurrence of sep string.
+  let pos = s.find(sep)
+  if pos < 0:
+    (s, "")
+  else:
+    (s[0 ..< pos], s[pos + sep.len ..< s.len])

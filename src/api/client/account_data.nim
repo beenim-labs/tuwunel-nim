@@ -1,51 +1,29 @@
+## client/account_data — api module.
+##
+## Ported from Rust api/client/account_data.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/account_data.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc setGlobalAccountDataRoute*() =
+  ## Ported from `set_global_account_data_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.account_data"
+proc setRoomAccountDataRoute*() =
+  ## Ported from `set_room_account_data_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc getGlobalAccountDataRoute*() =
+  ## Ported from `get_global_account_data_route`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc getRoomAccountDataRoute*() =
+  ## Ported from `get_room_account_data_route`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc setAccountData*(services: Services; roomId: Option[string]; senderUser: string; eventTypeS: string; data: RawJsonValue) =
+  ## Ported from `set_account_data`.
+  discard

@@ -1,51 +1,45 @@
+## Console logging — log output to stdout/stderr.
+##
+## Ported from Rust core/log/console.rs
+
+import std/[logging, strformat, times]
+
 const
   RustPath* = "core/log/console.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  ConsoleLogger* = ref object of Logger
+    ## Console logger with configurable format.
+    useColors*: bool
+    showTimestamp*: bool
 
-proc moduleId*(): string =
-  "core.log.console"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
+proc newConsoleLogger*(level: Level = lvlInfo;
+    useColors: bool = true;
+    showTimestamp: bool = true): ConsoleLogger =
+  result = ConsoleLogger(
+    levelThreshold: level,
+    useColors: useColors,
+    showTimestamp: showTimestamp,
   )
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+method log*(logger: ConsoleLogger; level: Level; args: varargs[string, `$`]) =
+  if level < logger.levelThreshold:
+    return
+  let prefix = if logger.showTimestamp:
+    &"[{now().format(\"yyyy-MM-dd HH:mm:ss\")}] "
+  else:
+    ""
+  let levelStr = case level
+    of lvlAll: "ALL"
+    of lvlDebug: "DEBUG"
+    of lvlInfo: "INFO"
+    of lvlNotice: "NOTICE"
+    of lvlWarn: "WARN"
+    of lvlError: "ERROR"
+    of lvlFatal: "FATAL"
+    of lvlNone: "NONE"
+  var msg = ""
+  for arg in args:
+    msg.add arg
+  stderr.writeLine(&"{prefix}{levelStr}: {msg}")

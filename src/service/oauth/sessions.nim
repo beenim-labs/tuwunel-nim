@@ -1,50 +1,70 @@
+## oauth/sessions — service module.
+##
+## Ported from Rust service/oauth/sessions.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/oauth/sessions.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Sessions* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "oauth.sessions"
+type
+  Session* = ref object
+    idpId*: Option[string]
+    sessId*: Option[SessionId]
+    tokenType*: Option[string]
+    accessToken*: Option[string]
+    expiresIn*: Option[uint64]
+    expiresAt*: Option[SystemTime]
+    refreshToken*: Option[string]
+    refreshTokenExpiresIn*: Option[uint64]
+    refreshTokenExpiresAt*: Option[SystemTime]
+    scope*: Option[string]
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc build*(args: crate::Args<'_>; providers: Providers) =
+  ## Ported from `build`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc delete*(self: Sessions; sessId: string) =
+  ## Ported from `delete`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc put*(self: Sessions; session: Session) =
+  ## Ported from `put`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc getByUniqueId*(self: Sessions; uniqueId: string): Session =
+  ## Ported from `get_by_unique_id`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc getByUser*(self: Sessions; userId: string): impl Stream<Item = Session> + Send =
+  ## Ported from `get_by_user`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc get*(self: Sessions; sessId: string): Session =
+  ## Ported from `get`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getSessIdByUser*(self: Sessions; userId: string): impl Stream<Item = string> + Send =
+  ## Ported from `get_sess_id_by_user`.
+  discard
+
+proc getSessIdByUniqueId*(self: Sessions; uniqueId: string): string =
+  ## Ported from `get_sess_id_by_unique_id`.
+  ""
+
+proc users*(self: Sessions): impl Stream<Item = string> + Send =
+  ## Ported from `users`.
+  discard
+
+proc stream*(self: Sessions): impl Stream<Item = Session> + Send =
+  ## Ported from `stream`.
+  discard
+
+proc provider*(self: Sessions; session: Session): Provider =
+  ## Ported from `provider`.
+  discard

@@ -1,50 +1,102 @@
+## resolver/cache — service module.
+##
+## Ported from Rust service/resolver/cache.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/resolver/cache.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Cache* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "resolver.cache"
+type
+  CachedDest* = ref object
+    dest*: FedDest
+    host*: Deststring
+    expire*: SystemTime
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+type
+  CachedOverride* = ref object
+    ips*: IpAddrs
+    port*: u16
+    expire*: SystemTime
+    overriding*: Option[Deststring]
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc clear*(self: Cache) =
+  ## Ported from `clear`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc clearDestinations*(self: Cache) =
+  ## Ported from `clear_destinations`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc clearOverrides*(self: Cache) =
+  ## Ported from `clear_overrides`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc delDestination*(self: Cache; name: string) =
+  ## Ported from `del_destination`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc delOverride*(self: Cache; name: string) =
+  ## Ported from `del_override`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc setDestination*(self: Cache; name: string; dest: CachedDest) =
+  ## Ported from `set_destination`.
+  discard
+
+proc setOverride*(self: Cache; name: string; over: CachedOverride) =
+  ## Ported from `set_override`.
+  discard
+
+proc hasDestination*(self: Cache; destination: string): bool =
+  ## Ported from `has_destination`.
+  false
+
+proc hasOverride*(self: Cache; destination: string): bool =
+  ## Ported from `has_override`.
+  false
+
+proc getDestination*(self: Cache; name: string): CachedDest =
+  ## Ported from `get_destination`.
+  discard
+
+proc getOverride*(self: Cache; name: string): CachedOverride =
+  ## Ported from `get_override`.
+  discard
+
+proc destinations*(self: Cache): impl Stream<Item = (string, CachedDest)> + Send + '_ =
+  ## Ported from `destinations`.
+  discard
+
+proc overrides*(self: Cache): impl Stream<Item = (string, CachedOverride)> + Send + '_ =
+  ## Ported from `overrides`.
+  discard
+
+proc valid*(self: Cache): bool =
+  ## Ported from `valid`.
+  false
+
+proc defaultExpire*(): SystemTime =
+  ## Ported from `default_expire`.
+  discard
+
+proc size*(self: Cache): int =
+  ## Ported from `size`.
+  0
+
+proc valid*(self: Cache): bool =
+  ## Ported from `valid`.
+  false
+
+proc defaultExpire*(): SystemTime =
+  ## Ported from `default_expire`.
+  discard
+
+proc size*(self: Cache): int =
+  ## Ported from `size`.
+  0

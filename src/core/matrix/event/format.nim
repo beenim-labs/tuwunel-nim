@@ -1,51 +1,66 @@
+## Event format conversion.
+##
+## Ported from Rust core/matrix/event/format.rs — provides conversion
+## between various Matrix event serialization formats (sync, timeline,
+## state, stripped, hierarchy).
+
+import std/[json, options]
+import ../event
+
 const
   RustPath* = "core/matrix/event/format.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  ## Event format kind determines which fields are included in serialization.
+  EventFormat* = enum
+    efSync           ## Sync format: no room_id
+    efTimeline       ## Timeline format: includes room_id
+    efState          ## State format: includes room_id, no redacts
+    efSyncState      ## Sync state format: no room_id, no redacts
+    efStripped       ## Stripped: sender, type, content, state_key only
+    efHierarchyChild ## Hierarchy space child: origin_server_ts, no event_id
 
-proc moduleId*(): string =
-  "core.matrix.event.format"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc formatEvent*(event: Event; format: EventFormat): JsonNode =
+  ## Convert an event to the specified format.
+  case format
+  of efSync:
+    result = event.toSyncFormat()
+  of efTimeline:
+    result = event.toTimelineFormat()
+  of efState:
+    result = %*{
+      "content": event.getContentAsValue(),
+      "event_id": event.eventId,
+      "origin_server_ts": event.originServerTs,
+      "room_id": event.roomId,
+      "sender": event.sender,
+      "type": event.eventType,
+    }
+    if event.stateKey.isSome:
+      result["state_key"] = %event.stateKey.get()
+    if event.unsigned.isSome:
+      result["unsigned"] = event.unsigned.get()
+  of efSyncState:
+    result = %*{
+      "content": event.getContentAsValue(),
+      "event_id": event.eventId,
+      "origin_server_ts": event.originServerTs,
+      "sender": event.sender,
+      "type": event.eventType,
+    }
+    if event.stateKey.isSome:
+      result["state_key"] = %event.stateKey.get()
+    if event.unsigned.isSome:
+      result["unsigned"] = event.unsigned.get()
+  of efStripped:
+    result = event.toStrippedFormat()
+  of efHierarchyChild:
+    result = %*{
+      "content": event.getContentAsValue(),
+      "origin_server_ts": event.originServerTs,
+      "sender": event.sender,
+      "type": event.eventType,
+    }
+    if event.stateKey.isSome:
+      result["state_key"] = %event.stateKey.get()

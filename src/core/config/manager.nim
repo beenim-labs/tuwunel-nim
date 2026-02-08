@@ -1,51 +1,34 @@
+## Configuration manager — hot-reloadable configuration.
+##
+## Ported from Rust core/config/manager.rs
+
+import std/[locks]
+
 const
   RustPath* = "core/config/manager.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  ConfigManager*[T] = ref object
+    ## Configuration manager with thread-safe reload support.
+    ## Allows reading the active config while it can be atomically
+    ## swapped for a new version.
+    lock: Lock
+    active: T
 
-proc moduleId*(): string =
-  "core.config.manager"
+proc newConfigManager*[T](config: T): ConfigManager[T] =
+  result = ConfigManager[T](active: config)
+  initLock(result.lock)
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc get*[T](m: ConfigManager[T]): T =
+  ## Get the active configuration.
+  acquire(m.lock)
+  result = m.active
+  release(m.lock)
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc update*[T](m: ConfigManager[T]; config: T): T =
+  ## Update the active configuration, returning the previous one.
+  acquire(m.lock)
+  result = m.active
+  m.active = config
+  release(m.lock)

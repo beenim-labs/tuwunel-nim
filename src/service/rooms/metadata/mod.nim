@@ -1,50 +1,61 @@
+## metadata/mod — service module.
+##
+## Ported from Rust service/rooms/metadata/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/rooms/metadata/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "rooms.metadata.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc exists*(self: Service; roomId: string): bool =
+  ## Ported from `exists`.
+  false
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc iterIds*(self: Service): impl Stream<Item = string> + Send + '_ =
+  ## Ported from `iter_ids`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc isPublic*(self: Service; roomId: string): bool =
+  ## Ported from `is_public`.
+  false
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc disableRoom*(self: Service; roomId: string) =
+  ## Ported from `disable_room`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc enableRoom*(self: Service; roomId: string) =
+  ## Ported from `enable_room`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc banRoom*(self: Service; roomId: string) =
+  ## Ported from `ban_room`.
+  discard
+
+proc unbanRoom*(self: Service; roomId: string) =
+  ## Ported from `unban_room`.
+  discard
+
+proc listBannedRooms*(self: Service): impl Stream<Item = string> + Send + '_ =
+  ## Ported from `list_banned_rooms`.
+  discard
+
+proc isDisabled*(self: Service; roomId: string): bool =
+  ## Ported from `is_disabled`.
+  false
+
+proc isBanned*(self: Service; roomId: string): bool =
+  ## Ported from `is_banned`.
+  false

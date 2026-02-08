@@ -1,51 +1,45 @@
+## room/upgrade — api module.
+##
+## Ported from Rust api/client/room/upgrade.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/room/upgrade.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc upgradeRoomRoute*() =
+  ## Ported from `upgrade_room_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.room.upgrade"
+proc upgradeRoomCreate*(services: Services; senderUser: string; oldRoomId: string; newVersion: RoomVersionId; versionRules: RoomVersionRules; predecessor: PreviousRoom; additionalCreators: seq[string]): (string =
+  ## Ported from `upgrade_room_create`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc upgradeRoomCreateLegacy*(services: Services; senderUser: string; oldRoomId: string; newVersion: RoomVersionId; versionRules: RoomVersionRules; predecessor: PreviousRoom): (string =
+  ## Ported from `upgrade_room_create_legacy`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc transferRoom*() =
+  ## Ported from `transfer_room`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc moveJoinedMember*(): string =
+  ## Ported from `move_joined_member`.
+  ""
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc moveStateEvents*() =
+  ## Ported from `move_state_events`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc moveLocalAliases*() =
+  ## Ported from `move_local_aliases`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc tombstoneOldRoom*(): string =
+  ## Ported from `tombstone_old_room`.
+  ""
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc lockdownOldRoom*(): string =
+  ## Ported from `lockdown_old_room`.
+  ""

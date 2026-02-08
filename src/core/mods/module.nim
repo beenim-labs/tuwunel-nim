@@ -1,51 +1,36 @@
+## Module module definition and lifecycle.
+##
+## Ported from Rust core/mods/module.rs
+
 const
   RustPath* = "core/mods/module.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  ModuleState* = enum
+    msUnloaded
+    msLoading
+    msLoaded
+    msUnloading
+    msFailed
 
-proc moduleId*(): string =
-  "core.mods.module"
+  Module* = ref object
+    ## Represents a loadable server module.
+    name*: string
+    path*: string
+    state*: ModuleState
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc newModule*(name, path: string): Module =
+  Module(name: name, path: path, state: msUnloaded)
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc load*(m: Module) =
+  ## Load a module. In Nim, modules are compiled in; this is a
+  ## conceptual lifecycle marker.
+  m.state = msLoaded
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc unload*(m: Module) =
+  ## Unload a module.
+  m.state = msUnloaded
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc isLoaded*(m: Module): bool = m.state == msLoaded
+proc isFailed*(m: Module): bool = m.state == msFailed

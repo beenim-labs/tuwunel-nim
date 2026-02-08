@@ -1,51 +1,33 @@
+## ArrayVec extension — fixed-capacity growable array.
+##
+## Ported from Rust core/utils/arrayvec.rs — Nim uses seq with capacity.
+
 const
   RustPath* = "core/utils/arrayvec.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  ArrayVec*[T] = object
+    ## Fixed-capacity growable array. Similar to Rust's arrayvec::ArrayVec.
+    data: seq[T]
+    capacity: int
 
-proc moduleId*(): string =
-  "core.utils.arrayvec"
+proc newArrayVec*[T](capacity: int): ArrayVec[T] =
+  ArrayVec[T](data: newSeqOfCap[T](capacity), capacity: capacity)
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc add*[T](v: var ArrayVec[T]; item: T) =
+  if v.data.len >= v.capacity:
+    raise newException(IndexDefect, "Insufficient buffer capacity")
+  v.data.add item
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc extendFromSlice*[T](v: var ArrayVec[T]; items: openArray[T]) =
+  for item in items:
+    v.add item
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc len*[T](v: ArrayVec[T]): int = v.data.len
+proc `[]`*[T](v: ArrayVec[T]; i: int): T = v.data[i]
+proc `[]`*[T](v: var ArrayVec[T]; i: int): var T = v.data[i]
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+iterator items*[T](v: ArrayVec[T]): T =
+  for item in v.data:
+    yield item

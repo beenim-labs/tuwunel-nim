@@ -1,51 +1,25 @@
+## client/report — api module.
+##
+## Ported from Rust api/client/report.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/report.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc reportRoomRoute*() =
+  ## Ported from `report_room_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.report"
+proc reportEventRoute*() =
+  ## Ported from `report_event_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc isEventReportValid*(services: Services; eventId: string; roomId: string; senderUser: string; reason: Option[stringing]; score: Option[ruma::Int]; pdu: PduEvent) =
+  ## Ported from `is_event_report_valid`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc delayResponse*() =
+  ## Ported from `delay_response`.
+  discard

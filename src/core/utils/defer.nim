@@ -1,51 +1,21 @@
+## Defer / scope-guard utilities.
+##
+## Ported from Rust core/utils/defer.rs — Nim has native `defer` but
+## this provides the exchange/restore pattern.
+
 const
   RustPath* = "core/utils/defer.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc exchange*[T](target: var T; newVal: T): T =
+  ## Swap newVal into target, returning the old value.
+  ## Useful for scope_restore patterns.
+  result = target
+  target = newVal
 
-proc moduleId*(): string =
-  "core.utils.defer"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+template scopeRestore*(variable: untyped; tempVal: untyped) =
+  ## Temporarily replace variable with tempVal, restoring original on scope exit.
+  let saved = variable
+  variable = tempVal
+  defer:
+    variable = saved

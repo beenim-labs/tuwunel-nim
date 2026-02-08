@@ -1,51 +1,89 @@
+## user/commands — admin module.
+##
+## Ported from Rust admin/user/commands.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "admin/user/commands.rs"
   RustCrate* = "admin"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc listUsers*() =
+  ## Ported from `list_users`.
+  discard
 
-proc moduleId*(): string =
-  "admin.user.commands"
+proc createUser*(username: string; password: Option[string]) =
+  ## Ported from `create_user`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc deactivate*(noLeaveRooms: bool; userId: string) =
+  ## Ported from `deactivate`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc deleteDevice*(userId: string; deviceId: OwnedDeviceId) =
+  ## Ported from `delete_device`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc resetPassword*(username: string; password: Option[string]) =
+  ## Ported from `reset_password`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc deactivateAll*(noLeaveRooms: bool; force: bool) =
+  ## Ported from `deactivate_all`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc deactivateUser*(services: Services; userId: string; noLeaveRooms: bool) =
+  ## Ported from `deactivate_user`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc listJoinedRooms*(userId: string) =
+  ## Ported from `list_joined_rooms`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc forceJoinListOfLocalUsers*(room: OwnedRoomOrAliasId; yesIWantToDoThis: bool) =
+  ## Ported from `force_join_list_of_local_users`.
+  discard
+
+proc forceJoinAllLocalUsers*(room: OwnedRoomOrAliasId; yesIWantToDoThis: bool) =
+  ## Ported from `force_join_all_local_users`.
+  discard
+
+proc forceJoinRoom*(userId: string; room: OwnedRoomOrAliasId) =
+  ## Ported from `force_join_room`.
+  discard
+
+proc forceLeaveRoom*(userId: string; roomId: OwnedRoomOrAliasId) =
+  ## Ported from `force_leave_room`.
+  discard
+
+proc forceDemote*(userId: string; roomId: OwnedRoomOrAliasId) =
+  ## Ported from `force_demote`.
+  discard
+
+proc forcePromote*(targetId: string; roomId: OwnedRoomOrAliasId) =
+  ## Ported from `force_promote`.
+  discard
+
+proc makeUserAdmin*(userId: string) =
+  ## Ported from `make_user_admin`.
+  discard
+
+proc putRoomTag*(userId: string; roomId: string; tag: string) =
+  ## Ported from `put_room_tag`.
+  discard
+
+proc deleteRoomTag*(userId: string; roomId: string; tag: string) =
+  ## Ported from `delete_room_tag`.
+  discard
+
+proc getRoomTags*(userId: string; roomId: string) =
+  ## Ported from `get_room_tags`.
+  discard
+
+proc redactEvent*(eventId: string) =
+  ## Ported from `redact_event`.
+  discard
+
+proc lastActive*(limit: Option[int]) =
+  ## Ported from `last_active`.
+  discard

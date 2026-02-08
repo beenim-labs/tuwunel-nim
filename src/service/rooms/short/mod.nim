@@ -1,50 +1,65 @@
+## short/mod — service module.
+##
+## Ported from Rust service/rooms/short/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/rooms/short/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "rooms.short.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc getOrCreateShorteventid*(self: Service; eventId: string): Shortstring =
+  ## Ported from `get_or_create_shorteventid`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc createShorteventid*(self: Service; eventId: string): Shortstring =
+  ## Ported from `create_shorteventid`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc getShorteventid*(self: Service; eventId: string): Shortstring =
+  ## Ported from `get_shorteventid`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc getOrCreateShortstatekey*(self: Service; eventType: StateEventType; stateKey: string): ShortStateKey =
+  ## Ported from `get_or_create_shortstatekey`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc getShortstatekey*(self: Service; eventType: StateEventType; stateKey: string): ShortStateKey =
+  ## Ported from `get_shortstatekey`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getStatekeyFromShort*(self: Service; shortstatekey: ShortStateKey): (StateEventType =
+  ## Ported from `get_statekey_from_short`.
+  discard
+
+proc getOrCreateShortstatehash*(self: Service; stateHash: [u8]): (ShortStateHash, bool) =
+  ## Ported from `get_or_create_shortstatehash`.
+  discard
+
+proc getShortroomid*(self: Service; roomId: string): Shortstring =
+  ## Ported from `get_shortroomid`.
+  discard
+
+proc getRoomidFromShort*(self: Service; shortroomid: Shortstring): string =
+  ## Ported from `get_roomid_from_short`.
+  ""
+
+proc getOrCreateShortroomid*(self: Service; roomId: string): Shortstring =
+  ## Ported from `get_or_create_shortroomid`.
+  discard
+
+proc deleteShortroomid*(self: Service; roomId: string) =
+  ## Ported from `delete_shortroomid`.
+  discard

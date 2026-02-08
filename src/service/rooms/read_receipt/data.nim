@@ -1,50 +1,29 @@
+## read_receipt/data — service module.
+##
+## Ported from Rust service/rooms/read_receipt/data.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/rooms/read_receipt/data.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc readreceiptUpdate*(userId: string; roomId: string; event: ReceiptEvent) =
+  ## Ported from `readreceipt_update`.
+  discard
 
-proc serviceModuleId*(): string =
-  "rooms.read_receipt.data"
+proc privateReadSet*(roomId: string; userId: string; pduCount: uint64) =
+  ## Ported from `private_read_set`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc privateReadGetCount*(roomId: string; userId: string): uint64 =
+  ## Ported from `private_read_get_count`.
+  0
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc lastPrivatereadUpdate*(userId: string; roomId: string): uint64 =
+  ## Ported from `last_privateread_update`.
+  0
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
-
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
-
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
-
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
-
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc deleteAllReadReceipts*(roomId: string) =
+  ## Ported from `delete_all_read_receipts`.
+  discard

@@ -1,51 +1,41 @@
+## media/commands — admin module.
+##
+## Ported from Rust admin/media/commands.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "admin/media/commands.rs"
   RustCrate* = "admin"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc delete*(mxc: Option[string]; eventId: Option[string]) =
+  ## Ported from `delete`.
+  discard
 
-proc moduleId*(): string =
-  "admin.media.commands"
+proc deleteList*() =
+  ## Ported from `delete_list`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc deletePastRemoteMedia*(duration: string; before: bool; after: bool; yesIWantToDeleteLocalMedia: bool) =
+  ## Ported from `delete_past_remote_media`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc deleteAllFromUser*(username: string) =
+  ## Ported from `delete_all_from_user`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc deleteAllFromServer*(serverName: string; yesIWantToDeleteLocalMedia: bool) =
+  ## Ported from `delete_all_from_server`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc getFileInfo*(mxc: string) =
+  ## Ported from `get_file_info`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc getRemoteFile*(mxc: string; server: Option[string]; timeout: uint32) =
+  ## Ported from `get_remote_file`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc getRemoteThumbnail*(mxc: string; server: Option[string]; timeout: uint32; width: uint32; height: uint32) =
+  ## Ported from `get_remote_thumbnail`.
+  discard

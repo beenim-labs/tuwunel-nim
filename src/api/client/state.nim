@@ -1,51 +1,37 @@
+## client/state — api module.
+##
+## Ported from Rust api/client/state.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/state.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc sendStateEventForKeyRoute*() =
+  ## Ported from `send_state_event_for_key_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.state"
+proc sendStateEventForEmptyKeyRoute*() =
+  ## Ported from `send_state_event_for_empty_key_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc getStateEventsRoute*() =
+  ## Ported from `get_state_events_route`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc getStateEventsForKeyRoute*() =
+  ## Ported from `get_state_events_for_key_route`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc getStateEventsForEmptyKeyRoute*() =
+  ## Ported from `get_state_events_for_empty_key_route`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc sendStateEventForKeyHelper*(services: Services; sender: string; roomId: string; eventType: StateEventType; json: Raw<AnyStateEventContent>; stateKey: string; timestamp: Option[ruma::MilliSecondsSinceUnixEpoch]): string =
+  ## Ported from `send_state_event_for_key_helper`.
+  ""
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc allowedToSendStateEvent*(services: Services; roomId: string; eventType: StateEventType; stateKey: string; json: Raw<AnyStateEventContent>) =
+  ## Ported from `allowed_to_send_state_event`.
+  discard

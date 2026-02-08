@@ -1,51 +1,21 @@
+## v5/selector — api module.
+##
+## Ported from Rust api/client/sync/v5/selector.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/sync/v5/selector.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc selector*(conn: mut Connection; syncInfo: SyncInfo<'_>): (Window, ResponseLists) =
+  ## Ported from `selector`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.sync.v5.selector"
+proc matcher*(syncInfo: SyncInfo<'_>; conn: Connection; roomId: string; membership: Option[MembershipState]): Option[WindowRoom] =
+  ## Ported from `matcher`.
+  none(WindowRoom)
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc roomSort*(a: WindowRoom; b: WindowRoom): Ordering =
+  ## Ported from `room_sort`.
+  discard

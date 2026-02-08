@@ -1,51 +1,25 @@
+## client/relations — api module.
+##
+## Ported from Rust api/client/relations.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/relations.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc getRelatingEventsWithRelTypeAndEventTypeRoute*() =
+  ## Ported from `get_relating_events_with_rel_type_and_event_type_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.relations"
+proc getRelatingEventsWithRelTypeRoute*() =
+  ## Ported from `get_relating_events_with_rel_type_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc getRelatingEventsRoute*() =
+  ## Ported from `get_relating_events_route`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc paginateRelationsWithFilter*(services: Services; senderUser: string; roomId: string; target: string; filterEventType: Option[TimelineEventType]; filterRelType: Option[RelationType]; from: Option[string]; to: Option[string]; limit: Option[UInt]; recurse: bool; dir: Direction): get_relating_events::v1::Response =
+  ## Ported from `paginate_relations_with_filter`.
+  discard

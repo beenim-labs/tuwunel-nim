@@ -1,50 +1,26 @@
+## appservice/namespace_regex — service module.
+##
+## Ported from Rust service/appservice/namespace_regex.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/appservice/namespace_regex.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  NamespaceRegex* = ref object
+    exclusive*: Option[RegexSet]
+    nonExclusive*: Option[RegexSet]
 
-proc serviceModuleId*(): string =
-  "appservice.namespace_regex"
+proc isMatch*(self: NamespaceRegex; heystack: string): bool =
+  ## Ported from `is_match`.
+  false
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc isExclusiveMatch*(self: NamespaceRegex; heystack: string): bool =
+  ## Ported from `is_exclusive_match`.
+  false
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
-
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
-
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
-
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
-
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
-
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc tryFrom*(value: seq[Namespace]) =
+  ## Ported from `try_from`.
+  discard

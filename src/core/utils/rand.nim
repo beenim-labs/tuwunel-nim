@@ -1,51 +1,64 @@
+## Random utilities — string generation, shuffle, truncation.
+##
+## Ported from Rust core/utils/rand.rs
+
+import std/[random, times]
+
 const
   RustPath* = "core/utils/rand.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+const alphanumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
-proc moduleId*(): string =
-  "core.utils.rand"
+var rngInitialized {.threadvar.}: bool
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc ensureRng() =
+  if not rngInitialized:
+    randomize()
+    rngInitialized = true
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc shuffle*[T](s: var openArray[T]) =
+  ## Shuffle a sequence in-place using Fisher-Yates.
+  ensureRng()
+  for i in countdown(s.high, 1):
+    let j = rand(i)
+    swap(s[i], s[j])
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc randomString*(length: int): string =
+  ## Generate a random alphanumeric string of the given length.
+  ensureRng()
+  result = newString(length)
+  for i in 0 ..< length:
+    result[i] = alphanumeric[rand(alphanumeric.high)]
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc truncateString*(s: string; lo, hi: uint64): string =
+  ## Truncate a string to a random length within [lo, hi).
+  ensureRng()
+  let targetLen = int(lo) + rand(int(hi) - int(lo))
+  if targetLen >= s.len:
+    return s
+  # Find char boundary
+  var i = 0
+  var charCount = 0
+  while i < s.len:
+    if charCount >= targetLen:
+      return s[0 ..< i]
+    let b = ord(s[i])
+    let runeLen = if b < 0x80: 1
+                  elif b < 0xE0: 2
+                  elif b < 0xF0: 3
+                  else: 4
+    i += runeLen
+    inc charCount
+  s
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc timeFromNowSecs*(lo, hi: uint64): float64 =
+  ## Return a random epoch time between now+lo and now+hi seconds.
+  ensureRng()
+  let offset = int(lo) + rand(int(hi) - int(lo))
+  epochTime() + float64(offset)
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc randSecs*(lo, hi: uint64): float64 =
+  ## Return a random number of seconds in [lo, hi).
+  ensureRng()
+  float64(int(lo) + rand(int(hi) - int(lo)))

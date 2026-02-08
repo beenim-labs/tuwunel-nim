@@ -1,51 +1,28 @@
+## Tried arithmetic — result type for try-arithmetic.
+##
+## Ported from Rust core/utils/math/tried.rs
+
 const
   RustPath* = "core/utils/math/tried.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  Tried*[T] = object
+    ## Wrapper for try-arithmetic results. Similar to Expected
+    ## but used in fallible contexts.
+    value*: T
+    ok*: bool
 
-proc moduleId*(): string =
-  "core.utils.math.tried"
+proc tried*[T](val: T): Tried[T] =
+  Tried[T](value: val, ok: true)
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc failedTried*[T](): Tried[T] =
+  Tried[T](ok: false)
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc unwrap*[T](t: Tried[T]): T =
+  if not t.ok:
+    raise newException(CatchableError, "tried arithmetic failed")
+  t.value
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc isOk*[T](t: Tried[T]): bool = t.ok
+proc isErr*[T](t: Tried[T]): bool = not t.ok

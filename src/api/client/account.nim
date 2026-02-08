@@ -1,51 +1,33 @@
+## client/account — api module.
+##
+## Ported from Rust api/client/account.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/account.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc changePasswordRoute*() =
+  ## Ported from `change_password_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.account"
+proc whoamiRoute*() =
+  ## Ported from `whoami_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc deactivateRoute*() =
+  ## Ported from `deactivate_route`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc thirdPartyRoute*(body: Ruma<get_3pids::v3::Request>): get_3pids::v3::Response =
+  ## Ported from `third_party_route`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc request3PidManagementTokenViaEmailRoute*(Body: Ruma<request_3pid_management_token_via_email::v3::Request>): request_3pid_management_token_via_email::v3::Response =
+  ## Ported from `request_3pid_management_token_via_email_route`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc request3PidManagementTokenViaMsisdnRoute*(Body: Ruma<request_3pid_management_token_via_msisdn::v3::Request>): request_3pid_management_token_via_msisdn::v3::Response =
+  ## Ported from `request_3pid_management_token_via_msisdn_route`.
+  discard

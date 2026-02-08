@@ -1,51 +1,61 @@
+## client/push — api module.
+##
+## Ported from Rust api/client/push.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/push.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc getNotificationsRoute*() =
+  ## Ported from `get_notifications_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.push"
+proc getPushrulesAllRoute*() =
+  ## Ported from `get_pushrules_all_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc getPushrulesGlobalRoute*() =
+  ## Ported from `get_pushrules_global_route`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc getPushruleRoute*() =
+  ## Ported from `get_pushrule_route`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc setPushruleRoute*() =
+  ## Ported from `set_pushrule_route`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc getPushruleActionsRoute*() =
+  ## Ported from `get_pushrule_actions_route`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc setPushruleActionsRoute*() =
+  ## Ported from `set_pushrule_actions_route`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc getPushruleEnabledRoute*() =
+  ## Ported from `get_pushrule_enabled_route`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc setPushruleEnabledRoute*() =
+  ## Ported from `set_pushrule_enabled_route`.
+  discard
+
+proc deletePushruleRoute*() =
+  ## Ported from `delete_pushrule_route`.
+  discard
+
+proc getPushersRoute*() =
+  ## Ported from `get_pushers_route`.
+  discard
+
+proc setPushersRoute*() =
+  ## Ported from `set_pushers_route`.
+  discard
+
+proc recreatePushRulesAndReturn*(services: Services; senderUser: ruma::string): get_pushrules_all::v3::Response =
+  ## Ported from `recreate_push_rules_and_return`.
+  discard

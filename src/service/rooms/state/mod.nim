@@ -1,50 +1,76 @@
+## state/mod — service module.
+##
+## Ported from Rust service/rooms/state/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/rooms/state/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    mutex*: RoomMutexMap
 
-proc serviceModuleId*(): string =
-  "rooms.state.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc memoryUsage*(self: Service; out: mut (dyn Write + Send) =
+  ## Ported from `memory_usage`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc forceState*(self: Service; roomId: string; shortstatehash: uint64; statediffnew: CompressedState; Statediffremoved: CompressedState; stateLock: RoomMutexGuard) =
+  ## Ported from `force_state`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc setEventState*(self: Service; eventId: string; roomId: string; stateIdsCompressed: CompressedState): ShortStateHash =
+  ## Ported from `set_event_state`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc appendToState*(self: Service; newPdu: PduEvent): uint64 =
+  ## Ported from `append_to_state`.
+  0
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc setRoomState*(self: Service; roomId: string; shortstatehash: uint64; MutexLock: RoomMutexGuard) =
+  ## Ported from `set_room_state`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getAuthEvents*(self: Service; roomId: string; kind: TimelineEventType; sender: string; stateKey: Option[string]; content: serde_json::value::RawValue; authRules: AuthorizationRules; includeCreate: bool): StateMap<PduEvent>
+where
+	StateEventType: Send + Sync,
+	StateKey: Send + Sync, =
+  ## Ported from `get_auth_events`.
+  discard
+
+proc getRoomVersionRules*(self: Service; roomId: string): RoomVersionRules =
+  ## Ported from `get_room_version_rules`.
+  discard
+
+proc getRoomVersion*(self: Service; roomId: string): RoomVersionId =
+  ## Ported from `get_room_version`.
+  discard
+
+proc getRoomShortstatehash*(self: Service; roomId: string): ShortStateHash =
+  ## Ported from `get_room_shortstatehash`.
+  discard
+
+proc pduShortstatehash*(self: Service; eventId: string): ShortStateHash =
+  ## Ported from `pdu_shortstatehash`.
+  discard
+
+proc getShortstatehash*(self: Service; shorteventid: Shortstring): ShortStateHash =
+  ## Ported from `get_shortstatehash`.
+  discard
+
+proc deleteRoomShortstatehash*(self: Service; roomId: string; MutexLock: Guard<string) =
+  ## Ported from `delete_room_shortstatehash`.
+  discard
+
+proc deleteAllRoomsForwardExtremities*(self: Service; roomId: string) =
+  ## Ported from `delete_all_rooms_forward_extremities`.
+  discard

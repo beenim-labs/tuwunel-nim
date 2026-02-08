@@ -1,50 +1,70 @@
+## oauth/mod — service module.
+##
+## Ported from Rust service/oauth/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/oauth/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    providers*: Providers
+    sessions*: Sessions
 
-proc serviceModuleId*(): string =
-  "oauth.mod"
+# import ./providers
+# import ./sessions
+# import ./user_info
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc deleteUserSessions*(self: Service; userId: string) =
+  ## Ported from `delete_user_sessions`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc revokeUserTokens*(self: Service; userId: string) =
+  ## Ported from `revoke_user_tokens`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc userSessions*(self: Service; userId: string): impl Stream<Item = (Provider> + Send =
+  ## Ported from `user_sessions`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc requestUserinfo*(self: Service) =
+  ## Ported from `request_userinfo`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc requestTokeninfo*(self: Service) =
+  ## Ported from `request_tokeninfo`.
+  discard
+
+proc revokeToken*(self: Service) =
+  ## Ported from `revoke_token`.
+  discard
+
+proc requestToken*(self: Service) =
+  ## Ported from `request_token`.
+  discard
+
+proc uniqueId*() =
+  ## Ported from `unique_id`.
+  discard
+
+proc uniqueIdSub*() =
+  ## Ported from `unique_id_sub`.
+  discard
+
+proc uniqueIdIss*() =
+  ## Ported from `unique_id_iss`.
+  discard
+
+proc uniqueIdIssSub*() =
+  ## Ported from `unique_id_iss_sub`.
+  discard

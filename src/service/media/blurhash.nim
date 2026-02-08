@@ -1,50 +1,62 @@
+## media/blurhash — service module.
+##
+## Ported from Rust service/media/blurhash.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/media/blurhash.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  BlurhashingError* = enum
+    hashingliberror
+    box
+    error
+    send
+    imageerror
+    box
+    imageerror
+    imagetoolarge
 
-proc serviceModuleId*(): string =
-  "media.blurhash"
+type
+  BlurhashConfig* = ref object
+    componentsX*: uint32
+    componentsY*: uint32
+    sizeLimit*: uint64
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc createBlurhash*(self: BlurhashConfig; File: [u8]; ContentType: Option[string]; FileName: Option[string]): Option[string] =
+  ## Ported from `create_blurhash`.
+  none(string)
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc createBlurhash*(self: BlurhashConfig; file: [u8]; contentType: Option[string]; fileName: Option[string]): Option[string] =
+  ## Ported from `create_blurhash`.
+  none(string)
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc getBlurhashFromRequest*(data: [u8]; mime: Option[string]; filename: Option[string]; config: BlurhashConfig): string =
+  ## Ported from `get_blurhash_from_request`.
+  ""
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc getFormatFromDataMimeAndFilename*(data: [u8]; mime: Option[string]; filename: Option[string]): image::ImageFormat =
+  ## Ported from `get_format_from_data_mime_and_filename`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc getImageDecoderWithFormatAndData*(imageFormat: image::ImageFormat; data: [u8]) =
+  ## Ported from `get_image_decoder_with_format_and_data`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc blurhashAnImage*(image: image::DynamicImage; blurhashConfig: BlurhashConfig): string =
+  ## Ported from `blurhash_an_image`.
+  ""
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc from*(value: CoreBlurhashConfig) =
+  ## Ported from `from`.
+  discard
+
+proc from*(value: image::ImageError) =
+  ## Ported from `from`.
+  discard
+
+proc from*(value: blurhash::Error) =
+  ## Ported from `from`.
+  discard

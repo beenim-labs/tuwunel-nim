@@ -1,50 +1,49 @@
+## sending/data — service module.
+##
+## Ported from Rust service/sending/data.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/sending/data.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Data* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "sending.data"
+proc deleteActiveRequest*(self: Data; key: [u8]) =
+  ## Ported from `delete_active_request`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc deleteAllActiveRequestsFor*(self: Data; destination: Destination) =
+  ## Ported from `delete_all_active_requests_for`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc deleteAllRequestsFor*(self: Data; destination: Destination) =
+  ## Ported from `delete_all_requests_for`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc activeRequests*(self: Data): impl Stream<Item = OutgoingItem> + Send + '_ =
+  ## Ported from `active_requests`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc activeRequestsFor*(self: Data; destination: Destination): impl Stream<Item = SendingItem> + Send + '_ + use<'_> =
+  ## Ported from `active_requests_for`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc queuedRequests*(self: Data; destination: Destination): impl Stream<Item = QueueItem> + Send + '_ + use<'_> =
+  ## Ported from `queued_requests`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc setLatestEducount*(self: Data; serverName: string; lastCount: uint64) =
+  ## Ported from `set_latest_educount`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getLatestEducount*(self: Data; serverName: string): uint64 =
+  ## Ported from `get_latest_educount`.
+  0
+
+proc parseServercurrentevent*(key: [u8]; value: [u8]): (Destination =
+  ## Ported from `parse_servercurrentevent`.
+  discard

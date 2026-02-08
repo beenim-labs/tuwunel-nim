@@ -1,51 +1,29 @@
+## room/summary — api module.
+##
+## Ported from Rust api/client/room/summary.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/room/summary.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc getRoomSummaryLegacy*() =
+  ## Ported from `get_room_summary_legacy`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.room.summary"
+proc getRoomSummary*() =
+  ## Ported from `get_room_summary`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc roomSummaryResponse*(services: Services; roomId: string; servers: [string]; senderUser: Option[string]): get_summary::v1::Response =
+  ## Ported from `room_summary_response`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc localRoomSummaryResponse*(services: Services; roomId: string; senderUser: Option[string]): get_summary::v1::Response =
+  ## Ported from `local_room_summary_response`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc remoteRoomSummaryHierarchyResponse*(services: Services; roomId: string; servers: [string]; senderUser: Option[string]): SpaceHierarchyParentSummary =
+  ## Ported from `remote_room_summary_hierarchy_response`.
+  discard

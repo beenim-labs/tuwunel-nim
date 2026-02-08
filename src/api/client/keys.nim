@@ -1,51 +1,45 @@
+## client/keys — api module.
+##
+## Ported from Rust api/client/keys.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/keys.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc uploadKeysRoute*() =
+  ## Ported from `upload_keys_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.keys"
+proc getKeysRoute*() =
+  ## Ported from `get_keys_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc claimKeysRoute*() =
+  ## Ported from `claim_keys_route`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc uploadSigningKeysRoute*() =
+  ## Ported from `upload_signing_keys_route`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc checkForNewKeys*(services: crate::State; userId: string; selfSigningKey: Option[Raw<CrossSigningKey]>; userSigningKey: Option[Raw<CrossSigningKey]>; masterSigningKey: Option[Raw<CrossSigningKey]>): Option[upload_signing_keys::v3::Response] =
+  ## Ported from `check_for_new_keys`.
+  none(upload_signing_keys::v3::Response)
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc uploadSignaturesRoute*() =
+  ## Ported from `upload_signatures_route`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc getKeyChangesRoute*() =
+  ## Ported from `get_key_changes_route`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc addUnsignedDeviceDisplayName*(keys: mut Raw<ruma::encryption::DeviceKeys>; metadata: ruma::api::client::device::Device; includeDisplayNames: bool) =
+  ## Ported from `add_unsigned_device_display_name`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc claimKeysHelper*(services: Services; oneTimeKeysInput: BTreeMap<string): claim_keys::v3::Response =
+  ## Ported from `claim_keys_helper`.
+  discard

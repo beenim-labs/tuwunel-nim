@@ -1,51 +1,23 @@
+## Log level reload support.
+##
+## Ported from Rust core/log/reload.rs
+
+import std/[logging, atomics]
+
 const
   RustPath* = "core/log/reload.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+var currentLevel: Atomic[int]
 
-proc moduleId*(): string =
-  "core.log.reload"
+proc initReloadableLevel*(level: Level) =
+  ## Initialize the reloadable log level.
+  currentLevel.store(ord(level))
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc reloadLevel*(level: Level) =
+  ## Reload the log level at runtime.
+  currentLevel.store(ord(level))
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc getReloadableLevel*(): Level =
+  ## Get the current reloadable log level.
+  Level(currentLevel.load())

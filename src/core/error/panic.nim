@@ -1,51 +1,31 @@
+## Panic handling for errors.
+##
+## Ported from Rust core/error/panic.rs — provides panic capture and
+## inspection. In Nim, panics map to Defects/exceptions.
+
+import mod as errormod
+
 const
   RustPath* = "core/error/panic.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
-
-proc moduleId*(): string =
-  "core.error.panic"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
+proc fromPanic*(message: string): Error =
+  ## Create an Error from a panic message.
+  result = Error(
+    variant: evPanic,
+    errKind: ekUnknown,
+    detail: "PANIC! " & message,
+    httpStatus: 500,
   )
+  result.msg = result.detail
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc raiseAsPanic*(e: Error) {.noreturn.} =
+  ## Re-raise an error as a Defect (Nim's equivalent of a panic).
+  raise newException(Defect, e.message())
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc panicStr*(e: Error): string =
+  ## Get the panic message string, if this error wraps a panic.
+  if e.isPanic():
+    e.detail
+  else:
+    ""

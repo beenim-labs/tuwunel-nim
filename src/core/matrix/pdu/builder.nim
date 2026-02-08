@@ -1,51 +1,85 @@
+## PDU Builder — construct PDU events for database insertion.
+##
+## Ported from Rust core/matrix/pdu/builder.rs — provides the PduBuilder
+## type for constructing new Matrix events (both state and timeline).
+
+import std/[json, options, tables]
+import ../event
+
 const
   RustPath* = "core/matrix/pdu/builder.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  ## Builder for creating new PDU events.
+  PduBuilder* = object
+    eventType*: TimelineEventType
+    content*: JsonNode
+    unsigned*: Option[OrderedTable[string, JsonNode]]
+    stateKey*: Option[string]
+    redacts*: Option[EventId]
+    timestamp*: Option[MilliSecondsSinceUnixEpoch]
 
-proc moduleId*(): string =
-  "core.matrix.pdu.builder"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
+proc newPduBuilder*(): PduBuilder =
+  ## Create a default PduBuilder (m.room.message type).
+  PduBuilder(
+    eventType: "m.room.message",
+    content: newJObject(),
+    unsigned: none(OrderedTable[string, JsonNode]),
+    stateKey: none(string),
+    redacts: none(EventId),
+    timestamp: none(MilliSecondsSinceUnixEpoch),
   )
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc stateEvent*(stateKey: string; eventType: string;
+                 content: JsonNode): PduBuilder =
+  ## Create a PduBuilder for a state event.
+  PduBuilder(
+    eventType: eventType,
+    content: content,
+    unsigned: none(OrderedTable[string, JsonNode]),
+    stateKey: some(stateKey),
+    redacts: none(EventId),
+    timestamp: none(MilliSecondsSinceUnixEpoch),
+  )
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc timelineEvent*(eventType: string; content: JsonNode): PduBuilder =
+  ## Create a PduBuilder for a timeline (message-like) event.
+  PduBuilder(
+    eventType: eventType,
+    content: content,
+    unsigned: none(OrderedTable[string, JsonNode]),
+    stateKey: none(string),
+    redacts: none(EventId),
+    timestamp: none(MilliSecondsSinceUnixEpoch),
+  )
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc toJson*(builder: PduBuilder): JsonNode =
+  ## Serialize the builder to a JSON representation.
+  result = %*{
+    "type": builder.eventType,
+    "content": builder.content,
+  }
+  if builder.stateKey.isSome:
+    result["state_key"] = %builder.stateKey.get()
+  if builder.redacts.isSome:
+    result["redacts"] = %builder.redacts.get()
+  if builder.timestamp.isSome:
+    result["origin_server_ts"] = %builder.timestamp.get()
+  if builder.unsigned.isSome:
+    let u = newJObject()
+    for k, v in builder.unsigned.get():
+      u[k] = v
+    result["unsigned"] = u
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc `$`*(builder: PduBuilder): string =
+  ## Debug representation of a PduBuilder.
+  result = "PduBuilder(type=" & builder.eventType
+  if builder.stateKey.isSome:
+    result &= ", state_key=" & builder.stateKey.get()
+  if builder.redacts.isSome:
+    result &= ", redacts=" & builder.redacts.get()
+  if builder.timestamp.isSome:
+    result &= ", ts=" & $builder.timestamp.get()
+  result &= ", content=" & $builder.content
+  result &= ")"

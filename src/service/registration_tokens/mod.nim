@@ -1,50 +1,70 @@
+## registration_tokens/mod — service module.
+##
+## Ported from Rust service/registration_tokens/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/registration_tokens/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  ValidTokenSource* = enum
+    the
+    configfile
+    a
+    database
+    databasetokeninfo
 
-proc serviceModuleId*(): string =
-  "registration_tokens.mod"
+type
+  Service* = ref object
+    discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+type
+  ValidToken* = ref object
+    token*: string
+    source*: ValidTokenSource
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc eq*(self: Service; other: string): bool =
+  ## Ported from `eq`.
+  false
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc issueToken*(self: Service; expires: TokenExpires): (string =
+  ## Ported from `issue_token`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc isEnabled*(self: Service): bool =
+  ## Ported from `is_enabled`.
+  false
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getConfigTokens*(self: Service): HashSet<string> =
+  ## Ported from `get_config_tokens`.
+  discard
+
+proc isTokenValid*(self: Service; token: string) =
+  ## Ported from `is_token_valid`.
+  discard
+
+proc tryConsume*(self: Service; token: string) =
+  ## Ported from `try_consume`.
+  discard
+
+proc check*(self: Service; token: string; consume: bool) =
+  ## Ported from `check`.
+  discard
+
+proc revokeToken*(self: Service; token: string) =
+  ## Ported from `revoke_token`.
+  discard
+
+proc iterateTokens*(self: Service): impl Stream<Item = ValidToken> + Send + '_ =
+  ## Ported from `iterate_tokens`.
+  discard

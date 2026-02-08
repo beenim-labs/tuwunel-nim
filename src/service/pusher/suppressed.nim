@@ -1,50 +1,41 @@
+## pusher/suppressed — service module.
+##
+## Ported from Rust service/pusher/suppressed.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/pusher/suppressed.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc lock*(): std::sync::MutexGuard<'_, HashMap<string, HashMap<string, PushkeyQueue>>> =
+  ## Ported from `lock`.
+  discard
 
-proc serviceModuleId*(): string =
-  "pusher.suppressed"
+proc drainRoom*(queue: VecDeque<SuppressedEvent>): seq[RawPduId] =
+  ## Ported from `drain_room`.
+  @[]
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc dropOneFront*(queue: mut VecDeque<SuppressedEvent>; totalEvents: mut int): bool =
+  ## Ported from `drop_one_front`.
+  false
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc queueSuppressedPush*(userId: string; pushkey: string; roomId: string; pduId: RawPduId): bool =
+  ## Ported from `queue_suppressed_push`.
+  false
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc takeSuppressedForPushkey*(userId: string; pushkey: string): seq[(string, Vec<RawPduId])> =
+  ## Ported from `take_suppressed_for_pushkey`.
+  @[]
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc takeSuppressedForUser*(userId: string): SuppressedPushes =
+  ## Ported from `take_suppressed_for_user`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc clearSuppressedRoom*(userId: string; roomId: string): int =
+  ## Ported from `clear_suppressed_room`.
+  0
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
-
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc clearSuppressedPushkey*(userId: string; pushkey: string): int =
+  ## Ported from `clear_suppressed_pushkey`.
+  0

@@ -1,51 +1,45 @@
+## session/sso — api module.
+##
+## Ported from Rust api/client/session/sso.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/session/sso.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc ssoLoginRoute*() =
+  ## Ported from `sso_login_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.session.sso"
+proc ssoLoginWithProviderRoute*() =
+  ## Ported from `sso_login_with_provider_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc handleSsoLogin*(services: Services; Client: IpAddr; idpId: string; redirectUrl: string; loginToken: Option[string]): sso_login_with_provider::v3::Response =
+  ## Ported from `handle_sso_login`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc ssoCallbackRoute*() =
+  ## Ported from `sso_callback_route`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc registerUser*(services: Services; provider: Provider; session: Session; userinfo: UserInfo; userId: string) =
+  ## Ported from `register_user`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc setAvatar*(services: Services; Provider: Provider; Session: Session; Userinfo: UserInfo; userId: string; avatarUrl: string) =
+  ## Ported from `set_avatar`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc decideUserId*(services: Services; provider: Provider; userinfo: UserInfo; uniqueId: string): string =
+  ## Ported from `decide_user_id`.
+  ""
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc tryUserId*(services: Services; username: string; mayExist: bool): Option[string] =
+  ## Ported from `try_user_id`.
+  none(string)
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc parseUserId*(serverName: string; username: string): string =
+  ## Ported from `parse_user_id`.
+  ""

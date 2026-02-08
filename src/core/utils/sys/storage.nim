@@ -1,51 +1,34 @@
+## Storage utilities — disk space, filesystem info.
+##
+## Ported from Rust core/utils/sys/storage.rs
+
+import std/[os, strformat]
+
 const
   RustPath* = "core/utils/sys/storage.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  StorageInfo* = object
+    totalBytes*: uint64
+    freeBytes*: uint64
+    availableBytes*: uint64
 
-proc moduleId*(): string =
-  "core.utils.sys.storage"
+proc getStorageInfo*(path: string): StorageInfo =
+  ## Get storage info for the filesystem containing `path`.
+  ## Returns zeros if info is not available.
+  when defined(posix):
+    import std/posix
+    var stat: Statvfs
+    if statvfs(path.cstring, stat) == 0:
+      return StorageInfo(
+        totalBytes: uint64(stat.f_blocks) * uint64(stat.f_frsize),
+        freeBytes: uint64(stat.f_bfree) * uint64(stat.f_frsize),
+        availableBytes: uint64(stat.f_bavail) * uint64(stat.f_frsize),
+      )
+  StorageInfo()
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc prettyStorageInfo*(info: StorageInfo): string =
+  ## Format storage info as a human-readable string.
+  let used = info.totalBytes - info.freeBytes
+  &"used: {used}, free: {info.freeBytes}, total: {info.totalBytes}"

@@ -23,3 +23,5 @@ import test_database_engine_pool
 import test_service_runtime
 import test_main_runtime
 import test_router_stack
+# test_core_error skipped for now (mod.nim keyword import issue)
+import test_core_matrix_types

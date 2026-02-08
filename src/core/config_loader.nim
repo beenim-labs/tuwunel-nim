@@ -1,69 +1,45 @@
-import std/[options, os, sequtils]
-import main/args
-import main/args_update
-import config_merge
-import config_values
-import generated_config_model
-import generated_config_defaults
+## Configuration loader — deserializes config from parsed data.
+##
+## Ported from Rust config loading logic.
 
-type
-  LoadedConfig* = object
-    values*: FlatConfig
-    model*: ConfigModel
-    stats*: ConfigMergeStats
-    configPaths*: seq[string]
+import std/[json, tables, strutils]
 
-proc defaultConfigPath*(): string =
-  "tuwunel.toml"
+const
+  RustPath* = "core/config (loader portion)"
+  RustCrate* = "core"
 
-proc envConfigPath(envName: string): Option[string] =
-  let v = getEnv(envName)
-  if v.len == 0:
-    return none(string)
-  some(v)
+proc loadString*(data: JsonNode; key: string; default: string = ""): string =
+  ## Load a string value from config, with default.
+  if data.hasKey(key) and data[key].kind == JString:
+    data[key].getStr()
+  else:
+    default
 
-proc resolveConfigPaths*(a: Args): seq[string] =
-  var paths: seq[string] = @[]
+proc loadInt*(data: JsonNode; key: string; default: int = 0): int =
+  ## Load an integer value from config, with default.
+  if data.hasKey(key):
+    case data[key].kind
+    of JInt: data[key].getInt()
+    of JString:
+      try: parseInt(data[key].getStr())
+      except: default
+    else: default
+  else:
+    default
 
-  for envName in ["CONDUIT_CONFIG", "CONDUWUIT_CONFIG", "TUWUNEL_CONFIG"]:
-    let v = envConfigPath(envName)
-    if v.isSome:
-      paths.add(v.get)
+proc loadBool*(data: JsonNode; key: string; default: bool = false): bool =
+  ## Load a boolean value from config, with default.
+  if data.hasKey(key):
+    case data[key].kind
+    of JBool: data[key].getBool()
+    of JString: data[key].getStr().toLowerAscii() in ["true", "1", "yes"]
+    else: default
+  else:
+    default
 
-  paths.add(a.config)
-  paths = paths.filterIt(it.len > 0)
-
-  if paths.len == 0:
-    paths.add(defaultConfigPath())
-
-  paths
-
-proc loadConfigCompatibility*(a: Args): tuple[ok: bool, err: string, cfg: LoadedConfig] =
-  let paths = resolveConfigPaths(a)
-  let merged = mergeConfigFiles(paths)
-  if not merged.ok:
-    return (false, merged.err, LoadedConfig())
-
-  var values = defaultConfigValues()
-  mergeFlatConfig(values, merged.values)
-  var stats = merged.stats
-
-  # These follow the same order as the Rust config load path.
-  mergeEnvPrefix(values, "CONDUIT_", stats)
-  mergeEnvPrefix(values, "CONDUWUIT_", stats)
-  mergeEnvPrefix(values, "TUWUNEL_", stats)
-
-  let updated = applyArgsUpdate(values, a, stats)
-  if not updated.ok:
-    return (false, updated.err, LoadedConfig())
-
-  (
-    true,
-    "",
-    LoadedConfig(
-      values: updated.values,
-      model: fromFlatConfig(updated.values),
-      stats: updated.stats,
-      configPaths: paths,
-    ),
-  )
+proc loadStringSeq*(data: JsonNode; key: string): seq[string] =
+  ## Load a string array from config.
+  if data.hasKey(key) and data[key].kind == JArray:
+    for item in data[key]:
+      if item.kind == JString:
+        result.add item.getStr()

@@ -1,51 +1,48 @@
+## System utilities — CPU parallelism, exe path, fd limits.
+##
+## Ported from Rust core/utils/sys.rs
+
+import std/[os, cpuinfo, strutils]
+when defined(posix):
+  import std/posix
+
 const
   RustPath* = "core/utils/sys.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc availableParallelism*(): int =
+  ## Return the number of available CPU cores.
+  max(1, countProcessors())
 
-proc moduleId*(): string =
-  "core.utils.sys"
+proc currentExe*(): string =
+  ## Return the current executable path, stripping " (deleted)" suffix.
+  let exe = getAppFilename()
+  if exe.endsWith(" (deleted)"):
+    exe[0 ..< exe.len - " (deleted)".len]
+  else:
+    exe
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc currentExeDeleted*(): bool =
+  ## Check if the current executable has been deleted or replaced.
+  try:
+    getAppFilename().endsWith(" (deleted)")
+  except:
+    false
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc maximizeFdLimit*() =
+  ## Maximize the file descriptor limit (Unix only).
+  ## This is a no-op on non-Unix platforms.
+  when defined(posix):
+    var rlim = RLimit(rlim_cur: 0, rlim_max: 0)
+    if getrlimit(RLIMIT_NOFILE, rlim) == 0:
+      if rlim.rlim_cur < rlim.rlim_max:
+        rlim.rlim_cur = rlim.rlim_max
+        discard setrlimit(RLIMIT_NOFILE, rlim)
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc ueventFind*(uevent: string; key: string): string =
+  ## Parse KEY=VALUE contents of a uevent file, find value for key.
+  for line in uevent.splitLines():
+    let parts = line.split('=', maxsplit = 1)
+    if parts.len == 2 and parts[0] == key:
+      return parts[1]
+  ""

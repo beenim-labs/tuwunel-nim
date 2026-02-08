@@ -1,50 +1,106 @@
+## sync/mod — service module.
+##
+## Ported from Rust service/sync/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/sync/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "sync.mod"
+type
+  Connection* = ref object
+    globalsince*: uint64
+    nextBatch*: uint64
+    lists*: Lists
+    extensions*: request::Extensions
+    subscriptions*: Subscriptions
+    rooms*: Rooms
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+type
+  Room* = ref object
+    roomsince*: uint64
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc clearConnections*(self: Service; userId: Option[string]; deviceId: Option[DeviceId]; connId: Option[ConnectionId]) =
+  ## Ported from `clear_connections`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc dropConnection*(self: Service; key: ConnectionKey) =
+  ## Ported from `drop_connection`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc loadOrInitConnection*(self: Service; key: ConnectionKey): ConnectionVal =
+  ## Ported from `load_or_init_connection`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc loadConnection*(self: Service; key: ConnectionKey): ConnectionVal =
+  ## Ported from `load_connection`.
+  discard
+
+proc getLoadedConnection*(self: Service; key: ConnectionKey): ConnectionVal =
+  ## Ported from `get_loaded_connection`.
+  discard
+
+proc listLoadedConnections*(self: Service): seq[ConnectionKey] =
+  ## Ported from `list_loaded_connections`.
+  @[]
+
+proc listStoredConnections*(self: Service): impl Stream<Item = ConnectionKey> =
+  ## Ported from `list_stored_connections`.
+  discard
+
+proc isConnectionLoaded*(self: Service; key: ConnectionKey): bool =
+  ## Ported from `is_connection_loaded`.
+  false
+
+proc isConnectionStored*(self: Service; key: ConnectionKey): bool =
+  ## Ported from `is_connection_stored`.
+  false
+
+proc store*(self: Service; service: Service; key: ConnectionKey) =
+  ## Ported from `store`.
+  discard
+
+proc updateRoomsPrologue*(self: Service; retardSince: Option[uint64]) =
+  ## Ported from `update_rooms_prologue`.
+  discard
+
+proc updateCache*(self: Service; request: Request) =
+  ## Ported from `update_cache`.
+  discard
+
+proc updateCacheLists*(request: Request; cached: mut Self) =
+  ## Ported from `update_cache_lists`.
+  discard
+
+proc updateCacheList*(request: request::List; cached: mut request::List) =
+  ## Ported from `update_cache_list`.
+  discard
+
+proc updateCacheSubscriptions*(request: Request; cached: mut Self) =
+  ## Ported from `update_cache_subscriptions`.
+  discard
+
+proc updateCacheExtensions*(request: Request; cached: mut Self) =
+  ## Ported from `update_cache_extensions`.
+  discard
+
+proc updateCacheAccountData*(request: AccountData; cached: mut AccountData) =
+  ## Ported from `update_cache_account_data`.
+  discard
+
+proc updateCacheReceipts*(request: Receipts; cached: mut Receipts) =
+  ## Ported from `update_cache_receipts`.
+  discard

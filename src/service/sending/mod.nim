@@ -1,50 +1,81 @@
+## sending/mod — service module.
+##
+## Ported from Rust service/sending/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/sending/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  SendingEvent* = enum
+    pdu
+    rawpduid
+    edu
+    edubuf
+    flush
 
-proc serviceModuleId*(): string =
-  "sending.mod"
+type
+  Service* = ref object
+    db*: Data
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc worker*(self: Service) =
+  ## Ported from `worker`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc interrupt*(self: Service) =
+  ## Ported from `interrupt`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc unconstrained*(self: Service): bool =
+  ## Ported from `unconstrained`.
+  false
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc sendPduPush*(self: Service; pduId: RawPduId; user: string; pushkey: string) =
+  ## Ported from `send_pdu_push`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc sendPduAppservice*(self: Service; appserviceId: string; pduId: RawPduId) =
+  ## Ported from `send_pdu_appservice`.
+  discard
+
+proc sendPduRoom*(self: Service; roomId: string; pduId: RawPduId) =
+  ## Ported from `send_pdu_room`.
+  discard
+
+proc sendEduServer*(self: Service; server: string; serialized: EduBuf) =
+  ## Ported from `send_edu_server`.
+  discard
+
+proc sendEduRoom*(self: Service; roomId: string; serialized: EduBuf) =
+  ## Ported from `send_edu_room`.
+  discard
+
+proc flushRoom*(self: Service; roomId: string) =
+  ## Ported from `flush_room`.
+  discard
+
+proc cleanupEvents*(self: Service; appserviceId: Option[string]; userId: Option[string]; pushKey: Option[string]) =
+  ## Ported from `cleanup_events`.
+  discard
+
+proc dispatch*(self: Service; msg: Msg) =
+  ## Ported from `dispatch`.
+  discard
+
+proc shardId*(self: Service; dest: Destination): int =
+  ## Ported from `shard_id`.
+  0
+
+proc numSenders*(args: crate::Args<'_>): int =
+  ## Ported from `num_senders`.
+  0

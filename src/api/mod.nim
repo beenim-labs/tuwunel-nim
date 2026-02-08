@@ -1,35 +1,19 @@
-import generated_route_inventory
-import generated_route_types
-import generated_route_runtime
+## api/mod — api module.
+##
+## Ported from Rust api/mod.rs
 
-type
-  ApiSurfaceSummary* = object
-    totalRoutes*: int
-    clientRoutes*: int
-    serverRoutes*: int
-    manualRoutes*: int
-    publicClientRoutes*: int
+import std/[options, json, tables, strutils]
 
-proc buildApiSurfaceSummary*(): ApiSurfaceSummary =
-  ApiSurfaceSummary(
-    totalRoutes: TotalRouteCount,
-    clientRoutes: ClientRumaRouteCount,
-    serverRoutes: ServerRumaRouteCount,
-    manualRoutes: ManualRouteCount,
-    publicClientRoutes: PublicClientRouteNames.len,
-  )
+const
+  RustPath* = "api/mod.rs"
+  RustCrate* = "api"
 
-proc dispatchApiRoute*(
-    routeName: string; accessTokenPresent = false; federationAuthenticated = false): RouteDispatchResult =
-  dispatchRoute(routeName, accessTokenPresent, federationAuthenticated)
+type Service* = ref object
+  ## api service.
+  discard
 
-proc apiSurfaceSummaryLine*(summary: ApiSurfaceSummary): string =
-  "total=" & $summary.totalRoutes &
-    " client=" & $summary.clientRoutes &
-    " server=" & $summary.serverRoutes &
-    " manual=" & $summary.manualRoutes &
-    " public_client=" & $summary.publicClientRoutes
+# import ./client
+# import ./router
+# import ./server
 
-export generated_route_inventory
-export generated_route_types
-export generated_route_runtime
+proc init*() = discard

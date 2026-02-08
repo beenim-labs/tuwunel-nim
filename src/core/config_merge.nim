@@ -1,53 +1,26 @@
-import std/[os, strutils]
-import config_values
+## Configuration merge — merge multiple config sources.
+##
+## Ported from Rust config merge logic.
 
-type
-  ConfigMergeStats* = object
-    loadedFiles*: seq[string]
-    skippedFiles*: seq[string]
-    envOverrides*: seq[string]
-    optionOverrides*: seq[string]
+import std/[json, tables]
 
-proc normalizeEnvKey(raw: string): string =
-  result = raw.toLowerAscii()
-  result = result.replace("__", ".")
+const
+  RustPath* = "core/config (merge portion)"
+  RustCrate* = "core"
 
-proc mergeConfigFile*(cfg: var FlatConfig; path: string; stats: var ConfigMergeStats): tuple[
-    ok: bool, err: string] =
-  if not fileExists(path):
-    stats.skippedFiles.add(path)
-    return (true, "")
+proc mergeConfig*(base, overlay: JsonNode): JsonNode =
+  ## Deep-merge two JSON config objects. Values in `overlay` take precedence.
+  if base.kind != JObject or overlay.kind != JObject:
+    return overlay
+  result = base.copy()
+  for key, value in overlay:
+    if result.hasKey(key) and result[key].kind == JObject and value.kind == JObject:
+      result[key] = mergeConfig(result[key], value)
+    else:
+      result[key] = value.copy()
 
-  let parsed = parseTomlDocument(readFile(path), path)
-  if not parsed.ok:
-    return (false, parsed.err)
-
-  mergeFlatConfig(cfg, parsed.data)
-  stats.loadedFiles.add(path)
-  (true, "")
-
-proc mergeConfigFiles*(paths: openArray[string]): tuple[
-    ok: bool, err: string, values: FlatConfig, stats: ConfigMergeStats] =
-  var values = initFlatConfig()
-  var stats = ConfigMergeStats()
-
-  for path in paths:
-    let merged = mergeConfigFile(values, path, stats)
-    if not merged.ok:
-      return (false, merged.err, initFlatConfig(), ConfigMergeStats())
-
-  (true, "", values, stats)
-
-proc mergeEnvPrefix*(cfg: var FlatConfig; prefix: string; stats: var ConfigMergeStats) =
-  for k, v in envPairs():
-    if not k.startsWith(prefix):
-      continue
-
-    let suffix = k[prefix.len .. ^1]
-    if suffix.len == 0:
-      continue
-
-    let key = normalizeEnvKey(suffix)
-    cfg[key] = valueFromEnvLiteral(v)
-    stats.envOverrides.add(prefix & suffix)
-
+proc mergeConfigs*(configs: openArray[JsonNode]): JsonNode =
+  ## Merge multiple config sources in priority order (last wins).
+  result = newJObject()
+  for config in configs:
+    result = mergeConfig(result, config)

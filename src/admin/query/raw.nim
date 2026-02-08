@@ -1,51 +1,65 @@
+## query/raw — admin module.
+##
+## Ported from Rust admin/query/raw.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "admin/query/raw.rs"
   RustCrate* = "admin"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc rawCompact*(maps: Option[seq[string]]; start: Option[string]; stop: Option[string]; from: Option[int]; into: Option[int]; parallelism: Option[int]; exhaustive: bool) =
+  ## Ported from `raw_compact`.
+  discard
 
-proc moduleId*(): string =
-  "admin.query.raw"
+proc rawCount*(map: Option[string]; prefix: Option[string]) =
+  ## Ported from `raw_count`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc rawKeys*(map: string; prefix: Option[string]; limit: Option[int]; from: Option[string]; backwards: bool) =
+  ## Ported from `raw_keys`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc rawKeysSizes*(map: Option[string]; prefix: Option[string]) =
+  ## Ported from `raw_keys_sizes`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc rawKeysTotal*(map: Option[string]; prefix: Option[string]) =
+  ## Ported from `raw_keys_total`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc rawValsSizes*(map: Option[string]; prefix: Option[string]) =
+  ## Ported from `raw_vals_sizes`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc rawValsTotal*(map: Option[string]; prefix: Option[string]) =
+  ## Ported from `raw_vals_total`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc rawIter*(map: string; prefix: Option[string]; limit: Option[int]; from: Option[string]; backwards: bool) =
+  ## Ported from `raw_iter`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc rawDel*(map: string; key: string) =
+  ## Ported from `raw_del`.
+  discard
+
+proc rawClear*(map: string; confirm: bool) =
+  ## Ported from `raw_clear`.
+  discard
+
+proc rawGet*(map: string; key: string; base64: bool) =
+  ## Ported from `raw_get`.
+  discard
+
+proc rawMaps*() =
+  ## Ported from `raw_maps`.
+  discard
+
+proc withMapOr*(map: Option[string]; services: Services): seq[Map] =
+  ## Ported from `with_map_or`.
+  @[]
+
+proc encode*(data: [u8]): string =
+  ## Ported from `encode`.
+  ""

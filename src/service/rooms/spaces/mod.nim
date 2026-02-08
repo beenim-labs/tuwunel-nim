@@ -1,50 +1,76 @@
+## spaces/mod — service module.
+##
+## Ported from Rust service/rooms/spaces/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/rooms/spaces/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  SummaryAccessibility* = enum
+    accessible
+    spacehierarchyparentsummary
+    inaccessible
 
-proc serviceModuleId*(): string =
-  "rooms.spaces.mod"
+type
+  Identifier* = enum
+    default
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+type
+  Service* = ref object
+    roomidSpacehierarchyCache*: Mutex<Cache>
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+type
+  CachedSpaceHierarchySummary* = ref object
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc memoryUsage*(self: Service; out: mut (dyn Write + Send) =
+  ## Ported from `memory_usage`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc clearCache*(self: Service) =
+  ## Ported from `clear_cache`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getSummaryAndChildrenClient*(self: Service; currentRoom: string; suggestedOnly: bool; userId: string; via: [string]): Option[SummaryAccessibility] =
+  ## Ported from `get_summary_and_children_client`.
+  none(SummaryAccessibility)
+
+proc getSummaryAndChildrenLocal*(self: Service; currentRoom: string; identifier: Identifier<'_>): Option[SummaryAccessibility] =
+  ## Ported from `get_summary_and_children_local`.
+  none(SummaryAccessibility)
+
+proc getSummaryAndChildrenFederation*(self: Service; currentRoom: string; suggestedOnly: bool; userId: string; via: [string]): Option[SummaryAccessibility] =
+  ## Ported from `get_summary_and_children_federation`.
+  none(SummaryAccessibility)
+
+proc getRoomSummary*(self: Service; roomId: string; childrenState: seq[Raw<HierarchySpaceChildEvent]>; identifier: Identifier<'_>): SpaceHierarchyParentSummary =
+  ## Ported from `get_room_summary`.
+  discard
+
+proc getParentChildrenVia*(parent: SpaceHierarchyParentSummary; suggestedOnly: bool): impl DoubleEndedIterator<
+	Item = (string, impl Iterator<Item = string> + Send + use<>),
+> + '_ =
+  ## Ported from `get_parent_children_via`.
+  discard
+
+proc cacheInsert*(self: Service; cache: MutexGuard<'_; currentRoom: string; child: RoomSummary) =
+  ## Ported from `cache_insert`.
+  discard
+
+proc from*(value: CachedSpaceHierarchySummary) =
+  ## Ported from `from`.
+  discard
+
+proc summaryToChunk*(summary: SpaceHierarchyParentSummary): SpaceHierarchyRoomsChunk =
+  ## Ported from `summary_to_chunk`.
+  discard

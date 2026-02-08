@@ -1,51 +1,17 @@
+## Module canary — build verification checks.
+##
+## Ported from Rust core/mods/canary.rs
+
 const
   RustPath* = "core/mods/canary.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc checkCanary*(): bool =
+  ## Verify the module canary is valid. Used to detect ABI mismatches
+  ## between dynamically loaded modules and the host binary.
+  ## In Nim (statically compiled), this always returns true.
+  true
 
-proc moduleId*(): string =
-  "core.mods.canary"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc canaryValue*(): uint64 =
+  ## Return the canary value used for module verification.
+  0xDEAD_BEEF_CAFE_BABEu64

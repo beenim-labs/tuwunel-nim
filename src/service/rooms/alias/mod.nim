@@ -1,50 +1,73 @@
+## alias/mod — service module.
+##
+## Ported from Rust service/rooms/alias/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/rooms/alias/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "rooms.alias.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc setAlias*(self: Service; alias: RoomAliasId; roomId: string; userId: string) =
+  ## Ported from `set_alias`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc removeAlias*(self: Service; alias: RoomAliasId; userId: string) =
+  ## Ported from `remove_alias`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc maybeResolve*(self: Service; room: RoomOrAliasId): string =
+  ## Ported from `maybe_resolve`.
+  ""
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc maybeResolveWithServers*(self: Service; room: RoomOrAliasId; servers: Option[[string]]): (string)> =
+  ## Ported from `maybe_resolve_with_servers`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc resolveAlias*(self: Service; roomAlias: RoomAliasId): (string)> =
+  ## Ported from `resolve_alias`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc remoteResolve*(self: Service; roomAlias: RoomAliasId): (string)> =
+  ## Ported from `remote_resolve`.
+  discard
+
+proc resolveLocalAlias*(self: Service; alias: RoomAliasId): string =
+  ## Ported from `resolve_local_alias`.
+  ""
+
+proc allLocalAliases*(self: Service): impl Stream<Item = (string, string)> + Send + '_ =
+  ## Ported from `all_local_aliases`.
+  discard
+
+proc userCanRemoveAlias*(self: Service; alias: RoomAliasId; userId: string): bool =
+  ## Ported from `user_can_remove_alias`.
+  false
+
+proc whoCreatedAlias*(self: Service; alias: RoomAliasId): string =
+  ## Ported from `who_created_alias`.
+  ""
+
+proc resolveAppserviceAlias*(self: Service; roomAlias: RoomAliasId): string =
+  ## Ported from `resolve_appservice_alias`.
+  ""
+
+proc checkAliasLocal*(self: Service; alias: RoomAliasId) =
+  ## Ported from `check_alias_local`.
+  discard
+
+proc appserviceChecks*(self: Service; roomAlias: RoomAliasId; appserviceInfo: Option[RegistrationInfo]) =
+  ## Ported from `appservice_checks`.
+  discard

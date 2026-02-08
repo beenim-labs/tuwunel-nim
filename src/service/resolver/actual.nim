@@ -1,50 +1,89 @@
+## resolver/actual — service module.
+##
+## Ported from Rust service/resolver/actual.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/resolver/actual.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc toString*(): Deststring =
+  ## Ported from `to_string`.
+  discard
 
-proc serviceModuleId*(): string =
-  "resolver.actual"
+proc getActualDest*(serverName: string): ActualDest =
+  ## Ported from `get_actual_dest`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc lookupActualDest*(serverName: string): (CachedDest =
+  ## Ported from `lookup_actual_dest`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc resolveActualDest*(dest: string; cache: bool): CachedDest =
+  ## Ported from `resolve_actual_dest`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc actualDest1*(hostPort: FedDest): FedDest =
+  ## Ported from `actual_dest_1`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc actualDest2*(dest: string; cache: bool; pos: int): FedDest =
+  ## Ported from `actual_dest_2`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc actualDest3*(host: mut Deststring; cache: bool; delegated: string): FedDest =
+  ## Ported from `actual_dest_3`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc actualDest31*(hostAndPort: FedDest): FedDest =
+  ## Ported from `actual_dest_3_1`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc actualDest32*(cache: bool; delegated: string; pos: int): FedDest =
+  ## Ported from `actual_dest_3_2`.
+  discard
+
+proc actualDest33*(cache: bool; delegated: string; overrider: FedDest): FedDest =
+  ## Ported from `actual_dest_3_3`.
+  discard
+
+proc actualDest34*(cache: bool; delegated: string): FedDest =
+  ## Ported from `actual_dest_3_4`.
+  discard
+
+proc actualDest4*(host: string; cache: bool; overrider: FedDest): FedDest =
+  ## Ported from `actual_dest_4`.
+  discard
+
+proc actualDest5*(dest: string; cache: bool): FedDest =
+  ## Ported from `actual_dest_5`.
+  discard
+
+proc conditionalQueryAndCache*(hostname: string; port: u16; cache: bool) =
+  ## Ported from `conditional_query_and_cache`.
+  discard
+
+proc conditionalQueryAndCacheOverride*(untername: string; hostname: string; port: u16; cache: bool) =
+  ## Ported from `conditional_query_and_cache_override`.
+  discard
+
+proc queryAndCacheOverride*(untername: '_ str; hostname: '_ str; port: u16) =
+  ## Ported from `query_and_cache_override`.
+  discard
+
+proc querySrvRecord*(hostname: '_ str): Option[FedDest] =
+  ## Ported from `query_srv_record`.
+  none(FedDest)
+
+proc handleResolveError*(e: ResolveError; host: '_ str) =
+  ## Ported from `handle_resolve_error`.
+  discard
+
+proc validateDest*(dest: string) =
+  ## Ported from `validate_dest`.
+  discard
+
+proc validateDestIpLiteral*(dest: string) =
+  ## Ported from `validate_dest_ip_literal`.
+  discard

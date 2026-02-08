@@ -1,50 +1,93 @@
+## state_cache/mod — service module.
+##
+## Ported from Rust service/rooms/state_cache/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/rooms/state_cache/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "rooms.state_cache.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc appserviceInRoom*(self: Service; roomId: string; appservice: RegistrationInfo): bool =
+  ## Ported from `appservice_in_room`.
+  false
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc getAppserviceInRoomCacheUsage*(self: Service): (int, int) =
+  ## Ported from `get_appservice_in_room_cache_usage`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc clearAppserviceInRoomCache*(self: Service) =
+  ## Ported from `clear_appservice_in_room_cache`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc serverSeesUser*(self: Service; server: string; userId: string): bool =
+  ## Ported from `server_sees_user`.
+  false
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc userSeesUser*(self: Service; userA: string; userB: string): bool =
+  ## Ported from `user_sees_user`.
+  false
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc roomJoinedCount*(self: Service; roomId: string): uint64 =
+  ## Ported from `room_joined_count`.
+  0
+
+proc roomInvitedCount*(self: Service; roomId: string): uint64 =
+  ## Ported from `room_invited_count`.
+  0
+
+proc roomKnockedCount*(self: Service; roomId: string): uint64 =
+  ## Ported from `room_knocked_count`.
+  0
+
+proc getInviteCount*(self: Service; roomId: string; userId: string): uint64 =
+  ## Ported from `get_invite_count`.
+  0
+
+proc getKnockCount*(self: Service; roomId: string; userId: string): uint64 =
+  ## Ported from `get_knock_count`.
+  0
+
+proc getLeftCount*(self: Service; roomId: string; userId: string): uint64 =
+  ## Ported from `get_left_count`.
+  0
+
+proc getJoinedCount*(self: Service; roomId: string; userId: string): uint64 =
+  ## Ported from `get_joined_count`.
+  0
+
+proc inviteState*(self: Service; userId: string; roomId: string): seq[Raw<AnyStrippedStateEvent]> =
+  ## Ported from `invite_state`.
+  @[]
+
+proc knockState*(self: Service; userId: string; roomId: string): seq[Raw<AnyStrippedStateEvent]> =
+  ## Ported from `knock_state`.
+  @[]
+
+proc leftState*(self: Service; userId: string; roomId: string): seq[Raw<AnyStrippedStateEvent]> =
+  ## Ported from `left_state`.
+  @[]
+
+proc userMembership*(self: Service; userId: string; roomId: string): Option[MembershipState] =
+  ## Ported from `user_membership`.
+  none(MembershipState)
+
+proc onceJoined*(self: Service; userId: string; roomId: string): bool =
+  ## Ported from `once_joined`.
+  false
+
+proc isInvited*(self: Service; userId: string; roomId: string): bool =
+  ## Ported from `is_invited`.
+  false

@@ -1,51 +1,35 @@
+## State key type and utilities.
+##
+## Ported from Rust core/matrix/event/state_key.rs — defines the
+## TypeStateKey tuple type used for state map keys.
+
+
+import ../event
+
 const
   RustPath* = "core/matrix/event/state_key.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  ## A state key string.
+  StateKey* = string
 
-proc moduleId*(): string =
-  "core.matrix.event.state_key"
+  ## Composite key for state maps: (event_type, state_key).
+  TypeStateKey* = tuple[eventType: StateEventType, stateKey: StateKey]
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc cmpTypeStateKey*(a, b: TypeStateKey): int =
+  ## Compare two TypeStateKey values (for sorting).
+  result = cmp(a.eventType, b.eventType)
+  if result == 0:
+    result = cmp(a.stateKey, b.stateKey)
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc rcmpTypeStateKey*(a, b: TypeStateKey): int =
+  ## Reverse compare two TypeStateKey values.
+  result = cmp(b.eventType, a.eventType)
+  if result == 0:
+    result = cmp(b.stateKey, a.stateKey)
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc makeTypeStateKey*(eventType: StateEventType;
+                       stateKey: StateKey): TypeStateKey =
+  ## Create a TypeStateKey from event type and state key.
+  (eventType: eventType, stateKey: stateKey)

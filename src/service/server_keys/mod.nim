@@ -1,50 +1,69 @@
+## server_keys/mod — service module.
+##
+## Ported from Rust service/server_keys/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/server_keys/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "server_keys.mod"
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc keypair*(self: Service): Ed25519KeyPair =
+  ## Ported from `keypair`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc activeKeyId*(self: Service): ServerSigningKeyId =
+  ## Ported from `active_key_id`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc activeVerifyKey*(self: Service): (ServerSigningKeyId, VerifyKey) =
+  ## Ported from `active_verify_key`.
+  discard
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc addSigningKeys*(self: Service; newKeys: ServerSigningKeys) =
+  ## Ported from `add_signing_keys`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc requiredKeysExist*(self: Service; object: CanonicalJsonObject; rules: RoomVersionRules): bool =
+  ## Ported from `required_keys_exist`.
+  false
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc verifyKeyExists*(self: Service; origin: string; keyId: ServerSigningKeyId): bool =
+  ## Ported from `verify_key_exists`.
+  false
+
+proc verifyKeysFor*(self: Service; origin: string): VerifyKeys =
+  ## Ported from `verify_keys_for`.
+  discard
+
+proc signingKeysFor*(self: Service; origin: string): ServerSigningKeys =
+  ## Ported from `signing_keys_for`.
+  discard
+
+proc minimumValidTs*(self: Service): MilliSecondsSinceUnixEpoch =
+  ## Ported from `minimum_valid_ts`.
+  discard
+
+proc mergeOldKeys*(keys: ServerSigningKeys): ServerSigningKeys =
+  ## Ported from `merge_old_keys`.
+  discard
+
+proc extractKey*(keys: ServerSigningKeys; keyId: ServerSigningKeyId): Option[VerifyKey] =
+  ## Ported from `extract_key`.
+  none(VerifyKey)
+
+proc keyExists*(keys: ServerSigningKeys; keyId: ServerSigningKeyId): bool =
+  ## Ported from `key_exists`.
+  false

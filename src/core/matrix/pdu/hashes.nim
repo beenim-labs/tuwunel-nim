@@ -1,51 +1,24 @@
+## PDU content hashes.
+##
+## Ported from Rust core/matrix/pdu/hashes.rs — defines the EventHashes
+## type for storing PDU content hashes (SHA-256).
+
 const
   RustPath* = "core/matrix/pdu/hashes.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
+
+  ## Maximum length of a URL-safe base64 SHA-256 hash (43 chars).
+  Sha256Len* = 43
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  ## Content hashes of a PDU.
+  EventHashes* = object
+    sha256*: string  ## SHA-256 hash, URL-safe base64 encoded (max 43 chars)
 
-proc moduleId*(): string =
-  "core.matrix.pdu.hashes"
+proc newEventHashes*(sha256: string = ""): EventHashes =
+  ## Create new EventHashes.
+  EventHashes(sha256: sha256)
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc isEmpty*(h: EventHashes): bool =
+  ## Check if hashes are empty.
+  h.sha256.len == 0

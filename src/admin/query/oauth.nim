@@ -1,51 +1,53 @@
+## query/oauth — admin module.
+##
+## Ported from Rust admin/query/oauth.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "admin/query/oauth.rs"
   RustCrate* = "admin"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc sessionOrUserId*(input: string): SessionOrstring =
+  ## Ported from `session_or_user_id`.
+  discard
 
-proc moduleId*(): string =
-  "admin.query.oauth"
+proc oauthAssociate*(provider: string; userId: string; claim: seq[string]) =
+  ## Ported from `oauth_associate`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc oauthListProviders*() =
+  ## Ported from `oauth_list_providers`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc oauthListUsers*() =
+  ## Ported from `oauth_list_users`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc oauthListSessions*(userId: Option[string]) =
+  ## Ported from `oauth_list_sessions`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc oauthShowProvider*(id: ProviderId; config: bool) =
+  ## Ported from `oauth_show_provider`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc oauthShowSession*(id: SessionId) =
+  ## Ported from `oauth_show_session`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc oauthShowUser*(userId: string) =
+  ## Ported from `oauth_show_user`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc oauthTokenInfo*(id: SessionId) =
+  ## Ported from `oauth_token_info`.
+  discard
+
+proc oauthRevoke*(id: SessionOrstring) =
+  ## Ported from `oauth_revoke`.
+  discard
+
+proc oauthDelete*(id: SessionOrstring; force: bool) =
+  ## Ported from `oauth_delete`.
+  discard

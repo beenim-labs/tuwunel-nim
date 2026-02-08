@@ -1,51 +1,23 @@
+## Event type extension helpers.
+##
+## Ported from Rust core/matrix/event/type_ext.rs — provides a
+## convenience proc for pairing an event type with a state key
+## to create a TypeStateKey for use in state maps.
+
+import ../event
+import state_key
+
 const
   RustPath* = "core/matrix/event/type_ext.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc withStateKey*(eventType: StateEventType;
+                   stateKey: string): TypeStateKey =
+  ## Create a TypeStateKey from an event type and state key.
+  makeTypeStateKey(eventType, stateKey)
 
-proc moduleId*(): string =
-  "core.matrix.event.type_ext"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
-
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
-
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
-
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
-
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc withStateKey*(eventType: TimelineEventType;
+                   stateKey: string): TypeStateKey =
+  ## Create a TypeStateKey from a timeline event type and state key.
+  ## Timeline event types are converted to state event types.
+  makeTypeStateKey(StateEventType(eventType), stateKey)

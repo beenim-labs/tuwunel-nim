@@ -1,50 +1,33 @@
+## membership/join — service module.
+##
+## Ported from Rust service/membership/join.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/membership/join.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc join*(senderUser: string; roomId: string; origRoomId: Option[RoomOrAliasId]; reason: Option[string]; servers: [string]; isAppservice: bool; stateLock: RoomMutexGuard) =
+  ## Ported from `join`.
+  discard
 
-proc serviceModuleId*(): string =
-  "membership.join"
+proc joinRemote*(senderUser: string; roomId: string; reason: Option[string]; servers: [string]; stateLock: RoomMutexGuard) =
+  ## Ported from `join_remote`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc joinLocal*(senderUser: string; roomId: string; reason: Option[string]; servers: [string]; stateLock: RoomMutexGuard) =
+  ## Ported from `join_local`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc createJoinEvent*(roomId: string; senderUser: string; joinEventStub: RawJsonValue; roomVersionId: RoomVersionId; roomVersionRules: RoomVersionRules; reason: Option[string]): (CanonicalJsonObject)> =
+  ## Ported from `create_join_event`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc makeJoinRequest*(senderUser: string; roomId: string; servers: [string]): (federation::membership::prepare_join_event::v1::Response =
+  ## Ported from `make_join_request`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
-
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
-
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
-
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc getServersForRoom*(services: Services; userId: string; roomId: string; origRoomId: Option[RoomOrAliasId]; via: [string]): seq[string] =
+  ## Ported from `get_servers_for_room`.
+  @[]

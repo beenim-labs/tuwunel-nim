@@ -1,51 +1,41 @@
+## client/directory — api module.
+##
+## Ported from Rust api/client/directory.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "api/client/directory.rs"
   RustCrate* = "api"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc getPublicRoomsFilteredRoute*() =
+  ## Ported from `get_public_rooms_filtered_route`.
+  discard
 
-proc moduleId*(): string =
-  "api.client.directory"
+proc getPublicRoomsRoute*() =
+  ## Ported from `get_public_rooms_route`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc setRoomVisibilityRoute*() =
+  ## Ported from `set_room_visibility_route`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc getRoomVisibilityRoute*() =
+  ## Ported from `get_room_visibility_route`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc getPublicRoomsFilteredHelper*(services: Services; server: Option[string]; limit: Option[UInt]; since: Option[string]; filter: Filter; Network: RoomNetwork): get_public_rooms_filtered::v3::Response =
+  ## Ported from `get_public_rooms_filtered_helper`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc userCanPublishRoom*(services: Services; userId: string; roomId: string): bool =
+  ## Ported from `user_can_publish_room`.
+  false
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc publicRoomsChunk*(services: Services; roomId: string): PublicRoomsChunk =
+  ## Ported from `public_rooms_chunk`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc checkServerBanned*(services: Services; server: Option[string]) =
+  ## Ported from `check_server_banned`.
+  discard

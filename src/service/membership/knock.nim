@@ -1,50 +1,25 @@
+## membership/knock — service module.
+##
+## Ported from Rust service/membership/knock.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/membership/knock.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc knock*(senderUser: string; roomId: string; origServerName: Option[RoomOrAliasId]; reason: Option[string]; servers: [string]; stateLock: RoomMutexGuard) =
+  ## Ported from `knock`.
+  discard
 
-proc serviceModuleId*(): string =
-  "membership.knock"
+proc knockRoomHelperLocal*(senderUser: string; roomId: string; reason: Option[string]; servers: [string]; stateLock: RoomMutexGuard) =
+  ## Ported from `knock_room_helper_local`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc knockRoomHelperRemote*(senderUser: string; roomId: string; reason: Option[string]; servers: [string]; stateLock: RoomMutexGuard) =
+  ## Ported from `knock_room_helper_remote`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
-
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
-
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
-
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
-
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
-
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc makeKnockRequest*(senderUser: string; roomId: string; servers: [string]): (federation::membership::prepare_knock_event::v1::Response =
+  ## Ported from `make_knock_request`.
+  discard

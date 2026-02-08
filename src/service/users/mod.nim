@@ -1,50 +1,95 @@
+## users/mod — service module.
+##
+## Ported from Rust service/users/mod.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/users/mod.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+  Service* = ref object
+    discard
 
-proc serviceModuleId*(): string =
-  "users.mod"
+# import ./device
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc build*(args: crate::Args<'_>) =
+  ## Ported from `build`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc name*(self: Service): string =
+  ## Ported from `name`.
+  ""
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc userIsIgnored*(self: Service; senderUser: string; recipientUser: string): bool =
+  ## Ported from `user_is_ignored`.
+  false
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc isAdmin*(self: Service; userId: string): bool =
+  ## Ported from `is_admin`.
+  false
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc create*(self: Service; userId: string; password: Option[string]; origin: Option[string]) =
+  ## Ported from `create`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
+proc deactivateAccount*(self: Service; userId: string) =
+  ## Ported from `deactivate_account`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc exists*(self: Service; userId: string): bool =
+  ## Ported from `exists`.
+  false
+
+proc isDeactivated*(self: Service; userId: string): bool =
+  ## Ported from `is_deactivated`.
+  false
+
+proc isActive*(self: Service; userId: string): bool =
+  ## Ported from `is_active`.
+  false
+
+proc isActiveLocal*(self: Service; userId: string): bool =
+  ## Ported from `is_active_local`.
+  false
+
+proc count*(self: Service): int =
+  ## Ported from `count`.
+  0
+
+proc stream*(self: Service): impl Stream<Item = string> + Send =
+  ## Ported from `stream`.
+  discard
+
+proc listLocalUsers*(self: Service): impl Stream<Item = string> + Send + '_ =
+  ## Ported from `list_local_users`.
+  discard
+
+proc origin*(self: Service; userId: string): string =
+  ## Ported from `origin`.
+  ""
+
+proc passwordHash*(self: Service; userId: string): string =
+  ## Ported from `password_hash`.
+  ""
+
+proc setPassword*(self: Service; userId: string; password: Option[string]) =
+  ## Ported from `set_password`.
+  discard
+
+proc createFilter*(self: Service; userId: string; filter: FilterDefinition): string =
+  ## Ported from `create_filter`.
+  ""
+
+proc getFilter*(self: Service; userId: string; filterId: string): FilterDefinition =
+  ## Ported from `get_filter`.
+  discard
+
+proc createOpenidToken*(self: Service; userId: string; token: string): uint64 =
+  ## Ported from `create_openid_token`.
+  0
+
+proc findFromOpenidToken*(self: Service; token: string): string =
+  ## Ported from `find_from_openid_token`.
+  ""

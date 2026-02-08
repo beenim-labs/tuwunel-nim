@@ -1,51 +1,57 @@
+## Debug utilities — panic handlers, debug logging, type introspection.
+##
+## Ported from Rust core/debug.rs
+
+import std/[os, logging]
+
 const
   RustPath* = "core/debug.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc isDebugBuild*(): bool =
+  ## Check if this is a debug build.
+  when defined(debug):
+    true
+  else:
+    false
 
-proc moduleId*(): string =
-  "core.debug"
+proc debugLogging*(): bool =
+  ## Returns true if debug logging is enabled.
+  when defined(debug):
+    true
+  elif defined(tuwunelDebugLogging):
+    true
+  else:
+    false
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc isDebuggerAttached*(): bool =
+  ## Heuristic check if a debugger is attached.
+  let parent = getEnv("_", "")
+  parent.endsWith("gdb") or parent.endsWith("lldb")
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc typeName*[T](v: T): string =
+  ## Return the type name of a value (runtime).
+  $typeof(v)
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc panicStr*(msg: string): string =
+  ## Extract a panic message string.
+  msg
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+template debugEvent*(level: Level; msg: string) =
+  ## Log event at given level in debug mode, DEBUG level in release.
+  when defined(debug):
+    log(level, msg)
+  else:
+    debug(msg)
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+template debugError*(msg: string) =
+  ## Log at ERROR in debug, DEBUG in release.
+  debugEvent(lvlError, msg)
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+template debugWarn*(msg: string) =
+  ## Log at WARN in debug, DEBUG in release.
+  debugEvent(lvlWarn, msg)
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+template debugInfo*(msg: string) =
+  ## Log at INFO in debug, DEBUG in release.
+  debugEvent(lvlInfo, msg)

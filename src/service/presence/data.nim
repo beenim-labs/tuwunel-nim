@@ -1,50 +1,41 @@
+## presence/data — service module.
+##
+## Ported from Rust service/presence/data.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/presence/data.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc getPresence*(userId: string): (uint64 =
+  ## Ported from `get_presence`.
+  discard
 
-proc serviceModuleId*(): string =
-  "presence.data"
+proc getPresenceRaw*(userId: string): (uint64 =
+  ## Ported from `get_presence_raw`.
+  discard
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc setPresence*(userId: string; presenceState: PresenceState; currentlyActive: Option[bool]; lastActiveAgo: Option[UInt]; statusMsg: Option[string]): Option[uint64] =
+  ## Ported from `set_presence`.
+  none(uint64)
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc removePresence*(userId: string) =
+  ## Ported from `remove_presence`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
+proc presenceSince*(since: uint64; to: Option[uint64]): impl Stream<Item = (string, uint64, [u8])> + Send + '_ =
+  ## Ported from `presence_since`.
+  discard
 
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
+proc presenceidKey*(count: uint64; userId: string): seq[u8] =
+  ## Ported from `presenceid_key`.
+  @[]
 
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
+proc presenceidParse*(key: [u8]): (uint64 =
+  ## Ported from `presenceid_parse`.
+  discard
 
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
-
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc userIdFromBytes*(bytes: [u8]): string =
+  ## Ported from `user_id_from_bytes`.
+  ""

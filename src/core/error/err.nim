@@ -1,51 +1,52 @@
+## Error construction helpers.
+##
+## Ported from Rust core/error/err.rs — provides convenience templates
+## for creating errors succinctly. The Rust version uses complex macros
+## that integrate with tracing; the Nim version provides simple templates
+## that achieve the same API surface.
+
+import mod as errormod
+
 const
   RustPath* = "core/error/err.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+template requestError*(kind: ErrorKind; message: string): Error =
+  ## Create a Request error with the given ErrorKind and message.
+  newRequestError(kind, message)
 
-proc moduleId*(): string =
-  "core.error.err"
+template forbiddenError*(message: string): Error =
+  ## Create a Forbidden request error.
+  newRequestError(ekForbidden, message)
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+template notFoundError*(message: string): Error =
+  ## Create a NotFound request error.
+  newRequestError(ekNotFound, message, 404)
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+template unauthorizedError*(message: string): Error =
+  ## Create an Unauthorized request error.
+  newRequestError(ekUnauthorized, message, 401)
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+template missingTokenError*(message: string): Error =
+  ## Create a MissingToken request error.
+  newRequestError(ekMissingToken, message, 401)
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+template badJsonError*(message: string): Error =
+  ## Create a BadJson request error.
+  newRequestError(ekBadJson, message, 400)
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+template databaseError*(message: string): Error =
+  ## Create a Database error.
+  newDatabaseError(message)
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+template configError*(directive, message: string): Error =
+  ## Create a Config error.
+  newConfigError(directive, message)
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+template federationError*(origin, message: string): Error =
+  ## Create a Federation error.
+  newFederationError(origin, message)
+
+template genericError*(message: string): Error =
+  ## Create a generic error.
+  newGenericError(message)

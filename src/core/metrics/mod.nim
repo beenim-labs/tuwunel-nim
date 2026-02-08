@@ -1,51 +1,47 @@
+## Metrics subsystem — counters and histograms.
+##
+## Ported from Rust core/metrics/mod.rs
+
+import std/[tables, locks]
+
 const
   RustPath* = "core/metrics/mod.rs"
   RustCrate* = "core"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
 type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+  Metrics* = ref object
+    ## Metrics subsystem state — provides counters and gauges.
+    lock: Lock
+    counters: Table[string, int64]
+    gauges: Table[string, float64]
 
-proc moduleId*(): string =
-  "core.metrics.mod"
-
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
+proc newMetrics*(): Metrics =
+  result = Metrics(
+    counters: initTable[string, int64](),
+    gauges: initTable[string, float64](),
   )
+  initLock(result.lock)
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc increment*(m: Metrics; name: string; amount: int64 = 1) =
+  ## Increment a counter.
+  acquire(m.lock)
+  m.counters.mgetOrPut(name, 0) += amount
+  release(m.lock)
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc setGauge*(m: Metrics; name: string; value: float64) =
+  ## Set a gauge value.
+  acquire(m.lock)
+  m.gauges[name] = value
+  release(m.lock)
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc getCounter*(m: Metrics; name: string): int64 =
+  ## Get a counter value.
+  acquire(m.lock)
+  result = m.counters.getOrDefault(name, 0)
+  release(m.lock)
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
-
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
-
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc getGauge*(m: Metrics; name: string): float64 =
+  ## Get a gauge value.
+  acquire(m.lock)
+  result = m.gauges.getOrDefault(name, 0.0)
+  release(m.lock)

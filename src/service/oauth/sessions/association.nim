@@ -1,50 +1,29 @@
+## sessions/association — service module.
+##
+## Ported from Rust service/oauth/sessions/association.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "service/oauth/sessions/association.rs"
   RustCrate* = "service"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ServiceModuleState* = object
-    moduleId*: string
-    checkpoint*: string
-    enabled*: bool
-    events*: seq[string]
+proc setUserAssociationPending*(idpId: string; userId: string; claims: Claims): Option[Claims] =
+  ## Ported from `set_user_association_pending`.
+  none(Claims)
 
-proc serviceModuleId*(): string =
-  "oauth.sessions.association"
+proc findUserAssociationPending*(idpId: string; userinfo: UserInfo): Option[string] =
+  ## Ported from `find_user_association_pending`.
+  none(string)
 
-proc initServiceModuleState*(): ServiceModuleState =
-  ServiceModuleState(
-    moduleId: serviceModuleId(),
-    checkpoint: "init",
-    enabled: true,
-    events: @[],
-  )
+proc removeProviderAssociationsPending*(idpId: string) =
+  ## Ported from `remove_provider_associations_pending`.
+  discard
 
-proc setCheckpoint*(state: var ServiceModuleState; value: string) =
-  if value.len == 0:
-    return
-  state.checkpoint = value
+proc removeUserAssociationPending*(userId: string; idpId: Option[string]) =
+  ## Ported from `remove_user_association_pending`.
+  discard
 
-proc recordEvent*(state: var ServiceModuleState; eventName: string) =
-  if eventName.len == 0:
-    return
-  state.events.add(eventName)
-
-proc eventCount*(state: ServiceModuleState): int =
-  state.events.len
-
-proc isModuleEnabled*(state: ServiceModuleState): bool =
-  state.enabled
-
-proc moduleSummaryLine*(state: ServiceModuleState): string =
-  "module=" & state.moduleId &
-    " checkpoint=" & state.checkpoint &
-    " enabled=" & .enabled &
-    " events=" & .events.len
-
-proc moduleReady*(): bool =
-  var state = initServiceModuleState()
-  state.setCheckpoint("loaded")
-  state.recordEvent("boot")
-  state.isModuleEnabled() and state.eventCount() > 0
+proc isUserAssociationPending*(userId: string): bool =
+  ## Ported from `is_user_association_pending`.
+  false

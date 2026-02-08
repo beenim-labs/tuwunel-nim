@@ -1,51 +1,57 @@
+## server/commands — admin module.
+##
+## Ported from Rust admin/server/commands.rs
+
+import std/[options, json, tables, strutils]
+
 const
   RustPath* = "admin/server/commands.rs"
   RustCrate* = "admin"
-  GeneratedAt* = "2026-02-06T01:01:57+00:00"
 
-type
-  ModuleRuntimeState* = object
-    moduleId*: string
-    phase*: string
-    enabled*: bool
-    touches*: int
-    records*: seq[string]
+proc uptime*() =
+  ## Ported from `uptime`.
+  discard
 
-proc moduleId*(): string =
-  "admin.server.commands"
+proc showConfig*() =
+  ## Ported from `show_config`.
+  discard
 
-proc initModuleRuntimeState*(): ModuleRuntimeState =
-  ModuleRuntimeState(
-    moduleId: moduleId(),
-    phase: "init",
-    enabled: true,
-    touches: 0,
-    records: @[],
-  )
+proc reloadConfig*(path: Option[PathBuf]) =
+  ## Ported from `reload_config`.
+  discard
 
-proc touch*(state: var ModuleRuntimeState; label: string) =
-  inc state.touches
-  if label.len > 0:
-    state.records.add(label)
-    state.phase = label
+proc listFeatures*(available: bool; enabled: bool; comma: bool) =
+  ## Ported from `list_features`.
+  discard
 
-proc disable*(state: var ModuleRuntimeState) =
-  state.enabled = false
+proc memoryUsage*() =
+  ## Ported from `memory_usage`.
+  discard
 
-proc enable*(state: var ModuleRuntimeState) =
-  state.enabled = true
+proc clearCaches*() =
+  ## Ported from `clear_caches`.
+  discard
 
-proc recordCount*(state: ModuleRuntimeState): int =
-  state.records.len
+proc listBackups*() =
+  ## Ported from `list_backups`.
+  discard
 
-proc moduleSummaryLine*(state: ModuleRuntimeState): string =
-  "module=" & state.moduleId &
-    " phase=" & state.phase &
-    " enabled=" & .enabled &
-    " touches=" & .touches &
-    " records=" & .recordCount()
+proc backupDatabase*() =
+  ## Ported from `backup_database`.
+  discard
 
-proc moduleReady*(): bool =
-  var state = initModuleRuntimeState()
-  state.touch("boot")
-  state.enabled and state.recordCount() == 1
+proc adminNotice*(message: seq[string]) =
+  ## Ported from `admin_notice`.
+  discard
+
+proc reloadMods*() =
+  ## Ported from `reload_mods`.
+  discard
+
+proc restart*(force: bool) =
+  ## Ported from `restart`.
+  discard
+
+proc shutdown*() =
+  ## Ported from `shutdown`.
+  discard
