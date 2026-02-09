@@ -1,4 +1,4 @@
-import std/[asynchttpserver, asyncdispatch, json, os, strformat, strutils]
+import std/[algorithm, asynchttpserver, asyncdispatch, httpclient, json, locks, options, os, random, re, sets, strformat, strutils, tables, times, uri]
 import main/args
 import core/logging
 import core/config_loader
@@ -150,6 +150,8 @@ proc resolveRouteName(path: string): string =
     return "logout_all_route"
   of "/_matrix/client/v3/capabilities", "/_matrix/client/r0/capabilities":
     return "get_capabilities_route"
+  of "/_matrix/client/v3/sync", "/_matrix/client/r0/sync":
+    return "sync_events_route"
   of "/_matrix/key/v2/server":
     return "/_matrix/key/v2/server"
   of "/client/server.json":
@@ -181,11 +183,843 @@ proc resolveRouteName(path: string): string =
 
 proc routeNeedsAccessToken(routeName: string): bool =
   case routeName
-  of "whoami_route", "logout_route", "logout_all_route", "get_capabilities_route",
+  of "whoami_route", "logout_route", "logout_all_route", "get_capabilities_route", "sync_events_route",
       "/_matrix/media/v1/{*path}":
     true
   else:
     false
+
+proc isSyncPath(path: string): bool =
+  path == "/_matrix/client/v3/sync" or path == "/_matrix/client/r0/sync"
+
+proc queryParam(req: Request; key: string): string =
+  let query = req.url.query
+  if query.len == 0:
+    return ""
+
+  for rawPair in query.split('&'):
+    if rawPair.len == 0:
+      continue
+    let sep = rawPair.find('=')
+    let rawKey = if sep >= 0: rawPair[0..<sep] else: rawPair
+    let rawVal = if sep >= 0 and sep + 1 < rawPair.len: rawPair[(sep + 1)..^1] else: ""
+
+    var decodedKey = rawKey
+    try:
+      decodedKey = decodeUrl(rawKey, decodePlus = true)
+    except CatchableError:
+      discard
+
+    if decodedKey != key:
+      continue
+
+    try:
+      return decodeUrl(rawVal, decodePlus = true)
+    except CatchableError:
+      return rawVal
+
+  ""
+
+proc nextSyncBatchToken(sinceToken: string): string =
+  if sinceToken.len > 1 and sinceToken[0] == 's':
+    try:
+      let nextValue = parseInt(sinceToken[1..^1]) + 1
+      return "s" & $nextValue
+    except ValueError:
+      discard
+  "s1"
+
+type
+  AccessSession = object
+    userId: string
+    deviceId: string
+    issuedAtMs: int64
+    isAppservice: bool
+    appserviceId: string
+
+  UserProfile = object
+    userId: string
+    username: string
+    password: string
+    displayName: string
+    avatarUrl: string
+
+  MatrixEventRecord = object
+    streamPos: int64
+    eventId: string
+    roomId: string
+    sender: string
+    eventType: string
+    stateKey: string
+    originServerTs: int64
+    content: JsonNode
+
+  RoomData = object
+    roomId: string
+    creator: string
+    isDirect: bool
+    members: Table[string, string]
+    timeline: seq[MatrixEventRecord]
+    stateByKey: Table[string, MatrixEventRecord]
+
+  AppserviceRegistration = object
+    id: string
+    url: string
+    asToken: string
+    hsToken: string
+    senderLocalpart: string
+    userRegexes: seq[string]
+    aliasRegexes: seq[string]
+
+  AppserviceDelivery = object
+    registrationId: string
+    registrationUrl: string
+    hsToken: string
+    txnId: string
+    payload: JsonNode
+    attempt: int
+
+  ServerState = ref object
+    lock: Lock
+    statePath: string
+    serverName: string
+    streamPos: int64
+    deliveryCounter: int64
+    roomCounter: int64
+    usersByName: Table[string, string]
+    users: Table[string, UserProfile]
+    tokens: Table[string, AccessSession]
+    userTokens: Table[string, seq[string]]
+    rooms: Table[string, RoomData]
+    userJoinedRooms: Table[string, HashSet[string]]
+    appserviceRegs: seq[AppserviceRegistration]
+    appserviceByAsToken: Table[string, AppserviceRegistration]
+    pendingDeliveries: seq[AppserviceDelivery]
+    deliveryInFlight: int
+    deliveryBaseMs: int
+    deliveryMaxMs: int
+    deliveryMaxAttempts: int
+    deliveryMaxInflight: int
+    deliverySent: int64
+    deliveryFailed: int64
+    deliveryDeadLetters: int64
+
+proc nowMs(): int64 =
+  getTime().toUnix().int64 * 1000
+
+var seededRandom = false
+
+proc ensureRandomSeeded() =
+  if not seededRandom:
+    randomize()
+    seededRandom = true
+
+proc randomString(prefix: string; n = 32): string =
+  ensureRandomSeeded()
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  result = prefix
+  for _ in 0 ..< n:
+    result.add(chars[rand(chars.high)])
+
+proc stateKey(eventType, stateKey: string): string =
+  eventType & "\x1f" & stateKey
+
+proc trimQuotes(raw: string): string =
+  result = raw.strip()
+  if result.len >= 2 and ((result[0] == '"' and result[^1] == '"') or (result[0] == '\'' and result[^1] == '\'')):
+    result = result[1 .. ^2]
+
+proc localpartFromUserId(userId: string): string =
+  if userId.len < 4 or userId[0] != '@':
+    return ""
+  let sep = userId.find(':')
+  if sep <= 1:
+    return ""
+  userId[1 ..< sep]
+
+proc parseSinceToken(sinceToken: string): int64 =
+  if sinceToken.len <= 1 or sinceToken[0] != 's':
+    return 0
+  try:
+    parseInt(sinceToken[1 .. ^1]).int64
+  except ValueError:
+    0
+
+proc encodeSinceToken(streamPos: int64): string =
+  "s" & $streamPos
+
+proc statePathFromConfig(cfg: FlatConfig): string =
+  var path = getConfigString(cfg, ["state_path", "global.state_path"], "sdk/tuwunel-nim-state.json")
+  if path.len == 0:
+    path = "sdk/tuwunel-nim-state.json"
+  path
+
+proc getConfigStringArray(cfg: FlatConfig; key: string): seq[string] =
+  result = @[]
+  if key notin cfg:
+    return
+  let v = cfg[key]
+  case v.kind
+  of cvArray:
+    for item in v.items:
+      case item.kind
+      of cvString:
+        result.add(item.s)
+      of cvInt:
+        result.add($item.i)
+      of cvFloat:
+        result.add($item.f)
+      of cvBool:
+        result.add(if item.b: "true" else: "false")
+      else:
+        discard
+  of cvString:
+    result.add(v.s)
+  else:
+    discard
+
+proc getConfigStringArray(cfg: FlatConfig; keys: openArray[string]): seq[string] =
+  result = @[]
+  for key in keys:
+    result.add(getConfigStringArray(cfg, key))
+
+proc eventToJson(ev: MatrixEventRecord): JsonNode =
+  result = %*{
+    "event_id": ev.eventId,
+    "room_id": ev.roomId,
+    "sender": ev.sender,
+    "type": ev.eventType,
+    "origin_server_ts": ev.originServerTs,
+    "content": ev.content,
+  }
+  if ev.stateKey.len > 0:
+    result["state_key"] = %ev.stateKey
+
+proc toPersistentJson(state: ServerState): JsonNode =
+  var root = newJObject()
+  root["stream_pos"] = %state.streamPos
+  root["delivery_counter"] = %state.deliveryCounter
+  root["room_counter"] = %state.roomCounter
+
+  var users = newJArray()
+  for _, user in state.users:
+    users.add(%*{
+      "user_id": user.userId,
+      "username": user.username,
+      "password": user.password,
+      "display_name": user.displayName,
+      "avatar_url": user.avatarUrl
+    })
+  root["users"] = users
+
+  var tokens = newJArray()
+  for token, sess in state.tokens:
+    if sess.isAppservice:
+      continue
+    tokens.add(%*{
+      "token": token,
+      "user_id": sess.userId,
+      "device_id": sess.deviceId,
+      "issued_at_ms": sess.issuedAtMs
+    })
+  root["tokens"] = tokens
+
+  var rooms = newJArray()
+  for _, room in state.rooms:
+    var members = newJObject()
+    for memberId, membership in room.members:
+      members[memberId] = %membership
+
+    var timeline = newJArray()
+    for ev in room.timeline:
+      timeline.add(%*{
+        "stream_pos": ev.streamPos,
+        "event_id": ev.eventId,
+        "room_id": ev.roomId,
+        "sender": ev.sender,
+        "type": ev.eventType,
+        "state_key": ev.stateKey,
+        "origin_server_ts": ev.originServerTs,
+        "content": ev.content
+      })
+
+    rooms.add(%*{
+      "room_id": room.roomId,
+      "creator": room.creator,
+      "is_direct": room.isDirect,
+      "members": members,
+      "timeline": timeline
+    })
+  root["rooms"] = rooms
+  root
+
+proc rebuildJoinedRooms(state: ServerState) =
+  state.userJoinedRooms.clear()
+  for _, room in state.rooms:
+    for userId, membership in room.members:
+      if membership != "join":
+        continue
+      if userId notin state.userJoinedRooms:
+        state.userJoinedRooms[userId] = initHashSet[string]()
+      state.userJoinedRooms[userId].incl(room.roomId)
+
+proc loadPersistentState(path: string): tuple[
+    usersByName: Table[string, string],
+    users: Table[string, UserProfile],
+    tokens: Table[string, AccessSession],
+    userTokens: Table[string, seq[string]],
+    rooms: Table[string, RoomData],
+    streamPos: int64,
+    deliveryCounter: int64,
+    roomCounter: int64
+] =
+  result = (
+    usersByName: initTable[string, string](),
+    users: initTable[string, UserProfile](),
+    tokens: initTable[string, AccessSession](),
+    userTokens: initTable[string, seq[string]](),
+    rooms: initTable[string, RoomData](),
+    streamPos: 0'i64,
+    deliveryCounter: 0'i64,
+    roomCounter: 0'i64
+  )
+
+  if not fileExists(path):
+    return
+
+  try:
+    let root = parseFile(path)
+    result.streamPos = root{"stream_pos"}.getInt(0).int64
+    result.deliveryCounter = root{"delivery_counter"}.getInt(0).int64
+    result.roomCounter = root{"room_counter"}.getInt(0).int64
+
+    if root.hasKey("users") and root["users"].kind == JArray:
+      for node in root["users"]:
+        if node.kind != JObject:
+          continue
+        let userId = node{"user_id"}.getStr("")
+        let username = node{"username"}.getStr("")
+        if userId.len == 0:
+          continue
+        let user = UserProfile(
+          userId: userId,
+          username: username,
+          password: node{"password"}.getStr(""),
+          displayName: node{"display_name"}.getStr(""),
+          avatarUrl: node{"avatar_url"}.getStr("")
+        )
+        result.users[userId] = user
+        if username.len > 0:
+          result.usersByName[username] = userId
+
+    if root.hasKey("tokens") and root["tokens"].kind == JArray:
+      for node in root["tokens"]:
+        if node.kind != JObject:
+          continue
+        let token = node{"token"}.getStr("")
+        let userId = node{"user_id"}.getStr("")
+        if token.len == 0 or userId.len == 0:
+          continue
+        let session = AccessSession(
+          userId: userId,
+          deviceId: node{"device_id"}.getStr(""),
+          issuedAtMs: node{"issued_at_ms"}.getInt(nowMs().int).int64,
+          isAppservice: false,
+          appserviceId: ""
+        )
+        result.tokens[token] = session
+        if userId notin result.userTokens:
+          result.userTokens[userId] = @[]
+        result.userTokens[userId].add(token)
+
+    if root.hasKey("rooms") and root["rooms"].kind == JArray:
+      for roomNode in root["rooms"]:
+        if roomNode.kind != JObject:
+          continue
+        let roomId = roomNode{"room_id"}.getStr("")
+        if roomId.len == 0:
+          continue
+
+        var room = RoomData(
+          roomId: roomId,
+          creator: roomNode{"creator"}.getStr(""),
+          isDirect: roomNode{"is_direct"}.getBool(false),
+          members: initTable[string, string](),
+          timeline: @[],
+          stateByKey: initTable[string, MatrixEventRecord]()
+        )
+
+        if roomNode.hasKey("members") and roomNode["members"].kind == JObject:
+          for userId, membershipNode in roomNode["members"]:
+            room.members[userId] = membershipNode.getStr("")
+
+        if roomNode.hasKey("timeline") and roomNode["timeline"].kind == JArray:
+          for evNode in roomNode["timeline"]:
+            if evNode.kind != JObject:
+              continue
+            let ev = MatrixEventRecord(
+              streamPos: evNode{"stream_pos"}.getInt(0).int64,
+              eventId: evNode{"event_id"}.getStr(""),
+              roomId: evNode{"room_id"}.getStr(roomId),
+              sender: evNode{"sender"}.getStr(""),
+              eventType: evNode{"type"}.getStr(""),
+              stateKey: evNode{"state_key"}.getStr(""),
+              originServerTs: evNode{"origin_server_ts"}.getInt(0).int64,
+              content: if evNode.hasKey("content"): evNode["content"] else: newJObject()
+            )
+            room.timeline.add(ev)
+            if ev.stateKey.len > 0:
+              room.stateByKey[stateKey(ev.eventType, ev.stateKey)] = ev
+            if ev.streamPos > result.streamPos:
+              result.streamPos = ev.streamPos
+          room.timeline.sort(proc(a, b: MatrixEventRecord): int = cmp(a.streamPos, b.streamPos))
+
+        result.rooms[roomId] = room
+  except CatchableError as e:
+    warn("Failed to load persisted native state: " & e.msg)
+
+proc savePersistentState(state: ServerState) =
+  try:
+    let parent = parentDir(state.statePath)
+    if parent.len > 0 and parent != ".":
+      createDir(parent)
+    writeFile(state.statePath, $state.toPersistentJson())
+  except CatchableError as e:
+    warn("Failed to persist native state: " & e.msg)
+
+proc parseRegistrationYaml(content: string): Option[AppserviceRegistration] =
+  var reg = AppserviceRegistration(
+    id: "",
+    url: "",
+    asToken: "",
+    hsToken: "",
+    senderLocalpart: "",
+    userRegexes: @[],
+    aliasRegexes: @[]
+  )
+
+  var currentNamespace = ""
+  for raw in content.splitLines():
+    let line = raw.strip()
+    if line.len == 0 or line.startsWith("#"):
+      continue
+    if line.startsWith("id:"):
+      reg.id = trimQuotes(line.split(":", 1)[1])
+    elif line.startsWith("url:"):
+      reg.url = trimQuotes(line.split(":", 1)[1])
+    elif line.startsWith("as_token:"):
+      reg.asToken = trimQuotes(line.split(":", 1)[1])
+    elif line.startsWith("hs_token:"):
+      reg.hsToken = trimQuotes(line.split(":", 1)[1])
+    elif line.startsWith("sender_localpart:"):
+      reg.senderLocalpart = trimQuotes(line.split(":", 1)[1])
+    elif line.startsWith("users:"):
+      currentNamespace = "users"
+    elif line.startsWith("aliases:"):
+      currentNamespace = "aliases"
+    elif line.startsWith("rooms:"):
+      currentNamespace = "rooms"
+    elif line.startsWith("- regex:") or line.startsWith("regex:"):
+      let regexRaw = if ":" in line: trimQuotes(line.split(":", 1)[1]) else: ""
+      if regexRaw.len == 0:
+        continue
+      if currentNamespace == "users":
+        reg.userRegexes.add(regexRaw)
+      elif currentNamespace == "aliases":
+        reg.aliasRegexes.add(regexRaw)
+
+  if reg.id.len == 0 or reg.url.len == 0 or reg.asToken.len == 0 or reg.hsToken.len == 0:
+    return none(AppserviceRegistration)
+  some(reg)
+
+proc extractEmbeddedYaml(adminEntry: string): seq[string] =
+  result = @[]
+  var cursor = 0
+  while true:
+    let start = adminEntry.find("```", cursor)
+    if start < 0:
+      break
+    let dataStart = start + 3
+    let endFence = adminEntry.find("```", dataStart)
+    if endFence < 0:
+      break
+    let yamlBlock = adminEntry[dataStart ..< endFence].strip()
+    if yamlBlock.len > 0:
+      result.add(yamlBlock)
+    cursor = endFence + 3
+
+proc loadAppserviceRegistrations(cfg: FlatConfig): seq[AppserviceRegistration] =
+  result = @[]
+  var seen = initHashSet[string]()
+  let regDir = getConfigString(cfg, ["appservice.registrations_dir", "global.appservice.registrations_dir"], "")
+  if regDir.len > 0 and dirExists(regDir):
+    for filePath in walkDirRec(regDir):
+      let lower = filePath.toLowerAscii()
+      if not (lower.endsWith(".yaml") or lower.endsWith(".yml")):
+        continue
+      try:
+        let parsed = parseRegistrationYaml(readFile(filePath))
+        if parsed.isSome:
+          let reg = parsed.get()
+          if reg.id notin seen:
+            result.add(reg)
+            seen.incl(reg.id)
+      except CatchableError as e:
+        warn("Failed to load appservice registration file " & filePath & ": " & e.msg)
+
+  for adminEntry in getConfigStringArray(cfg, ["admin_execute", "global.admin_execute"]):
+    for yamlSnippet in extractEmbeddedYaml(adminEntry):
+      let parsed = parseRegistrationYaml(yamlSnippet)
+      if parsed.isNone:
+        continue
+      let reg = parsed.get()
+      if reg.id in seen:
+        continue
+      result.add(reg)
+      seen.incl(reg.id)
+
+proc userRegexMatches(reg: AppserviceRegistration; userId: string): bool =
+  if reg.userRegexes.len == 0:
+    return false
+  for rawRegex in reg.userRegexes:
+    try:
+      if userId.match(re(rawRegex)):
+        return true
+    except CatchableError:
+      discard
+  false
+
+proc resolveAppserviceSender(reg: AppserviceRegistration; serverName: string): string =
+  let localpart = if reg.senderLocalpart.len > 0: reg.senderLocalpart else: reg.id & "bot"
+  "@" & localpart & ":" & serverName
+
+proc newServerState(cfg: FlatConfig; serverName: string): ServerState =
+  let statePath = statePathFromConfig(cfg)
+  let loaded = loadPersistentState(statePath)
+  result = ServerState(
+    statePath: statePath,
+    serverName: serverName,
+    streamPos: loaded.streamPos,
+    deliveryCounter: loaded.deliveryCounter,
+    roomCounter: loaded.roomCounter,
+    usersByName: loaded.usersByName,
+    users: loaded.users,
+    tokens: loaded.tokens,
+    userTokens: loaded.userTokens,
+    rooms: loaded.rooms,
+    userJoinedRooms: initTable[string, HashSet[string]](),
+    appserviceRegs: loadAppserviceRegistrations(cfg),
+    appserviceByAsToken: initTable[string, AppserviceRegistration](),
+    pendingDeliveries: @[],
+    deliveryInFlight: 0,
+    deliveryBaseMs: max(100, getConfigInt(cfg, ["appservice.delivery.retry_base_ms", "global.appservice.delivery.retry_base_ms"], 1000)),
+    deliveryMaxMs: max(500, getConfigInt(cfg, ["appservice.delivery.retry_max_ms", "global.appservice.delivery.retry_max_ms"], 30000)),
+    deliveryMaxAttempts: max(1, getConfigInt(cfg, ["appservice.delivery.max_attempts", "global.appservice.delivery.max_attempts"], 6)),
+    deliveryMaxInflight: max(1, getConfigInt(cfg, ["appservice.delivery.max_inflight", "global.appservice.delivery.max_inflight"], 4)),
+    deliverySent: 0,
+    deliveryFailed: 0,
+    deliveryDeadLetters: 0
+  )
+  initLock(result.lock)
+  result.rebuildJoinedRooms()
+
+  for reg in result.appserviceRegs:
+    result.appserviceByAsToken[reg.asToken] = reg
+  info("Loaded appservice registrations: " & $result.appserviceRegs.len)
+
+proc addTokenForUser(state: ServerState; userId, deviceId: string): string =
+  let token = randomString("syt_", 48)
+  let session = AccessSession(
+    userId: userId,
+    deviceId: deviceId,
+    issuedAtMs: nowMs(),
+    isAppservice: false,
+    appserviceId: ""
+  )
+  state.tokens[token] = session
+  if userId notin state.userTokens:
+    state.userTokens[userId] = @[]
+  state.userTokens[userId].add(token)
+  token
+
+proc removeToken(state: ServerState; token: string) =
+  if token notin state.tokens:
+    return
+  let session = state.tokens[token]
+  state.tokens.del(token)
+  if session.userId in state.userTokens:
+    var kept: seq[string] = @[]
+    for existing in state.userTokens[session.userId]:
+      if existing != token:
+        kept.add(existing)
+    if kept.len == 0:
+      state.userTokens.del(session.userId)
+    else:
+      state.userTokens[session.userId] = kept
+
+proc removeAllTokensForUser(state: ServerState; userId: string) =
+  if userId notin state.userTokens:
+    return
+  for token in state.userTokens[userId]:
+    if token in state.tokens:
+      state.tokens.del(token)
+  state.userTokens.del(userId)
+
+proc membershipContent(status: string): JsonNode =
+  %*{"membership": status}
+
+proc ensureRoomJoinedSet(state: ServerState; userId: string) =
+  if userId notin state.userJoinedRooms:
+    state.userJoinedRooms[userId] = initHashSet[string]()
+
+proc applyMembership(state: ServerState; room: var RoomData; userId, membership: string) =
+  room.members[userId] = membership
+  state.ensureRoomJoinedSet(userId)
+  if membership == "join":
+    state.userJoinedRooms[userId].incl(room.roomId)
+  else:
+    state.userJoinedRooms[userId].excl(room.roomId)
+
+proc appendEventLocked(
+    state: ServerState;
+    roomId, sender, eventType, stateKeyValue: string;
+    content: JsonNode
+): MatrixEventRecord =
+  if roomId notin state.rooms:
+    state.rooms[roomId] = RoomData(
+      roomId: roomId,
+      creator: sender,
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+
+  var room = state.rooms[roomId]
+  state.streamPos += 1
+  let ev = MatrixEventRecord(
+    streamPos: state.streamPos,
+    eventId: "$" & $state.streamPos & "_" & randomString("", 8),
+    roomId: roomId,
+    sender: sender,
+    eventType: eventType,
+    stateKey: stateKeyValue,
+    originServerTs: nowMs(),
+    content: content
+  )
+  room.timeline.add(ev)
+  if stateKeyValue.len > 0:
+    room.stateByKey[stateKey(eventType, stateKeyValue)] = ev
+  if eventType == "m.room.member" and stateKeyValue.len > 0:
+    let membership = content{"membership"}.getStr("")
+    state.applyMembership(room, stateKeyValue, membership)
+  state.rooms[roomId] = room
+  ev
+
+proc newUserId(state: ServerState; username: string): string =
+  "@" & username & ":" & state.serverName
+
+proc getSessionFromToken(
+    state: ServerState;
+    token: string;
+    impersonateUserId: string
+): tuple[ok: bool, session: AccessSession, errcode: string, message: string] =
+  if token.len == 0:
+    return (false, AccessSession(), "M_MISSING_TOKEN", "Missing access token.")
+
+  if token in state.tokens:
+    return (true, state.tokens[token], "", "")
+
+  if token in state.appserviceByAsToken:
+    let reg = state.appserviceByAsToken[token]
+    var session = AccessSession(
+      userId: resolveAppserviceSender(reg, state.serverName),
+      deviceId: "appservice",
+      issuedAtMs: nowMs(),
+      isAppservice: true,
+      appserviceId: reg.id
+    )
+    if impersonateUserId.len > 0:
+      if userRegexMatches(reg, impersonateUserId):
+        session.userId = impersonateUserId
+      else:
+        return (false, AccessSession(), "M_FORBIDDEN", "Appservice token cannot masquerade as " & impersonateUserId)
+    return (true, session, "", "")
+
+  (false, AccessSession(), "M_UNKNOWN_TOKEN", "Unknown access token.")
+
+proc buildWhoamiPayload(session: AccessSession): JsonNode =
+  %*{
+    "user_id": session.userId,
+    "device_id": session.deviceId,
+    "is_guest": false
+  }
+
+proc buildCapabilitiesPayload(): JsonNode =
+  %*{
+    "capabilities": {
+      "m.change_password": {"enabled": false},
+      "m.room_versions": {
+        "default": "11",
+        "available": {
+          "11": "stable",
+          "10": "stable"
+        }
+      }
+    }
+  }
+
+proc userProfilePayload(user: UserProfile): JsonNode =
+  var payload = newJObject()
+  payload["displayname"] = %user.displayName
+  payload["avatar_url"] = %user.avatarUrl
+  payload
+
+proc roomJoinedForUser(state: ServerState; roomId, userId: string): bool =
+  if roomId notin state.rooms:
+    return false
+  let room = state.rooms[roomId]
+  room.members.getOrDefault(userId, "") == "join"
+
+proc joinedRoomsForUser(state: ServerState; userId: string): seq[string] =
+  result = @[]
+  if userId notin state.userJoinedRooms:
+    return
+  for roomId in state.userJoinedRooms[userId]:
+    result.add(roomId)
+  result.sort(system.cmp[string])
+
+proc roomStateArray(room: RoomData): JsonNode =
+  var entries = newJArray()
+  var allState: seq[MatrixEventRecord] = @[]
+  for _, ev in room.stateByKey:
+    allState.add(ev)
+  allState.sort(proc(a, b: MatrixEventRecord): int = cmp(a.streamPos, b.streamPos))
+  for ev in allState:
+    entries.add(ev.eventToJson())
+  entries
+
+proc resolveRoomByJoinTarget(state: ServerState; roomIdOrAlias: string): string =
+  if roomIdOrAlias in state.rooms:
+    return roomIdOrAlias
+  ""
+
+proc nextRoomId(state: ServerState): string =
+  state.roomCounter += 1
+  "!" & $state.roomCounter & randomString("", 6) & ":" & state.serverName
+
+proc queryAccessToken(req: Request): string =
+  let fromHeader = req.headers.getOrDefault("Authorization").strip()
+  if fromHeader.len > 7 and fromHeader.toLowerAscii().startsWith("bearer "):
+    return fromHeader[7 .. ^1].strip()
+  queryParam(req, "access_token")
+
+proc resolveImpersonationUser(req: Request): string =
+  queryParam(req, "user_id")
+
+proc matchesAppserviceInterest(reg: AppserviceRegistration; ev: MatrixEventRecord; room: RoomData): bool =
+  if reg.userRegexes.len == 0:
+    return true
+  if userRegexMatches(reg, ev.sender):
+    return true
+  for memberId, membership in room.members:
+    if membership == "join" and userRegexMatches(reg, memberId):
+      return true
+  false
+
+proc pathJoin(base, suffix: string): string =
+  if base.endsWith("/"):
+    base[0 ..< base.high] & suffix
+  else:
+    base & suffix
+
+proc enqueueEventDeliveries(state: ServerState; ev: MatrixEventRecord) =
+  if ev.roomId notin state.rooms:
+    return
+  let room = state.rooms[ev.roomId]
+  for reg in state.appserviceRegs:
+    if not matchesAppserviceInterest(reg, ev, room):
+      continue
+    state.deliveryCounter += 1
+    let txnId = "t" & $state.deliveryCounter
+    let payload = %*{
+      "events": [ev.eventToJson()]
+    }
+    state.pendingDeliveries.add(AppserviceDelivery(
+      registrationId: reg.id,
+      registrationUrl: reg.url,
+      hsToken: reg.hsToken,
+      txnId: txnId,
+      payload: payload,
+      attempt: 0
+    ))
+
+proc computeRetryDelayMs(state: ServerState; attempt: int): int =
+  let exp = min(attempt, 8)
+  let raw = state.deliveryBaseMs * (1 shl exp)
+  min(raw, state.deliveryMaxMs)
+
+proc sendDelivery(delivery: AppserviceDelivery): Future[bool] {.async.} =
+  let url = pathJoin(delivery.registrationUrl, "/_matrix/app/v1/transactions/" & encodeUrl(delivery.txnId)) &
+            "?access_token=" & encodeUrl(delivery.hsToken)
+  let client = newAsyncHttpClient()
+  defer:
+    client.close()
+  client.headers = newHttpHeaders({"Content-Type": "application/json"})
+  try:
+    let response = await client.request(
+      url,
+      httpMethod = HttpPut,
+      body = $delivery.payload
+    )
+    return response.code.int >= 200 and response.code.int < 300
+  except CatchableError:
+    return false
+
+proc retryDeliveryLater(state: ServerState; delivery: AppserviceDelivery; delayMs: int): Future[void] {.async.} =
+  if delayMs > 0:
+    await sleepAsync(delayMs)
+  withLock state.lock:
+    state.pendingDeliveries.add(delivery)
+
+proc runDeliveryLoop(state: ServerState): Future[void] {.async.} =
+  while true:
+    var next = AppserviceDelivery(
+      registrationId: "",
+      registrationUrl: "",
+      hsToken: "",
+      txnId: "",
+      payload: newJObject(),
+      attempt: 0
+    )
+    var shouldStop = false
+    withLock state.lock:
+      if state.pendingDeliveries.len == 0 or state.deliveryInFlight >= state.deliveryMaxInflight:
+        shouldStop = true
+      else:
+        next = state.pendingDeliveries[0]
+        state.pendingDeliveries.delete(0)
+        inc state.deliveryInFlight
+    if shouldStop:
+      return
+
+    let ok = await sendDelivery(next)
+    if ok:
+      withLock state.lock:
+        inc state.deliverySent
+        dec state.deliveryInFlight
+      continue
+
+    var retry = next
+    retry.attempt += 1
+    withLock state.lock:
+      inc state.deliveryFailed
+      dec state.deliveryInFlight
+      if retry.attempt >= state.deliveryMaxAttempts:
+        inc state.deliveryDeadLetters
+      else:
+        let delay = state.computeRetryDelayMs(retry.attempt)
+        asyncCheck state.retryDeliveryLater(retry, delay)
 
 proc routeNeedsFederationAuth(routeName: string): bool =
   case routeName
@@ -348,6 +1182,67 @@ proc notFound(req: Request) {.async.} =
 proc notFoundWithCode(req: Request; errcode: string) {.async.} =
   await respondJson(req, Http404, matrixError(errcode, "Not Found"))
 
+proc parseRequestJson(req: Request): tuple[ok: bool, value: JsonNode] =
+  if req.body.len == 0:
+    return (true, newJObject())
+  try:
+    let parsed = parseJson(req.body)
+    (true, parsed)
+  except CatchableError:
+    (false, newJObject())
+
+proc trimClientPath(path: string): string =
+  if path.startsWith("/_matrix/client/v3/"):
+    return path["/_matrix/client/v3/".len .. ^1]
+  if path.startsWith("/_matrix/client/r0/"):
+    return path["/_matrix/client/r0/".len .. ^1]
+  ""
+
+proc decodePath(value: string): string =
+  try:
+    decodeUrl(value)
+  except CatchableError:
+    value
+
+proc roomIdFromRoomsPath(path, suffix: string): string =
+  let trimmed = trimClientPath(path)
+  if not trimmed.startsWith("rooms/"):
+    return ""
+  let marker = "/" & suffix
+  if not trimmed.endsWith(marker):
+    return ""
+  let core = trimmed[0 ..< trimmed.len - marker.len]
+  let segments = core.split('/')
+  if segments.len < 2:
+    return ""
+  decodePath(segments[1])
+
+proc roomAndSendFromPath(path: string): tuple[roomId: string, eventType: string, txnId: string] =
+  let trimmed = trimClientPath(path)
+  if not trimmed.startsWith("rooms/"):
+    return ("", "", "")
+  let segments = trimmed.split('/')
+  if segments.len < 5:
+    return ("", "", "")
+  if segments[2] != "send":
+    return ("", "", "")
+  (
+    decodePath(segments[1]),
+    decodePath(segments[3]),
+    decodePath(segments[4])
+  )
+
+proc profilePathParts(path: string): tuple[userId: string, field: string] =
+  let trimmed = trimClientPath(path)
+  if not trimmed.startsWith("profile/"):
+    return ("", "")
+  let segments = trimmed.split('/')
+  if segments.len < 2:
+    return ("", "")
+  let userId = decodePath(segments[1])
+  let field = if segments.len >= 3: segments[2] else: ""
+  (userId, field)
+
 proc runNativeServer(cfg: LoadedConfig): int =
   let bindAddress = getConfigString(cfg.values, ["global.address", "address"], "127.0.0.1")
   let bindPort = getConfigInt(cfg.values, ["global.port", "port"], 8008)
@@ -358,17 +1253,622 @@ proc runNativeServer(cfg: LoadedConfig): int =
     ["global.allow_federation", "allow_federation"],
     true,
   )
+  let syncTimeoutMin = max(0, getConfigInt(cfg.values, ["client_sync_timeout_min", "global.client_sync_timeout_min"], 5000))
+  let syncTimeoutDefault = max(0, getConfigInt(cfg.values, ["client_sync_timeout_default", "global.client_sync_timeout_default"], 30000))
+  let syncTimeoutMax = max(syncTimeoutMin, getConfigInt(cfg.values, ["client_sync_timeout_max", "global.client_sync_timeout_max"], 90000))
 
   if not listening:
     info("Config sets listening=false; native runtime started without binding sockets")
     return 0
 
+  let state = newServerState(cfg.values, serverName)
   var server = newAsyncHttpServer()
 
   proc cb(req: Request) {.async, gcsafe.} =
     let path = req.url.path
     let tokenPresent = hasAccessToken(req)
     let fedAuth = hasFederationAuth(req)
+    let accessToken = queryAccessToken(req)
+    let impersonateUser = resolveImpersonationUser(req)
+
+    if path == "/_matrix/client/v3/login" or path == "/_matrix/client/r0/login":
+      if req.reqMethod == HttpGet:
+        await respondJson(req, Http200, loginTypesResponse())
+        return
+
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+
+      let body = parsed.value
+      let loginType = body{"type"}.getStr("m.login.password")
+      var username = body{"identifier"}{"user"}.getStr("")
+      if username.len == 0:
+        username = body{"user"}.getStr("")
+      if username.startsWith("@"):
+        username = localpartFromUserId(username)
+      let password = body{"password"}.getStr("")
+      var deviceId = body{"device_id"}.getStr("")
+      if deviceId.len == 0:
+        deviceId = randomString("DEV", 12)
+
+      var userId = ""
+      var token = ""
+      var loginErrCode = ""
+      var loginErrMsg = ""
+      withLock state.lock:
+        if loginType == "m.login.password":
+          if username.len == 0 or password.len == 0 or username notin state.usersByName:
+            loginErrCode = "M_FORBIDDEN"
+            loginErrMsg = "Invalid username or password."
+          else:
+            userId = state.usersByName[username]
+            if userId notin state.users or state.users[userId].password != password:
+              loginErrCode = "M_FORBIDDEN"
+              loginErrMsg = "Invalid username or password."
+            else:
+              token = state.addTokenForUser(userId, deviceId)
+              state.savePersistentState()
+        elif loginType == "m.login.application_service":
+          let sessionRes = state.getSessionFromToken(accessToken, impersonateUser)
+          if not sessionRes.ok:
+            loginErrCode = sessionRes.errcode
+            loginErrMsg = sessionRes.message
+          else:
+            userId = sessionRes.session.userId
+            token = state.addTokenForUser(userId, deviceId)
+            state.savePersistentState()
+        else:
+          loginErrCode = "M_UNRECOGNIZED"
+          loginErrMsg = "Unsupported login type."
+
+      if loginErrCode.len > 0:
+        let status = if loginErrCode == "M_FORBIDDEN": Http403 elif loginErrCode == "M_UNRECOGNIZED": Http400 else: Http401
+        await respondJson(req, status, matrixError(loginErrCode, loginErrMsg))
+        return
+
+      await respondJson(req, Http200, %*{
+        "user_id": userId,
+        "access_token": token,
+        "device_id": deviceId,
+        "home_server": serverName
+      })
+      return
+
+    if path == "/_matrix/client/v3/register" or path == "/_matrix/client/r0/register":
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var body = parsed.value
+      var username = body{"username"}.getStr("")
+      if username.len == 0:
+        username = "user" & $nowMs()
+      var password = body{"password"}.getStr("")
+      if password.len == 0:
+        password = randomString("pw_", 18)
+      var deviceId = body{"device_id"}.getStr("")
+      if deviceId.len == 0:
+        deviceId = randomString("DEV", 12)
+
+      var userId = ""
+      var token = ""
+      var registerErr = false
+      withLock state.lock:
+        if username in state.usersByName:
+          registerErr = true
+        else:
+          userId = state.newUserId(username)
+          state.usersByName[username] = userId
+          state.users[userId] = UserProfile(
+            userId: userId,
+            username: username,
+            password: password,
+            displayName: username,
+            avatarUrl: ""
+          )
+          token = state.addTokenForUser(userId, deviceId)
+          state.savePersistentState()
+
+      if registerErr:
+        await respondJson(req, Http400, matrixError("M_USER_IN_USE", "User already exists."))
+        return
+
+      await respondJson(req, Http200, %*{
+        "user_id": userId,
+        "access_token": token,
+        "device_id": deviceId,
+        "home_server": serverName
+      })
+      return
+
+    if path == "/_matrix/client/v3/account/whoami" or path == "/_matrix/client/r0/account/whoami":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, buildWhoamiPayload(resolved.session))
+      return
+
+    if path == "/_matrix/client/v3/logout" or path == "/_matrix/client/r0/logout":
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and not resolved.session.isAppservice:
+          state.removeToken(accessToken)
+          state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    if path == "/_matrix/client/v3/logout/all" or path == "/_matrix/client/r0/logout/all":
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and not resolved.session.isAppservice:
+          state.removeAllTokensForUser(resolved.session.userId)
+          state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    if path == "/_matrix/client/v3/capabilities" or path == "/_matrix/client/r0/capabilities":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, buildCapabilitiesPayload())
+      return
+
+    if isSyncPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+
+      var timeoutMs = syncTimeoutDefault
+      let timeoutRaw = queryParam(req, "timeout")
+      if timeoutRaw.len > 0:
+        try:
+          timeoutMs = parseInt(timeoutRaw)
+        except ValueError:
+          discard
+      timeoutMs = max(syncTimeoutMin, min(syncTimeoutMax, timeoutMs))
+
+      let sinceToken = queryParam(req, "since")
+      let sincePos = parseSinceToken(sinceToken)
+      let fullState = queryParam(req, "full_state").toLowerAscii() in ["1", "true", "yes"]
+
+      proc buildSyncPayload(): JsonNode =
+        var joinObj = newJObject()
+        var nextBatch = "s0"
+        withLock state.lock:
+          let joinedRooms = state.joinedRoomsForUser(resolved.session.userId)
+          for roomId in joinedRooms:
+            if roomId notin state.rooms:
+              continue
+            let room = state.rooms[roomId]
+            var timelineEvents = newJArray()
+            for ev in room.timeline:
+              if ev.streamPos > sincePos:
+                timelineEvents.add(ev.eventToJson())
+
+            var stateEvents = newJArray()
+            if fullState or sincePos == 0:
+              var allState: seq[MatrixEventRecord] = @[]
+              for _, stateEv in room.stateByKey:
+                allState.add(stateEv)
+              allState.sort(proc(a, b: MatrixEventRecord): int = cmp(a.streamPos, b.streamPos))
+              for stateEv in allState:
+                stateEvents.add(stateEv.eventToJson())
+
+            if timelineEvents.len > 0 or stateEvents.len > 0 or fullState:
+              joinObj[roomId] = %*{
+                "timeline": {
+                  "events": timelineEvents,
+                  "limited": false,
+                  "prev_batch": encodeSinceToken(sincePos),
+                },
+                "state": {
+                  "events": stateEvents
+                },
+                "unread_notifications": {
+                  "highlight_count": 0,
+                  "notification_count": 0
+                }
+              }
+          nextBatch = encodeSinceToken(state.streamPos)
+
+        %*{
+          "next_batch": nextBatch,
+          "rooms": {
+            "join": joinObj,
+            "invite": {},
+            "leave": {},
+          },
+          "presence": {
+            "events": [],
+          },
+          "to_device": {
+            "events": [],
+          },
+          "device_one_time_keys_count": {},
+          "device_unused_fallback_key_types": [],
+        }
+
+      var payload = buildSyncPayload()
+      if payload["rooms"]["join"].len == 0 and timeoutMs > 0:
+        await sleepAsync(timeoutMs)
+        payload = buildSyncPayload()
+      await respondJson(req, Http200, payload)
+      return
+
+    if path == "/_matrix/client/v3/createRoom" or path == "/_matrix/client/r0/createRoom":
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var createdRoom = ""
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if not resolved.ok:
+          discard
+        else:
+          createdRoom = state.nextRoomId()
+          state.rooms[createdRoom] = RoomData(
+            roomId: createdRoom,
+            creator: resolved.session.userId,
+            isDirect: parsed.value{"is_direct"}.getBool(false),
+            members: initTable[string, string](),
+            timeline: @[],
+            stateByKey: initTable[string, MatrixEventRecord]()
+          )
+
+          let createContent =
+            if parsed.value.hasKey("creation_content") and parsed.value["creation_content"].kind == JObject:
+              parsed.value["creation_content"]
+            else:
+              newJObject()
+          var createPayload = newJObject()
+          createPayload["creator"] = %resolved.session.userId
+          for key, val in createContent:
+            createPayload[key] = val
+          let evCreate = state.appendEventLocked(createdRoom, resolved.session.userId, "m.room.create", "", createPayload)
+          state.enqueueEventDeliveries(evCreate)
+
+          let evMember = state.appendEventLocked(
+            createdRoom,
+            resolved.session.userId,
+            "m.room.member",
+            resolved.session.userId,
+            membershipContent("join")
+          )
+          state.enqueueEventDeliveries(evMember)
+
+          let name = parsed.value{"name"}.getStr("")
+          if name.len > 0:
+            let evName = state.appendEventLocked(createdRoom, resolved.session.userId, "m.room.name", "", %*{"name": name})
+            state.enqueueEventDeliveries(evName)
+
+          let topic = parsed.value{"topic"}.getStr("")
+          if topic.len > 0:
+            let evTopic = state.appendEventLocked(createdRoom, resolved.session.userId, "m.room.topic", "", %*{"topic": topic})
+            state.enqueueEventDeliveries(evTopic)
+
+          if parsed.value.hasKey("initial_state") and parsed.value["initial_state"].kind == JArray:
+            for entry in parsed.value["initial_state"]:
+              if entry.kind != JObject:
+                continue
+              let eventType = entry{"type"}.getStr("")
+              if eventType.len == 0:
+                continue
+              let skey = entry{"state_key"}.getStr("")
+              let content = if entry.hasKey("content"): entry["content"] else: newJObject()
+              let ev = state.appendEventLocked(createdRoom, resolved.session.userId, eventType, skey, content)
+              state.enqueueEventDeliveries(ev)
+
+          if parsed.value.hasKey("invite") and parsed.value["invite"].kind == JArray:
+            for invitee in parsed.value["invite"]:
+              if invitee.kind != JString:
+                continue
+              let inviteeId = invitee.getStr("")
+              if inviteeId.len == 0:
+                continue
+              if inviteeId notin state.users:
+                let localpart = localpartFromUserId(inviteeId)
+                state.users[inviteeId] = UserProfile(
+                  userId: inviteeId,
+                  username: localpart,
+                  password: "",
+                  displayName: localpart,
+                  avatarUrl: ""
+                )
+                if localpart.len > 0 and localpart notin state.usersByName:
+                  state.usersByName[localpart] = inviteeId
+              let evInvite = state.appendEventLocked(
+                createdRoom,
+                resolved.session.userId,
+                "m.room.member",
+                inviteeId,
+                membershipContent("join")
+              )
+              state.enqueueEventDeliveries(evInvite)
+
+          state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"room_id": createdRoom})
+      return
+
+    let joinPrefixV3 = "/_matrix/client/v3/join/"
+    let joinPrefixR0 = "/_matrix/client/r0/join/"
+    if (path.startsWith(joinPrefixV3) or path.startsWith(joinPrefixR0)) and req.reqMethod == HttpPost:
+      let roomTarget = if path.startsWith(joinPrefixV3):
+        decodePath(path[joinPrefixV3.len .. ^1])
+      else:
+        decodePath(path[joinPrefixR0.len .. ^1])
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var resolvedRoom = ""
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          resolvedRoom = state.resolveRoomByJoinTarget(roomTarget)
+          if resolvedRoom.len > 0:
+            let ev = state.appendEventLocked(
+              resolvedRoom,
+              resolved.session.userId,
+              "m.room.member",
+              resolved.session.userId,
+              membershipContent("join")
+            )
+            state.enqueueEventDeliveries(ev)
+            state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if resolvedRoom.len == 0:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, %*{"room_id": resolvedRoom})
+      return
+
+    let inviteRoom = roomIdFromRoomsPath(path, "invite")
+    if inviteRoom.len > 0:
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      let inviteeId = parsed.value{"user_id"}.getStr("")
+      if inviteeId.len == 0:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "user_id is required."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and inviteRoom in state.rooms and state.roomJoinedForUser(inviteRoom, resolved.session.userId):
+          foundRoom = true
+          if inviteeId notin state.users:
+            let localpart = localpartFromUserId(inviteeId)
+            state.users[inviteeId] = UserProfile(
+              userId: inviteeId,
+              username: localpart,
+              password: "",
+              displayName: localpart,
+              avatarUrl: ""
+            )
+            if localpart.len > 0 and localpart notin state.usersByName:
+              state.usersByName[localpart] = inviteeId
+          let ev = state.appendEventLocked(
+            inviteRoom,
+            resolved.session.userId,
+            "m.room.member",
+            inviteeId,
+            membershipContent("join")
+          )
+          state.enqueueEventDeliveries(ev)
+          state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    let leaveRoom = roomIdFromRoomsPath(path, "leave")
+    if leaveRoom.len > 0:
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and leaveRoom in state.rooms:
+          foundRoom = true
+          let ev = state.appendEventLocked(
+            leaveRoom,
+            resolved.session.userId,
+            "m.room.member",
+            resolved.session.userId,
+            membershipContent("leave")
+          )
+          state.enqueueEventDeliveries(ev)
+          state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    if path.endsWith("/state") and (path.startsWith("/_matrix/client/v3/rooms/") or path.startsWith("/_matrix/client/r0/rooms/")):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let roomId = roomIdFromRoomsPath(path, "state")
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var payload: JsonNode = newJArray()
+      var foundRoom = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and roomId in state.rooms:
+          if resolved.session.isAppservice or state.roomJoinedForUser(roomId, resolved.session.userId):
+            foundRoom = true
+            payload = roomStateArray(state.rooms[roomId])
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    let sendParts = roomAndSendFromPath(path)
+    if sendParts.roomId.len > 0:
+      if req.reqMethod != HttpPut:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var sentEventId = ""
+      var roomOk = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and sendParts.roomId in state.rooms:
+          if resolved.session.isAppservice or state.roomJoinedForUser(sendParts.roomId, resolved.session.userId):
+            roomOk = true
+            let ev = state.appendEventLocked(
+              sendParts.roomId,
+              resolved.session.userId,
+              sendParts.eventType,
+              "",
+              parsed.value
+            )
+            sentEventId = ev.eventId
+            state.enqueueEventDeliveries(ev)
+            state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not roomOk:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, %*{"event_id": sentEventId})
+      return
+
+    let profileParts = profilePathParts(path)
+    if profileParts.userId.len > 0:
+      if req.reqMethod == HttpGet:
+        var found = false
+        var payload = newJObject()
+        withLock state.lock:
+          if profileParts.userId in state.users:
+            let user = state.users[profileParts.userId]
+            found = true
+            if profileParts.field == "displayname":
+              payload = %*{"displayname": user.displayName}
+            elif profileParts.field == "avatar_url":
+              payload = %*{"avatar_url": user.avatarUrl}
+            else:
+              payload = userProfilePayload(user)
+        if not found:
+          await notFoundWithCode(req, "M_NOT_FOUND")
+          return
+        await respondJson(req, Http200, payload)
+        return
+
+      if req.reqMethod != HttpPut:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var forbidden = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          if not resolved.session.isAppservice and resolved.session.userId != profileParts.userId:
+            forbidden = true
+          else:
+            if profileParts.userId notin state.users:
+              let local = localpartFromUserId(profileParts.userId)
+              state.users[profileParts.userId] = UserProfile(
+                userId: profileParts.userId,
+                username: local,
+                password: "",
+                displayName: local,
+                avatarUrl: ""
+              )
+              if local.len > 0 and local notin state.usersByName:
+                state.usersByName[local] = profileParts.userId
+            var user = state.users[profileParts.userId]
+            if profileParts.field == "displayname":
+              user.displayName = parsed.value{"displayname"}.getStr(user.displayName)
+            elif profileParts.field == "avatar_url":
+              user.avatarUrl = parsed.value{"avatar_url"}.getStr(user.avatarUrl)
+            state.users[profileParts.userId] = user
+            state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if forbidden:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Cannot edit another user profile."))
+        return
+      await respondJson(req, Http200, %*{})
+      return
 
     if path == "/_matrix/client/versions":
       if req.reqMethod != HttpGet:
@@ -381,6 +1881,45 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if req.reqMethod == HttpGet:
         await respondJson(req, Http200, loginTypesResponse())
         return
+
+    if isSyncPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      if not tokenPresent:
+        await respondJson(req, Http401, matrixError("M_MISSING_TOKEN", "Missing access token."))
+        return
+
+      var timeoutMs = syncTimeoutDefault
+      let timeoutRaw = queryParam(req, "timeout")
+      if timeoutRaw.len > 0:
+        try:
+          timeoutMs = parseInt(timeoutRaw)
+        except ValueError:
+          discard
+      timeoutMs = max(syncTimeoutMin, min(syncTimeoutMax, timeoutMs))
+      if timeoutMs > 0:
+        await sleepAsync(timeoutMs)
+
+      let sinceToken = queryParam(req, "since")
+      let nextBatch = nextSyncBatchToken(sinceToken)
+      await respondJson(req, Http200, %*{
+        "next_batch": nextBatch,
+        "rooms": {
+          "join": {},
+          "invite": {},
+          "leave": {},
+        },
+        "presence": {
+          "events": [],
+        },
+        "to_device": {
+          "events": [],
+        },
+        "device_one_time_keys_count": {},
+        "device_unused_fallback_key_types": [],
+      })
+      return
 
     if isRegisterAvailablePath(path):
       if req.reqMethod != HttpGet:
@@ -693,8 +2232,12 @@ proc runNativeServer(cfg: LoadedConfig): int =
       return
 
     if routeNeedsAccessToken(routeName) and tokenPresent:
-      await respondJson(req, Http401, matrixError("M_UNKNOWN_TOKEN", "Unknown access token."))
-      return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
 
     await respondJson(
       req,
@@ -704,6 +2247,11 @@ proc runNativeServer(cfg: LoadedConfig): int =
 
   info(fmt"Starting native Nim runtime on {bindAddress}:{bindPort}")
   info("Rust delegation is disabled in runtime startup path")
+  proc deliveryPump() {.async.} =
+    while true:
+      await state.runDeliveryLoop()
+      await sleepAsync(250)
+  asyncCheck deliveryPump()
   waitFor server.serve(Port(bindPort), cb, address = bindAddress)
   0
 

@@ -1,6 +1,6 @@
 {
   "baseline_commit": "90d4bda70bf0396c38292a175f7debc2d8069109",
-  "generated_at_utc": "2026-02-09T13:47:41+00:00",
+  "generated_at_utc": "2026-02-09T13:49:16+00:00",
   "rust_bin": "../tuwunel/target/release/tuwunel",
   "nim_bin": "build/tuwunel",
   "scenario_sources": {
