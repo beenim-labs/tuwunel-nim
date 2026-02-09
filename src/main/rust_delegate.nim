@@ -1,4 +1,4 @@
-import std/[os, osproc, sets, strutils]
+import std/[os, osproc, sets, strutils, strtabs]
 
 type
   RustDelegateResolution* = object
@@ -32,20 +32,28 @@ proc normalize(path: string): string =
   except OSError:
     return path
 
-proc candidateRoots(cwd, envRoot: string): seq[string] =
+proc candidateRoots(cwd: string): seq[string] =
   result = @[]
-  if envRoot.len > 0:
-    result.add(envRoot)
-
   result.add(cwd / ".." / "tuwunel")
   result.add(cwd / "tuwunel")
 
-proc candidatePaths*(cwd, envRoot, envBin: string): seq[string] =
+proc candidatePaths*(cwd, envRoot, envBin, appPath: string): seq[string] =
   result = @[]
   if envBin.len > 0:
     result.add(envBin)
 
-  for root in candidateRoots(cwd, envRoot):
+  if envRoot.len > 0:
+    result.add(envRoot / "target" / "release" / "tuwunel")
+    result.add(envRoot / "target" / "debug" / "tuwunel")
+
+  let appDir = normalize(appPath).parentDir()
+  if appDir.len > 0:
+    result.add(appDir / "tuwunel-rust")
+    result.add(appDir / "tuwunel")
+    result.add(appDir / ".." / "tuwunel" / "target" / "release" / "tuwunel")
+    result.add(appDir / ".." / "tuwunel" / "target" / "debug" / "tuwunel")
+
+  for root in candidateRoots(cwd):
     result.add(root / "target" / "release" / "tuwunel")
     result.add(root / "target" / "debug" / "tuwunel")
 
@@ -65,7 +73,7 @@ proc resolveRustDelegateBinary*(
   let selfPath = normalize(appPath)
 
   var seen = initHashSet[string]()
-  for candidate in candidatePaths(cwd, envRoot, envBin):
+  for candidate in candidatePaths(cwd, envRoot, envBin, appPath):
     let resolved = normalize(candidate)
     if resolved.len == 0 or resolved in seen:
       continue
@@ -90,9 +98,22 @@ proc runRustDelegate*(argv = commandLineParams()): RustDelegateResult =
     return RustDelegateResult(delegated: false, exitCode: 0, message: resolved.reason)
 
   try:
+    var childEnv = newStringTable(modeCaseSensitive)
+    for key, value in envPairs():
+      childEnv[key] = value
+    for key in [
+      "TUWUNEL_RUST_BIN",
+      "TUWUNEL_RUST_ROOT",
+      "TUWUNEL_NIM_REQUIRE_RUST_ENGINE",
+      "TUWUNEL_NIM_DISABLE_RUST_DELEGATE",
+    ]:
+      if key in childEnv:
+        childEnv.del(key)
+
     let child = startProcess(
       command = resolved.binaryPath,
       args = argv,
+      env = childEnv,
       options = {poParentStreams},
     )
     let code = waitForExit(child)

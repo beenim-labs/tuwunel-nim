@@ -11,6 +11,7 @@ suite "Behavior coverage artifacts":
     let routeBehavior = loadJson("docs/parity/route_behavior_coverage.json")
     let configBehavior = loadJson("docs/parity/config_behavior_coverage.json")
     let configDefaults = loadJson("docs/parity/config_default_inventory.json")
+    let runtimeDiff = loadJson("docs/parity/runtime_diff_report.json")
 
     check implementation["total_modules"].getInt() == moduleCoverage["mapped"].getInt()
     check routeBehavior["summary"]["total_routes"].getInt() == baseline["totals"]["route_total"].getInt()
@@ -20,6 +21,16 @@ suite "Behavior coverage artifacts":
     check configDefaults["missing_expected_count"].getInt() == 0
     check configBehavior["summary"]["default_expected_applied_keys"].getInt() ==
       configBehavior["summary"]["default_expected_keys"].getInt()
+    check runtimeDiff["baseline_commit"].kind == JString
+    check runtimeDiff["baseline_commit"].getStr() == baseline["baseline"]["rust_commit"].getStr()
+    check runtimeDiff["scenarios_total"].kind == JInt
+    check runtimeDiff["passes_total"].kind == JInt
+    check runtimeDiff["mismatches_total"].kind == JInt
+    check runtimeDiff["skipped_total"].kind == JInt
+    check runtimeDiff["scenarios_total"].getInt() ==
+      runtimeDiff["passes_total"].getInt() +
+      runtimeDiff["mismatches_total"].getInt() +
+      runtimeDiff["skipped_total"].getInt()
 
   test "threshold booleans are exposed for milestone gating":
     let implementation = loadJson("docs/parity/implementation_coverage.json")

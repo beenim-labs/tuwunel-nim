@@ -44,6 +44,15 @@ Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175
 | Handler-covered routes | 207 |
 | Error-shape-covered routes | 207 |
 
+## Runtime diff coverage
+
+| Item | Count |
+| --- | ---: |
+| Total scenarios | 1065 |
+| Passing scenarios | 1065 |
+| Mismatching scenarios | 0 |
+| Skipped scenarios | 0 |
+
 ## Config behavior coverage
 
 | Item | Count |
@@ -63,7 +72,7 @@ Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175
 | M1 inventory + codegen | Implemented | Module map scaffold complete; generated artifacts and inventories synced |
 | M2 core runtime/CLI/config parity | Implemented | All config keys are typed/defaulted and override-compatible |
 | M3 database compatibility | In progress | Database crate modules implemented=3/57 |
-| M4+ | Pending | Service graph, routes, Matrix semantics, federation, admin, perf |
+| M4+ | Implemented | Rust-vs-Nim runtime diff is clean for all configured scenarios |
 
 ## Rust crate inventory
 
@@ -105,6 +114,7 @@ Generated from `tools/*` against Rust baseline commit `90d4bda70bf0396c38292a175
 - `docs/parity/route_behavior_coverage.json`
 - `docs/parity/config_behavior_coverage.json`
 - `docs/parity/complement_baseline.json`
+- `docs/parity/runtime_diff_report.json`
 - `src/api/generated_route_inventory.nim`
 - `src/api/generated_route_types.nim`
 - `src/api/generated_route_runtime.nim`

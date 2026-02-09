@@ -17,3 +17,5 @@ import test_database_cf_descriptor_policy
 import test_database_rocksdb
 import test_route_runtime
 import test_rust_delegate
+import test_native_runtime_policy
+import test_syntax_hygiene

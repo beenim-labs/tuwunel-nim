@@ -64,6 +64,17 @@ def main() -> int:
             },
         },
     )
+    runtime_diff = load_optional(
+        "runtime_diff_report.json",
+        {
+            "baseline_commit": "",
+            "scenarios_total": 0,
+            "passes_total": 0,
+            "mismatches_total": 0,
+            "skipped_total": 0,
+            "results": [],
+        },
+    )
     config_behavior = load_optional(
         "config_behavior_coverage.json",
         {
@@ -132,6 +143,17 @@ def main() -> int:
         if db_total > 0
         else "Database crate implementation coverage unavailable"
     )
+    diff_total = int(runtime_diff.get("scenarios_total", 0))
+    diff_pass = int(runtime_diff.get("passes_total", 0))
+    diff_mismatch = int(runtime_diff.get("mismatches_total", 0))
+    diff_skipped = int(runtime_diff.get("skipped_total", 0))
+    m4_complete = diff_total > 0 and diff_mismatch == 0 and diff_skipped == 0
+    m4_status = "Implemented" if m4_complete else "In progress"
+    m4_note = (
+        "Rust-vs-Nim runtime diff is clean for all configured scenarios"
+        if m4_complete
+        else f"pass={diff_pass} mismatch={diff_mismatch} skipped={diff_skipped} total={diff_total}"
+    )
 
     crate_rows = "\n".join(
         f"| `{item['crate']}` | {item['function_count']} | {item['file_count']} |"
@@ -198,6 +220,15 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 | Handler-covered routes | {int(route_summary.get('handler_covered_routes', 0))} |
 | Error-shape-covered routes | {int(route_summary.get('error_shape_covered_routes', 0))} |
 
+## Runtime diff coverage
+
+| Item | Count |
+| --- | ---: |
+| Total scenarios | {diff_total} |
+| Passing scenarios | {diff_pass} |
+| Mismatching scenarios | {diff_mismatch} |
+| Skipped scenarios | {diff_skipped} |
+
 ## Config behavior coverage
 
 | Item | Count |
@@ -217,7 +248,7 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 | M1 inventory + codegen | {m1_status} | {m1_note} |
 | M2 core runtime/CLI/config parity | {m2_status} | {m2_note} |
 | M3 database compatibility | {m3_status} | {m3_note} |
-| M4+ | Pending | Service graph, routes, Matrix semantics, federation, admin, perf |
+| M4+ | {m4_status} | {m4_note} |
 
 ## Rust crate inventory
 
@@ -245,6 +276,7 @@ Generated from `tools/*` against Rust baseline commit `{b['rust_commit']}`.
 - `docs/parity/route_behavior_coverage.json`
 - `docs/parity/config_behavior_coverage.json`
 - `docs/parity/complement_baseline.json`
+- `docs/parity/runtime_diff_report.json`
 - `src/api/generated_route_inventory.nim`
 - `src/api/generated_route_types.nim`
 - `src/api/generated_route_runtime.nim`

@@ -7,6 +7,8 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      TUWUNEL_NIM_DISABLE_RUST_DELEGATE: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: jiro4989/setup-nim-action@v2
@@ -14,6 +16,10 @@ jobs:
           nim-version: '2.3.1'
       - name: Sync parity artifacts
         run: nimble parity_sync
+      - name: Ensure generated artifacts are committed
+        run: git diff --exit-code
+      - name: Syntax hygiene
+        run: nimble syntax_hygiene
       - name: Build
         run: nimble build
       - name: Test
@@ -21,6 +27,8 @@ jobs:
 
   verify-rocksdb:
     runs-on: ubuntu-latest
+    env:
+      TUWUNEL_NIM_DISABLE_RUST_DELEGATE: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: jiro4989/setup-nim-action@v2

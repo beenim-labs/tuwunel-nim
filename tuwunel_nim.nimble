@@ -22,6 +22,13 @@ task parity_sync, "Refresh inventory + generated artifacts":
   exec "python3 tools/generate_stubs.py"
   exec "python3 tools/render_parity_matrix.py"
 
+task syntax_hygiene, "Fail on Rust syntax leakage in Nim files":
+  exec "python3 tools/check_nim_syntax_hygiene.py"
+
+task parity_diff, "Run Rust-vs-Nim behavioral diff harness":
+  exec "nim c -d:ssl -o:build/tuwunel src/tuwunel.nim"
+  exec "python3 tools/parity_diff.py --rust-bin ../tuwunel/target/release/tuwunel --nim-bin build/tuwunel --scenarios tests/parity/scenarios.json --out docs/parity/runtime_diff_report.json"
+
 task build, "Build tuwunel binary":
   exec "nim c -d:ssl -o:build/tuwunel src/tuwunel.nim"
 
