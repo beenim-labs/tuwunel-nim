@@ -9,7 +9,6 @@ import generated_column_family_descriptors
 import keyval
 import schema
 import serialization
-import types
 
 type
   DbMode* = enum
@@ -82,20 +81,6 @@ proc count*(db: DatabaseHandle; cf: string): int =
     db.memory.count(cf)
   of dmRocksDb:
     db.rocks.count(cf)
-
-proc entries*(db: DatabaseHandle; cf: string): seq[DbEntry] =
-  case db.mode
-  of dmInMemory:
-    db.memory.entries(cf)
-  of dmRocksDb:
-    db.rocks.entries(cf)
-
-proc clearColumnFamily*(db: DatabaseHandle; cf: string): int =
-  case db.mode
-  of dmInMemory:
-    db.memory.clearColumnFamily(cf)
-  of dmRocksDb:
-    db.rocks.clearColumnFamily(cf)
 
 proc listColumnFamilies*(db: DatabaseHandle): seq[string] =
   case db.mode

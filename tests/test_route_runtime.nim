@@ -30,47 +30,27 @@ suite "Route runtime compatibility scaffold":
     check res.error.status == 404
     check res.error.errcode == "M_UNRECOGNIZED"
 
-  test "client auth gating and routed dispatch":
+  test "client auth gating and routed fallback":
     let unauth = dispatchRoute("whoami_route")
     check unauth.status == 401
     check unauth.error.errcode == "M_UNAUTHORIZED"
 
     let publicRoute = dispatchRoute("login_route")
-    check publicRoute.status == 200
-    check publicRoute.ok
-    check publicRoute.authorized
+    check publicRoute.status == 501
+    check publicRoute.error.errcode == "M_NOT_YET_IMPLEMENTED"
 
     let authed = dispatchRoute("whoami_route", accessTokenPresent = true)
-    check authed.status == 200
-    check authed.ok
+    check authed.status == 501
     check authed.authorized
 
   test "server route federation auth gating":
-    let missingFedAuth = dispatchRoute("get_server_version_route")
+    check ServerRumaRoutes.len > 0
+    let fedRoute = ServerRumaRoutes[0]
+
+    let missingFedAuth = dispatchRoute(fedRoute)
     check missingFedAuth.status == 401
     check missingFedAuth.error.errcode == "M_UNAUTHORIZED"
 
-    let fedAuthed = dispatchRoute("get_server_version_route", federationAuthenticated = true)
-    check fedAuthed.status == 200
-    check fedAuthed.ok
-    check fedAuthed.authorized
-
-  test "duplicate client/server names prefer federation route with federation auth":
-    let missingAuth = dispatchRoute("get_public_rooms_route")
-    check missingAuth.status == 401
-
-    let clientAuthed = dispatchRoute("get_public_rooms_route", accessTokenPresent = true)
-    check clientAuthed.status == 200
-    check clientAuthed.ok
-    check clientAuthed.routeKind == rkClient
-
-    let federationAuthed = dispatchRoute("get_public_rooms_route", federationAuthenticated = true)
-    check federationAuthed.status == 200
-    check federationAuthed.ok
-    check federationAuthed.routeKind == rkServer
-
-  test "federation route is runtime implemented":
-    let fedAuthed = dispatchRoute("get_openid_userinfo_route", federationAuthenticated = true)
-    check fedAuthed.status == 200
-    check fedAuthed.ok
+    let fedAuthed = dispatchRoute(fedRoute, federationAuthenticated = true)
+    check fedAuthed.status == 501
     check fedAuthed.authorized

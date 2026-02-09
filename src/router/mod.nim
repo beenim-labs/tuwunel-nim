@@ -1,10 +1,5 @@
 import api/generated_route_inventory
 import api/generated_route_runtime
-import request
-import layers
-import router
-import run
-import serve
 
 type
   RouterStatus* = object
@@ -44,9 +39,3 @@ proc dispatchCompatibilityRoute*(
 
 proc routerRegistry*(): RouteRegistry =
   routeRegistry()
-
-export request
-export layers
-export router
-export run
-export serve

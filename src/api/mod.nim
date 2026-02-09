@@ -1,19 +1,7 @@
-## api/mod — api module.
-##
-## Ported from Rust api/mod.rs
+import generated_route_inventory
+import generated_route_types
+import generated_route_runtime
 
-import std/[options, json, tables, strutils]
-
-const
-  RustPath* = "api/mod.rs"
-  RustCrate* = "api"
-
-type Service* = ref object
-  ## api service.
-  discard
-
-# import ./client
-# import ./router
-# import ./server
-
-proc init*() = discard
+export generated_route_inventory
+export generated_route_types
+export generated_route_runtime
