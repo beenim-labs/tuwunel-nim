@@ -69,6 +69,20 @@ proc getConfigBool(cfg: FlatConfig; keys: openArray[string]; fallback: bool): bo
 
 const
   RustBaselineVersion = "1.4.9"
+  FallbackGifUrls = [
+    "https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif",
+    "https://media.giphy.com/media/3o6ZtaO9BZHcOjmErm/giphy.gif",
+    "https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif",
+    "https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif",
+    "https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif",
+    "https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif",
+    "https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif",
+    "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif",
+    "https://media.giphy.com/media/5VKbvrjxpVJCM/giphy.gif",
+    "https://media.giphy.com/media/13CoXDiaCcCoyk/giphy.gif",
+    "https://media.giphy.com/media/26BRuo6sLetdllPAQ/giphy.gif",
+    "https://media.giphy.com/media/3o6fJ1BM7R2EBRDnxK/giphy.gif"
+  ]
 
 proc versionsResponse(): JsonNode =
   %*{
@@ -228,6 +242,118 @@ proc nextSyncBatchToken(sinceToken: string): string =
     except ValueError:
       discard
   "s1"
+
+proc clampInt(value: int; minValue: int; maxValue: int): int =
+  result = value
+  if result < minValue:
+    result = minValue
+  if result > maxValue:
+    result = maxValue
+
+proc extractUrlHost(rawUrl: string): string =
+  let trimmed = rawUrl.strip().toLowerAscii()
+  let sep = trimmed.find("://")
+  if sep < 0:
+    return ""
+  var authority = trimmed[(sep + 3) .. ^1]
+  let slash = authority.find('/')
+  if slash >= 0:
+    authority = authority[0 ..< slash]
+  let atPos = authority.rfind('@')
+  if atPos >= 0 and atPos + 1 < authority.len:
+    authority = authority[(atPos + 1) .. ^1]
+  if authority.startsWith("["):
+    let closing = authority.find(']')
+    if closing > 1:
+      return authority[1 ..< closing]
+  let colon = authority.rfind(':')
+  if colon > 0 and authority.count(':') == 1:
+    authority = authority[0 ..< colon]
+  authority
+
+proc isAllowedGifProxyUrl(rawUrl: string): bool =
+  if not (rawUrl.startsWith("https://") or rawUrl.startsWith("http://")):
+    return false
+  let host = extractUrlHost(rawUrl)
+  if host.len == 0:
+    return false
+  host == "giphy.com" or host.endsWith(".giphy.com")
+
+proc requestBaseUrl(req: Request; bindAddress: string; bindPort: int): string =
+  var scheme = "http"
+  if req.headers.hasKey("X-Forwarded-Proto"):
+    let forwarded = req.headers["X-Forwarded-Proto"].split(",")[0].strip().toLowerAscii()
+    if forwarded == "http" or forwarded == "https":
+      scheme = forwarded
+  var host = req.headers.getOrDefault("Host").strip()
+  if host.len == 0:
+    host = bindAddress
+    if not host.contains(":"):
+      host &= ":" & $bindPort
+  scheme & "://" & host
+
+proc nestedJsonString(node: JsonNode; keys: openArray[string]): string =
+  var cur = node
+  for key in keys:
+    if cur.kind != JObject or not cur.hasKey(key):
+      return ""
+    cur = cur[key]
+  if cur.kind == JString:
+    cur.getStr("")
+  else:
+    ""
+
+proc mapGiphyPayload(upstream: JsonNode; baseUrl: string): JsonNode =
+  var gifs = newJArray()
+  let data = upstream.getOrDefault("data")
+  if data.kind == JArray:
+    for item in data:
+      if item.kind != JObject:
+        continue
+
+      var previewUrl = nestedJsonString(item, ["images", "preview_gif", "url"])
+      if previewUrl.len == 0:
+        previewUrl = nestedJsonString(item, ["images", "fixed_width_small", "url"])
+      if previewUrl.len == 0:
+        previewUrl = nestedJsonString(item, ["images", "fixed_width", "url"])
+      if previewUrl.len == 0:
+        previewUrl = nestedJsonString(item, ["images", "original", "url"])
+
+      var sendUrl = nestedJsonString(item, ["images", "original", "url"])
+      if sendUrl.len == 0:
+        sendUrl = nestedJsonString(item, ["images", "downsized_large", "url"])
+      if sendUrl.len == 0:
+        let gifId = item.getOrDefault("id").getStr("")
+        if gifId.len > 0:
+          sendUrl = "https://media.giphy.com/media/" & encodeUrl(gifId) & "/giphy.gif"
+
+      if previewUrl.len == 0 or sendUrl.len == 0:
+        continue
+      if not isAllowedGifProxyUrl(previewUrl) or not isAllowedGifProxyUrl(sendUrl):
+        continue
+
+      let proxyPreview = baseUrl & "/_beenim/gifs/media?u=" & encodeUrl(previewUrl)
+      gifs.add(%*{
+        "id": item.getOrDefault("id").getStr(""),
+        "preview_url": proxyPreview,
+        "send_url": sendUrl
+      })
+
+  %*{"gifs": gifs}
+
+proc fallbackGifPayload(baseUrl: string): JsonNode =
+  var gifs = newJArray()
+  var idx = 0
+  for url in FallbackGifUrls:
+    if not isAllowedGifProxyUrl(url):
+      continue
+    inc idx
+    gifs.add(%*{
+      "id": "fallback_" & $idx,
+      "preview_url": baseUrl & "/_beenim/gifs/media?u=" & encodeUrl(url),
+      "send_url": url
+    })
+  %*{"gifs": gifs}
 
 type
   AccessSession = object
@@ -1232,6 +1358,24 @@ proc roomAndSendFromPath(path: string): tuple[roomId: string, eventType: string,
     decodePath(segments[4])
   )
 
+proc roomAndStateEventFromPath(path: string): tuple[roomId: string, eventType: string, stateKeyValue: string, ok: bool] =
+  let trimmed = trimClientPath(path)
+  if not trimmed.startsWith("rooms/"):
+    return ("", "", "", false)
+  let segments = trimmed.split('/')
+  if segments.len < 4 or segments.len > 5:
+    return ("", "", "", false)
+  if segments[2] != "state":
+    return ("", "", "", false)
+  if segments[3].len == 0:
+    return ("", "", "", false)
+  (
+    decodePath(segments[1]),
+    decodePath(segments[3]),
+    if segments.len == 5: decodePath(segments[4]) else: "",
+    true
+  )
+
 proc profilePathParts(path: string): tuple[userId: string, field: string] =
   let trimmed = trimClientPath(path)
   if not trimmed.startsWith("profile/"):
@@ -1253,9 +1397,17 @@ proc runNativeServer(cfg: LoadedConfig): int =
     ["global.allow_federation", "allow_federation"],
     true,
   )
-  let syncTimeoutMin = max(0, getConfigInt(cfg.values, ["client_sync_timeout_min", "global.client_sync_timeout_min"], 5000))
-  let syncTimeoutDefault = max(0, getConfigInt(cfg.values, ["client_sync_timeout_default", "global.client_sync_timeout_default"], 30000))
-  let syncTimeoutMax = max(syncTimeoutMin, getConfigInt(cfg.values, ["client_sync_timeout_max", "global.client_sync_timeout_max"], 90000))
+  let syncTimeoutMin = max(0, getConfigInt(cfg.values, ["client_sync_timeout_min", "global.client_sync_timeout_min"], 1000))
+  let syncTimeoutDefault = max(0, getConfigInt(cfg.values, ["client_sync_timeout_default", "global.client_sync_timeout_default"], 3000))
+  let syncTimeoutMax = max(syncTimeoutMin, getConfigInt(cfg.values, ["client_sync_timeout_max", "global.client_sync_timeout_max"], 15000))
+  let gifApiKey = block:
+    let envKey = getEnv("BEENIM_GIPHY_API_KEY", "").strip()
+    if envKey.len > 0:
+      envKey
+    else:
+      let cfgKey = getConfigString(cfg.values, ["gifs.giphy_api_key", "global.gifs.giphy_api_key"], "").strip()
+      if cfgKey.len > 0: cfgKey else: "LIVDSRZULELA"
+  let gifApiBase = getConfigString(cfg.values, ["gifs.giphy_api_base", "global.gifs.giphy_api_base"], "https://api.giphy.com").strip(trailing = true, chars = {'/'})
 
   if not listening:
     info("Config sets listening=false; native runtime started without binding sockets")
@@ -1270,6 +1422,102 @@ proc runNativeServer(cfg: LoadedConfig): int =
     let fedAuth = hasFederationAuth(req)
     let accessToken = queryAccessToken(req)
     let impersonateUser = resolveImpersonationUser(req)
+
+    if path == "/_beenim/gifs/trending" or path == "/_beenim/gifs/search":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+
+      let baseUrl = requestBaseUrl(req, bindAddress, bindPort)
+      if gifApiKey.len == 0:
+        await respondJson(req, Http200, fallbackGifPayload(baseUrl))
+        return
+
+      var limit = 24
+      let limitRaw = queryParam(req, "limit")
+      if limitRaw.len > 0:
+        try:
+          limit = parseInt(limitRaw)
+        except ValueError:
+          discard
+      limit = clampInt(limit, 1, 50)
+
+      var rating = queryParam(req, "rating").strip()
+      if rating.len == 0:
+        rating = "pg-13"
+
+      let isSearch = path.endsWith("/search")
+      let queryText = queryParam(req, "q").strip()
+
+      var upstreamUrl = gifApiBase & "/v1/gifs/trending?api_key=" & encodeUrl(gifApiKey) &
+        "&limit=" & $limit & "&rating=" & encodeUrl(rating)
+      if isSearch and queryText.len > 0:
+        upstreamUrl = gifApiBase & "/v1/gifs/search?api_key=" & encodeUrl(gifApiKey) &
+          "&q=" & encodeUrl(queryText) & "&limit=" & $limit &
+          "&rating=" & encodeUrl(rating) & "&lang=en"
+
+      let client = newAsyncHttpClient()
+      defer:
+        client.close()
+      client.headers = newHttpHeaders({
+        "Accept": "application/json",
+        "User-Agent": "beenim-gif-proxy/1.0"
+      })
+
+      try:
+        let upstreamResp = await client.request(upstreamUrl, httpMethod = HttpGet)
+        let upstreamBody = await upstreamResp.body
+        if upstreamResp.code != Http200:
+          warn("GIF upstream returned HTTP " & $ord(upstreamResp.code) & "; serving fallback GIF list")
+          await respondJson(req, Http200, fallbackGifPayload(baseUrl))
+          return
+        let parsed = parseJson(upstreamBody)
+        let mapped = mapGiphyPayload(parsed, baseUrl)
+        await respondJson(req, Http200, mapped)
+      except CatchableError as e:
+        warn("GIF upstream request failed (" & e.msg & "); serving fallback GIF list")
+        await respondJson(req, Http200, fallbackGifPayload(baseUrl))
+      return
+
+    if path == "/_beenim/gifs/media":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let upstreamUrl = queryParam(req, "u").strip()
+      if upstreamUrl.len == 0:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Missing u query parameter."))
+        return
+      if not isAllowedGifProxyUrl(upstreamUrl):
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Blocked GIF media host."))
+        return
+      let client = newAsyncHttpClient()
+      defer:
+        client.close()
+      client.headers = newHttpHeaders({
+        "Accept": "image/*,*/*",
+        "User-Agent": "beenim-gif-proxy/1.0"
+      })
+
+      try:
+        let upstreamResp = await client.request(upstreamUrl, httpMethod = HttpGet)
+        let body = await upstreamResp.body
+        if upstreamResp.code.int < 200 or upstreamResp.code.int >= 300:
+          await respondJson(req, Http502, matrixError("M_UNKNOWN", "GIF media upstream returned HTTP " & $ord(upstreamResp.code)))
+          return
+        var contentType = "image/gif"
+        if upstreamResp.headers.hasKey("Content-Type"):
+          let rawContentType = $upstreamResp.headers["Content-Type"]
+          if rawContentType.len > 0:
+            contentType = rawContentType
+        var headers = newHttpHeaders({
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=3600",
+          "X-Content-Type-Options": "nosniff"
+        })
+        await req.respond(Http200, body, headers)
+      except CatchableError as e:
+        await respondJson(req, Http502, matrixError("M_UNKNOWN", "GIF media proxy failed: " & e.msg))
+      return
 
     if path == "/_matrix/client/v3/login" or path == "/_matrix/client/r0/login":
       if req.reqMethod == HttpGet:
@@ -1769,6 +2017,70 @@ proc runNativeServer(cfg: LoadedConfig): int =
         await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
         return
       await respondJson(req, Http200, payload)
+      return
+
+    let stateParts = roomAndStateEventFromPath(path)
+    if stateParts.ok:
+      if req.reqMethod != HttpGet and req.reqMethod != HttpPut:
+        await methodNotAllowed(req)
+        return
+
+      if req.reqMethod == HttpGet:
+        var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+        var roomOk = false
+        var foundState = false
+        var payload = newJObject()
+        withLock state.lock:
+          resolved = state.getSessionFromToken(accessToken, impersonateUser)
+          if resolved.ok and stateParts.roomId in state.rooms:
+            if resolved.session.isAppservice or state.roomJoinedForUser(stateParts.roomId, resolved.session.userId):
+              roomOk = true
+              let room = state.rooms[stateParts.roomId]
+              let key = stateKey(stateParts.eventType, stateParts.stateKeyValue)
+              if key in room.stateByKey:
+                foundState = true
+                payload = room.stateByKey[key].content
+        if not resolved.ok:
+          await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+          return
+        if not roomOk:
+          await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+          return
+        if not foundState:
+          await respondJson(req, Http404, matrixError("M_NOT_FOUND", "State event not found."))
+          return
+        await respondJson(req, Http200, payload)
+        return
+
+      let parsed = parseRequestJson(req)
+      if not parsed.ok:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var roomOk = false
+      var sentEventId = ""
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and stateParts.roomId in state.rooms:
+          if resolved.session.isAppservice or state.roomJoinedForUser(stateParts.roomId, resolved.session.userId):
+            roomOk = true
+            let ev = state.appendEventLocked(
+              stateParts.roomId,
+              resolved.session.userId,
+              stateParts.eventType,
+              stateParts.stateKeyValue,
+              parsed.value
+            )
+            sentEventId = ev.eventId
+            state.enqueueEventDeliveries(ev)
+            state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not roomOk:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, %*{"event_id": sentEventId})
       return
 
     let sendParts = roomAndSendFromPath(path)
