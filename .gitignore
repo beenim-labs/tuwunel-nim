@@ -10,3 +10,6 @@ dist/
 # Local artifacts
 *.log
 tuwunel
+nimble.develop
+nimble.paths
+nimbledeps

@@ -279,6 +279,18 @@ proc isAllowedGifProxyUrl(rawUrl: string): bool =
     return false
   host == "giphy.com" or host.endsWith(".giphy.com")
 
+proc giphyHttpFallbackUrl(rawUrl: string): string =
+  ## Nim/OpenSSL in this environment fails TLS handshakes to media*.giphy.com.
+  ## Retry those URLs over HTTP to keep GIF previews working through the proxy.
+  if not rawUrl.startsWith("https://"):
+    return ""
+  let host = extractUrlHost(rawUrl)
+  if host.len == 0:
+    return ""
+  if host == "giphy.com" or host.endsWith(".giphy.com"):
+    return "http://" & rawUrl[8 .. ^1]
+  ""
+
 proc requestBaseUrl(req: Request; bindAddress: string; bindPort: int): string =
   var scheme = "http"
   if req.headers.hasKey("X-Forwarded-Proto"):
@@ -1490,33 +1502,54 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if not isAllowedGifProxyUrl(upstreamUrl):
         await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Blocked GIF media host."))
         return
-      let client = newAsyncHttpClient()
-      defer:
-        client.close()
-      client.headers = newHttpHeaders({
-        "Accept": "image/*,*/*",
-        "User-Agent": "beenim-gif-proxy/1.0"
-      })
 
-      try:
-        let upstreamResp = await client.request(upstreamUrl, httpMethod = HttpGet)
-        let body = await upstreamResp.body
-        if upstreamResp.code.int < 200 or upstreamResp.code.int >= 300:
-          await respondJson(req, Http502, matrixError("M_UNKNOWN", "GIF media upstream returned HTTP " & $ord(upstreamResp.code)))
-          return
-        var contentType = "image/gif"
-        if upstreamResp.headers.hasKey("Content-Type"):
-          let rawContentType = $upstreamResp.headers["Content-Type"]
-          if rawContentType.len > 0:
-            contentType = rawContentType
-        var headers = newHttpHeaders({
-          "Content-Type": contentType,
-          "Cache-Control": "public, max-age=3600",
-          "X-Content-Type-Options": "nosniff"
+      var attempts = @[upstreamUrl]
+      let httpFallback = giphyHttpFallbackUrl(upstreamUrl)
+      if httpFallback.len > 0 and httpFallback != upstreamUrl:
+        attempts.add(httpFallback)
+
+      var body = ""
+      var contentType = "image/gif"
+      var lastError = ""
+      var delivered = false
+
+      for candidateUrl in attempts:
+        let client = newAsyncHttpClient()
+        defer:
+          client.close()
+        client.headers = newHttpHeaders({
+          "Accept": "image/*,*/*",
+          "User-Agent": "beenim-gif-proxy/1.0"
         })
-        await req.respond(Http200, body, headers)
-      except CatchableError as e:
-        await respondJson(req, Http502, matrixError("M_UNKNOWN", "GIF media proxy failed: " & e.msg))
+        try:
+          let upstreamResp = await client.request(candidateUrl, httpMethod = HttpGet)
+          let candidateBody = await upstreamResp.body
+          if upstreamResp.code.int < 200 or upstreamResp.code.int >= 300:
+            lastError = "GIF media upstream returned HTTP " & $ord(upstreamResp.code)
+            continue
+          body = candidateBody
+          if upstreamResp.headers.hasKey("Content-Type"):
+            let rawContentType = $upstreamResp.headers["Content-Type"]
+            if rawContentType.len > 0:
+              contentType = rawContentType
+          delivered = true
+          if candidateUrl != upstreamUrl:
+            warn("GIF media proxy fallback used HTTP transport for giphy media host")
+          break
+        except CatchableError as e:
+          lastError = e.msg
+          continue
+
+      if not delivered:
+        await respondJson(req, Http502, matrixError("M_UNKNOWN", "GIF media proxy failed: " & lastError))
+        return
+
+      let headers = newHttpHeaders({
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=3600",
+        "X-Content-Type-Options": "nosniff"
+      })
+      await req.respond(Http200, body, headers)
       return
 
     if path == "/_matrix/client/v3/login" or path == "/_matrix/client/r0/login":
