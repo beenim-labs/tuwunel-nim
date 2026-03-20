@@ -113,6 +113,23 @@ proc versionsResponse(): JsonNode =
     }
   }
 
+proc isAppservicePingPath(path: string): bool =
+  path.startsWith("/_matrix/client/v1/appservice/") and path.endsWith("/ping")
+
+proc extractAppservicePingRegistrationId(path: string): string =
+  const Prefix = "/_matrix/client/v1/appservice/"
+  const Suffix = "/ping"
+  if not isAppservicePingPath(path):
+    return ""
+  let startIdx = Prefix.len
+  let endIdx = path.len - Suffix.len
+  if endIdx <= startIdx:
+    return ""
+  let raw = path[startIdx ..< endIdx]
+  if raw.len == 0 or '/' in raw:
+    return ""
+  decodeUrl(raw)
+
 proc loginTypesResponse(): JsonNode =
   %*{
     "flows": [
@@ -135,6 +152,19 @@ proc respondJson(req: Request; code: HttpCode; payload: JsonNode) {.async.} =
     "Cache-Control": "no-store",
   })
   await req.respond(code, $payload, headers)
+
+proc respondRaw(
+    req: Request;
+    code: HttpCode;
+    body: string;
+    contentType = "application/octet-stream";
+    cacheControl = "no-store"
+) {.async.} =
+  let headers = newHttpHeaders({
+    "Content-Type": contentType,
+    "Cache-Control": cacheControl,
+  })
+  await req.respond(code, body, headers)
 
 proc hasAccessToken(req: Request): bool =
   if req.headers.hasKey("Authorization"):
@@ -462,6 +492,8 @@ proc randomString(prefix: string; n = 32): string =
 proc stateKey(eventType, stateKey: string): string =
   eventType & "\x1f" & stateKey
 
+proc isStateEventForStorage(eventType, stateKeyValue: string): bool
+
 proc trimQuotes(raw: string): string =
   result = raw.strip()
   if result.len >= 2 and ((result[0] == '"' and result[^1] == '"') or (result[0] == '\'' and result[^1] == '\'')):
@@ -491,6 +523,51 @@ proc statePathFromConfig(cfg: FlatConfig): string =
   if path.len == 0:
     path = "sdk/tuwunel-nim-state.json"
   path
+
+proc mediaDirFromStatePath(statePath: string): string =
+  joinPath(parentDir(statePath), "media")
+
+proc mediaMetaPath(statePath: string, mediaId: string): string =
+  joinPath(mediaDirFromStatePath(statePath), mediaId & ".meta.json")
+
+proc mediaDataPath(statePath: string, mediaId: string): string =
+  joinPath(mediaDirFromStatePath(statePath), mediaId & ".bin")
+
+proc storeUploadedMedia(
+    state: ServerState,
+    body: string,
+    contentType: string,
+    fileName: string
+): string =
+  let mediaId = randomString("media_", 24)
+  let mediaDir = mediaDirFromStatePath(state.statePath)
+  createDir(mediaDir)
+  writeFile(mediaDataPath(state.statePath, mediaId), body)
+  writeFile(
+    mediaMetaPath(state.statePath, mediaId),
+    $(%*{
+      "content_type": contentType,
+      "file_name": fileName
+    })
+  )
+  mediaId
+
+proc loadStoredMediaMeta(
+    state: ServerState,
+    mediaId: string
+): tuple[ok: bool, contentType: string, fileName: string] =
+  let metaPath = mediaMetaPath(state.statePath, mediaId)
+  if not fileExists(metaPath):
+    return (false, "application/octet-stream", "")
+  try:
+    let parsed = parseFile(metaPath)
+    (
+      true,
+      parsed{"content_type"}.getStr("application/octet-stream"),
+      parsed{"file_name"}.getStr("")
+    )
+  except CatchableError:
+    (false, "application/octet-stream", "")
 
 proc getConfigStringArray(cfg: FlatConfig; key: string): seq[string] =
   result = @[]
@@ -706,7 +783,7 @@ proc loadPersistentState(path: string): tuple[
               content: if evNode.hasKey("content"): evNode["content"] else: newJObject()
             )
             room.timeline.add(ev)
-            if ev.stateKey.len > 0:
+            if isStateEventForStorage(ev.eventType, ev.stateKey):
               room.stateByKey[stateKey(ev.eventType, ev.stateKey)] = ev
             if ev.streamPos > result.streamPos:
               result.streamPos = ev.streamPos
@@ -769,6 +846,46 @@ proc parseRegistrationYaml(content: string): Option[AppserviceRegistration] =
   if reg.id.len == 0 or reg.url.len == 0 or reg.asToken.len == 0 or reg.hsToken.len == 0:
     return none(AppserviceRegistration)
   some(reg)
+
+proc appservicePingResponseForRegs(
+    registrations: openArray[AppserviceRegistration],
+    registrationId: string,
+    accessToken: string
+): tuple[code: HttpCode, payload: JsonNode] =
+  let normalizedId = registrationId.strip()
+  if normalizedId.len == 0:
+    return (Http404, matrixError("M_NOT_FOUND", "Unknown appservice."))
+
+  var reg = AppserviceRegistration()
+  var found = false
+  for candidate in registrations:
+    if candidate.id == normalizedId:
+      reg = candidate
+      found = true
+      break
+  if not found:
+    return (Http404, matrixError("M_NOT_FOUND", "Unknown appservice."))
+
+  let token = accessToken.strip()
+  if token.len == 0:
+    return (Http401, matrixError("M_MISSING_TOKEN", "Missing access token."))
+  if token != reg.asToken:
+    return (Http401, matrixError("M_UNKNOWN_TOKEN", "Unknown access token."))
+
+  (Http200, %*{"duration_ms": 0})
+
+proc appservicePingTestResponse*(
+    registrationYamls: seq[string],
+    registrationId: string,
+    accessToken: string
+): tuple[status: int, payload: JsonNode] =
+  var registrations: seq[AppserviceRegistration] = @[]
+  for yamlSnippet in registrationYamls:
+    let parsed = parseRegistrationYaml(yamlSnippet)
+    if parsed.isSome:
+      registrations.add(parsed.get())
+  let response = appservicePingResponseForRegs(registrations, registrationId, accessToken)
+  (response.code.int, response.payload)
 
 proc extractEmbeddedYaml(adminEntry: string): seq[string] =
   result = @[]
@@ -906,6 +1023,123 @@ proc removeAllTokensForUser(state: ServerState; userId: string) =
 proc membershipContent(status: string): JsonNode =
   %*{"membership": status}
 
+proc appendEventLocked(
+    state: ServerState;
+    roomId, sender, eventType, stateKeyValue: string;
+    content: JsonNode
+): MatrixEventRecord {.gcsafe.}
+
+proc isStateEventForStorage(eventType, stateKeyValue: string): bool =
+  if stateKeyValue.len > 0:
+    return true
+  eventType in [
+    "m.room.create",
+    "m.room.power_levels",
+    "m.room.name",
+    "m.room.topic",
+    "m.room.avatar",
+    "m.room.join_rules",
+    "m.room.encryption",
+    "m.room.history_visibility",
+    "m.room.guest_access"
+  ]
+
+proc defaultPowerLevelsContent(ownerUserId: string): JsonNode =
+  var users = newJObject()
+  if ownerUserId.len > 0:
+    users[ownerUserId] = %100
+  %*{
+    "users": users,
+    "users_default": 0,
+    "events_default": 0,
+    "state_default": 50,
+    "ban": 50,
+    "kick": 50,
+    "redact": 50,
+    "invite": 0
+  }
+
+proc defaultJoinRulesContent(): JsonNode =
+  %*{"join_rule": "invite"}
+
+proc resolveRoomStateOwnerUserId(room: RoomData; fallbackUserId: string): string =
+  result = room.creator
+  if result.len == 0:
+    result = fallbackUserId
+  if result.len == 0:
+    for userId, membership in room.members:
+      if membership == "join":
+        result = userId
+        break
+
+proc ensureDefaultPowerLevelsLocked(
+    state: ServerState;
+    roomId: string;
+    fallbackUserId: string
+): bool {.gcsafe.} =
+  if roomId notin state.rooms:
+    return false
+  let key = stateKey("m.room.power_levels", "")
+  if key in state.rooms[roomId].stateByKey:
+    return false
+
+  let room = state.rooms[roomId]
+  for ev in room.timeline:
+    if ev.eventType == "m.room.power_levels":
+      var repairedRoom = room
+      repairedRoom.stateByKey[key] = ev
+      state.rooms[roomId] = repairedRoom
+      return true
+
+  let ownerUserId = resolveRoomStateOwnerUserId(room, fallbackUserId)
+
+  discard state.appendEventLocked(
+    roomId,
+    if ownerUserId.len > 0: ownerUserId else: fallbackUserId,
+    "m.room.power_levels",
+    "",
+    defaultPowerLevelsContent(ownerUserId)
+  )
+  true
+
+proc ensureDefaultJoinRulesLocked(
+    state: ServerState;
+    roomId: string;
+    fallbackUserId: string
+): bool {.gcsafe.} =
+  if roomId notin state.rooms:
+    return false
+  let key = stateKey("m.room.join_rules", "")
+  if key in state.rooms[roomId].stateByKey:
+    return false
+
+  let room = state.rooms[roomId]
+  for ev in room.timeline:
+    if ev.eventType == "m.room.join_rules":
+      var repairedRoom = room
+      repairedRoom.stateByKey[key] = ev
+      state.rooms[roomId] = repairedRoom
+      return true
+
+  let ownerUserId = resolveRoomStateOwnerUserId(room, fallbackUserId)
+  discard state.appendEventLocked(
+    roomId,
+    if ownerUserId.len > 0: ownerUserId else: fallbackUserId,
+    "m.room.join_rules",
+    "",
+    defaultJoinRulesContent()
+  )
+  true
+
+proc ensureDefaultRoomStateLocked(
+    state: ServerState;
+    roomId: string;
+    fallbackUserId: string
+): bool {.gcsafe.} =
+  let repairedPowerLevels = state.ensureDefaultPowerLevelsLocked(roomId, fallbackUserId)
+  let repairedJoinRules = state.ensureDefaultJoinRulesLocked(roomId, fallbackUserId)
+  repairedPowerLevels or repairedJoinRules
+
 proc ensureRoomJoinedSet(state: ServerState; userId: string) =
   if userId notin state.userJoinedRooms:
     state.userJoinedRooms[userId] = initHashSet[string]()
@@ -922,7 +1156,7 @@ proc appendEventLocked(
     state: ServerState;
     roomId, sender, eventType, stateKeyValue: string;
     content: JsonNode
-): MatrixEventRecord =
+): MatrixEventRecord {.gcsafe.} =
   if roomId notin state.rooms:
     state.rooms[roomId] = RoomData(
       roomId: roomId,
@@ -946,7 +1180,7 @@ proc appendEventLocked(
     content: content
   )
   room.timeline.add(ev)
-  if stateKeyValue.len > 0:
+  if isStateEventForStorage(eventType, stateKeyValue):
     room.stateByKey[stateKey(eventType, stateKeyValue)] = ev
   if eventType == "m.room.member" and stateKeyValue.len > 0:
     let membership = content{"membership"}.getStr("")
@@ -1036,6 +1270,28 @@ proc roomStateArray(room: RoomData): JsonNode =
   for ev in allState:
     entries.add(ev.eventToJson())
   entries
+
+proc roomMembersArray(room: RoomData): JsonNode =
+  var entries = newJArray()
+  var allState: seq[MatrixEventRecord] = @[]
+  for _, ev in room.stateByKey:
+    if ev.eventType == "m.room.member":
+      allState.add(ev)
+  allState.sort(proc(a, b: MatrixEventRecord): int = cmp(a.streamPos, b.streamPos))
+  for ev in allState:
+    entries.add(ev.eventToJson())
+  entries
+
+proc joinedMembersPayload(state: ServerState; room: RoomData): JsonNode =
+  result = %*{"joined": newJObject()}
+  for userId, membership in room.members:
+    if membership != "join":
+      continue
+    let user = state.users.getOrDefault(userId, UserProfile())
+    result["joined"][userId] = %*{
+      "display_name": user.displayName,
+      "avatar_url": user.avatarUrl
+    }
 
 proc resolveRoomByJoinTarget(state: ServerState; roomIdOrAlias: string): string =
   if roomIdOrAlias in state.rooms:
@@ -1229,10 +1485,18 @@ proc isMediaConfigOrDownloadPath(path: string): bool =
   path == "/_matrix/media/v3/config" or
     path.startsWith("/_matrix/media/v3/download/") or
     path.startsWith("/_matrix/media/v3/thumbnail/") or
+    path == "/_matrix/client/v1/media/config" or
+    path.startsWith("/_matrix/client/v1/media/download/") or
     path == "/_matrix/media/r0/config" or
     path.startsWith("/_matrix/media/r0/download/") or
     path.startsWith("/_matrix/media/r0/thumbnail/") or
     path.startsWith("/_matrix/media/v1/")
+
+proc isMediaUploadPath(path: string): bool =
+  path == "/_matrix/media/v3/upload" or
+    path == "/_matrix/media/v1/upload" or
+    path == "/_matrix/media/r0/upload" or
+    path == "/_matrix/client/v1/media/upload"
 
 proc isMediaPreviewPath(path: string): bool =
   path.startsWith("/_matrix/media/v3/preview_url") or
@@ -1354,6 +1618,29 @@ proc roomIdFromRoomsPath(path, suffix: string): string =
   if segments.len < 2:
     return ""
   decodePath(segments[1])
+
+proc mediaDownloadParts(path: string): tuple[ok: bool, mediaId: string] =
+  let normalized = path.strip()
+  let markers = [
+    "/_matrix/media/v3/download/",
+    "/_matrix/media/r0/download/",
+    "/_matrix/media/v1/download/",
+    "/_matrix/client/v1/media/download/"
+  ]
+  var tail = ""
+  for marker in markers:
+    if normalized.startsWith(marker):
+      tail = normalized[marker.len .. ^1]
+      break
+  if tail.len == 0:
+    return (false, "")
+  let parts = tail.split("/")
+  if parts.len < 2:
+    return (false, "")
+  let mediaId = decodeUrl(parts[1])
+  if mediaId.len == 0:
+    return (false, "")
+  (true, mediaId)
 
 proc roomAndSendFromPath(path: string): tuple[roomId: string, eventType: string, txnId: string] =
   let trimmed = trimClientPath(path)
@@ -1729,6 +2016,66 @@ proc runNativeServer(cfg: LoadedConfig): int =
       await respondJson(req, Http200, buildCapabilitiesPayload())
       return
 
+    if path == "/_matrix/media/v3/config" or
+        path == "/_matrix/media/r0/config" or
+        path == "/_matrix/client/v1/media/config":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"m.upload.size": 52_428_800})
+      return
+
+    if isMediaUploadPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      let contentType =
+        if req.headers.hasKey("Content-Type"):
+          req.headers["Content-Type"].split(";", maxsplit = 1)[0].strip()
+        else:
+          "application/octet-stream"
+      let fileName = queryParam(req, "filename")
+      var mediaId = ""
+      withLock state.lock:
+        mediaId = state.storeUploadedMedia(req.body, contentType, fileName)
+      await respondJson(
+        req,
+        Http200,
+        %*{"content_uri": "mxc://" & serverName & "/" & mediaId}
+      )
+      return
+
+    let mediaDownload = mediaDownloadParts(path)
+    if mediaDownload.ok:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let mediaPath = mediaDataPath(state.statePath, mediaDownload.mediaId)
+      if not fileExists(mediaPath):
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Media not found."))
+        return
+      let meta = loadStoredMediaMeta(state, mediaDownload.mediaId)
+      await respondRaw(
+        req,
+        Http200,
+        readFile(mediaPath),
+        contentType = meta.contentType,
+        cacheControl = "public, max-age=31536000, immutable"
+      )
+      return
+
     if isSyncPath(path):
       if req.reqMethod != HttpGet:
         await methodNotAllowed(req)
@@ -1770,6 +2117,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
 
             var stateEvents = newJArray()
             if fullState or sincePos == 0:
+              discard state.ensureDefaultRoomStateLocked(roomId, resolved.session.userId)
               var allState: seq[MatrixEventRecord] = @[]
               for _, stateEv in room.stateByKey:
                 allState.add(stateEv)
@@ -1854,6 +2202,24 @@ proc runNativeServer(cfg: LoadedConfig): int =
             createPayload[key] = val
           let evCreate = state.appendEventLocked(createdRoom, resolved.session.userId, "m.room.create", "", createPayload)
           state.enqueueEventDeliveries(evCreate)
+
+          let evPowerLevels = state.appendEventLocked(
+            createdRoom,
+            resolved.session.userId,
+            "m.room.power_levels",
+            "",
+            %*{
+              "users": {resolved.session.userId: 100},
+              "users_default": 0,
+              "events_default": 0,
+              "state_default": 50,
+              "ban": 50,
+              "kick": 50,
+              "redact": 50,
+              "invite": 0
+            }
+          )
+          state.enqueueEventDeliveries(evPowerLevels)
 
           let evMember = state.appendEventLocked(
             createdRoom,
@@ -1952,6 +2318,35 @@ proc runNativeServer(cfg: LoadedConfig): int =
       await respondJson(req, Http200, %*{"room_id": resolvedRoom})
       return
 
+    let joinRoomById = roomIdFromRoomsPath(path, "join")
+    if joinRoomById.len > 0:
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and joinRoomById in state.rooms:
+          foundRoom = true
+          let ev = state.appendEventLocked(
+            joinRoomById,
+            resolved.session.userId,
+            "m.room.member",
+            resolved.session.userId,
+            membershipContent("join")
+          )
+          state.enqueueEventDeliveries(ev)
+          state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, %*{"room_id": joinRoomById})
+      return
+
     let inviteRoom = roomIdFromRoomsPath(path, "invite")
     if inviteRoom.len > 0:
       if req.reqMethod != HttpPost:
@@ -2029,6 +2424,125 @@ proc runNativeServer(cfg: LoadedConfig): int =
       await respondJson(req, Http200, %*{})
       return
 
+    let joinedMembersRoom = roomIdFromRoomsPath(path, "joined_members")
+    if joinedMembersRoom.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      var payload = %*{"joined": newJObject()}
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and joinedMembersRoom in state.rooms:
+          if resolved.session.isAppservice or state.roomJoinedForUser(joinedMembersRoom, resolved.session.userId):
+            foundRoom = true
+            payload = joinedMembersPayload(state, state.rooms[joinedMembersRoom])
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    let membersRoom = roomIdFromRoomsPath(path, "members")
+    if membersRoom.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      var payload = %*{"chunk": newJArray()}
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and membersRoom in state.rooms:
+          if resolved.session.isAppservice or state.roomJoinedForUser(membersRoom, resolved.session.userId):
+            foundRoom = true
+            payload = %*{"chunk": roomMembersArray(state.rooms[membersRoom])}
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    let messagesRoom = roomIdFromRoomsPath(path, "messages")
+    if messagesRoom.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let dir = queryParam(req, "dir").strip().toLowerAscii()
+      if dir notin ["", "b", "f"]:
+        await respondJson(req, Http400, matrixError("M_INVALID_PARAM", "dir must be 'b' or 'f'."))
+        return
+      var limit = 25
+      let limitRaw = queryParam(req, "limit")
+      if limitRaw.len > 0:
+        try:
+          limit = max(1, min(200, parseInt(limitRaw)))
+        except ValueError:
+          discard
+
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      var payload = %*{
+        "chunk": newJArray(),
+        "start": "",
+        "end": ""
+      }
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and messagesRoom in state.rooms:
+          if resolved.session.isAppservice or state.roomJoinedForUser(messagesRoom, resolved.session.userId):
+            foundRoom = true
+            let room = state.rooms[messagesRoom]
+            let fromToken = queryParam(req, "from")
+            var fromPos = parseSinceToken(fromToken)
+            if fromPos <= 0:
+              if room.timeline.len > 0:
+                fromPos = room.timeline[^1].streamPos + 1
+              else:
+                fromPos = state.streamPos + 1
+
+            var chunk = newJArray()
+            if dir == "" or dir == "b":
+              var endPos = 0'i64
+              for idx in countdown(room.timeline.high, 0):
+                let ev = room.timeline[idx]
+                if ev.streamPos >= fromPos:
+                  continue
+                chunk.add(ev.eventToJson())
+                endPos = ev.streamPos
+                if chunk.len >= limit:
+                  break
+              payload["chunk"] = chunk
+              payload["start"] = %encodeSinceToken(fromPos)
+              payload["end"] = %(if endPos > 0: encodeSinceToken(endPos) else: "")
+            else:
+              var endPos = 0'i64
+              for ev in room.timeline:
+                if ev.streamPos <= fromPos:
+                  continue
+                chunk.add(ev.eventToJson())
+                endPos = ev.streamPos
+                if chunk.len >= limit:
+                  break
+              payload["chunk"] = chunk
+              payload["start"] = %encodeSinceToken(fromPos)
+              payload["end"] = %(if endPos > 0: encodeSinceToken(endPos) else: "")
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
     if path.endsWith("/state") and (path.startsWith("/_matrix/client/v3/rooms/") or path.startsWith("/_matrix/client/r0/rooms/")):
       if req.reqMethod != HttpGet:
         await methodNotAllowed(req)
@@ -2042,6 +2556,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         if resolved.ok and roomId in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(roomId, resolved.session.userId):
             foundRoom = true
+            discard state.ensureDefaultRoomStateLocked(roomId, resolved.session.userId)
             payload = roomStateArray(state.rooms[roomId])
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
@@ -2068,6 +2583,8 @@ proc runNativeServer(cfg: LoadedConfig): int =
           if resolved.ok and stateParts.roomId in state.rooms:
             if resolved.session.isAppservice or state.roomJoinedForUser(stateParts.roomId, resolved.session.userId):
               roomOk = true
+              if stateParts.eventType in ["m.room.power_levels", "m.room.join_rules"]:
+                discard state.ensureDefaultRoomStateLocked(stateParts.roomId, resolved.session.userId)
               let room = state.rooms[stateParts.roomId]
               let key = stateKey(stateParts.eventType, stateParts.stateKeyValue)
               if key in room.stateByKey:
@@ -2222,49 +2739,23 @@ proc runNativeServer(cfg: LoadedConfig): int =
       await respondJson(req, Http200, versionsResponse())
       return
 
+    if isAppservicePingPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let registrationId = extractAppservicePingRegistrationId(path)
+      let response = appservicePingResponseForRegs(
+        state.appserviceRegs,
+        registrationId,
+        queryAccessToken(req)
+      )
+      await respondJson(req, response.code, response.payload)
+      return
+
     if path == "/_matrix/client/v3/login" or path == "/_matrix/client/r0/login":
       if req.reqMethod == HttpGet:
         await respondJson(req, Http200, loginTypesResponse())
         return
-
-    if isSyncPath(path):
-      if req.reqMethod != HttpGet:
-        await methodNotAllowed(req)
-        return
-      if not tokenPresent:
-        await respondJson(req, Http401, matrixError("M_MISSING_TOKEN", "Missing access token."))
-        return
-
-      var timeoutMs = syncTimeoutDefault
-      let timeoutRaw = queryParam(req, "timeout")
-      if timeoutRaw.len > 0:
-        try:
-          timeoutMs = parseInt(timeoutRaw)
-        except ValueError:
-          discard
-      timeoutMs = max(syncTimeoutMin, min(syncTimeoutMax, timeoutMs))
-      if timeoutMs > 0:
-        await sleepAsync(timeoutMs)
-
-      let sinceToken = queryParam(req, "since")
-      let nextBatch = nextSyncBatchToken(sinceToken)
-      await respondJson(req, Http200, %*{
-        "next_batch": nextBatch,
-        "rooms": {
-          "join": {},
-          "invite": {},
-          "leave": {},
-        },
-        "presence": {
-          "events": [],
-        },
-        "to_device": {
-          "events": [],
-        },
-        "device_one_time_keys_count": {},
-        "device_unused_fallback_key_types": [],
-      })
-      return
 
     if isRegisterAvailablePath(path):
       if req.reqMethod != HttpGet:
