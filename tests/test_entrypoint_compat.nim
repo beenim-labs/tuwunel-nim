@@ -174,3 +174,22 @@ suite "entrypoint compat helpers":
 
   test "entrypoint handles room messages path":
     check "roomIdFromRoomsPath(path, \"messages\")" in EntrypointSource
+
+  test "appservice delivery uses bearer auth instead of query token":
+    let delivery = AppserviceDelivery(
+      registrationId: "whatsapp",
+      registrationUrl: "http://127.0.0.1:29336",
+      hsToken: "hs-secret",
+      txnId: "t123",
+      payload: %*{"events": []},
+      attempt: 0
+    )
+
+    let url = appserviceDeliveryUrl(delivery)
+    let headers = appserviceDeliveryHeaders(delivery)
+
+    check url == "http://127.0.0.1:29336/_matrix/app/v1/transactions/t123"
+    check "access_token=" notin url
+    check headers.hasKey("Authorization")
+    check headers["Authorization"] == "Bearer hs-secret"
+    check headers["Content-Type"] == "application/json"

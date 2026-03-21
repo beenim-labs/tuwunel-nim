@@ -447,6 +447,12 @@ type
     payload: JsonNode
     attempt: int
 
+  AppserviceDeliveryResult = object
+    ok: bool
+    statusCode: int
+    responseBody: string
+    errorMessage: string
+
   ServerState = ref object
     lock: Lock
     statePath: string
@@ -1353,22 +1359,47 @@ proc computeRetryDelayMs(state: ServerState; attempt: int): int =
   let raw = state.deliveryBaseMs * (1 shl exp)
   min(raw, state.deliveryMaxMs)
 
-proc sendDelivery(delivery: AppserviceDelivery): Future[bool] {.async.} =
-  let url = pathJoin(delivery.registrationUrl, "/_matrix/app/v1/transactions/" & encodeUrl(delivery.txnId)) &
-            "?access_token=" & encodeUrl(delivery.hsToken)
+proc appserviceDeliveryUrl(delivery: AppserviceDelivery): string =
+  pathJoin(delivery.registrationUrl, "/_matrix/app/v1/transactions/" & encodeUrl(delivery.txnId))
+
+proc appserviceDeliveryHeaders(delivery: AppserviceDelivery): HttpHeaders =
+  newHttpHeaders({
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " & delivery.hsToken
+  })
+
+proc summarizeDeliveryResponse(body: string; maxLen = 240): string =
+  let normalized = body.strip().replace("\n", "\\n")
+  if normalized.len <= maxLen:
+    return normalized
+  normalized[0 ..< maxLen] & "..."
+
+proc sendDelivery(delivery: AppserviceDelivery): Future[AppserviceDeliveryResult] {.async.} =
+  let url = appserviceDeliveryUrl(delivery)
   let client = newAsyncHttpClient()
   defer:
     client.close()
-  client.headers = newHttpHeaders({"Content-Type": "application/json"})
+  client.headers = appserviceDeliveryHeaders(delivery)
   try:
     let response = await client.request(
       url,
       httpMethod = HttpPut,
       body = $delivery.payload
     )
-    return response.code.int >= 200 and response.code.int < 300
-  except CatchableError:
-    return false
+    let responseBody = await response.body
+    result = AppserviceDeliveryResult(
+      ok: response.code.int >= 200 and response.code.int < 300,
+      statusCode: response.code.int,
+      responseBody: responseBody,
+      errorMessage: ""
+    )
+  except CatchableError as e:
+    result = AppserviceDeliveryResult(
+      ok: false,
+      statusCode: 0,
+      responseBody: "",
+      errorMessage: e.msg
+    )
 
 proc retryDeliveryLater(state: ServerState; delivery: AppserviceDelivery; delayMs: int): Future[void] {.async.} =
   if delayMs > 0:
@@ -1397,8 +1428,8 @@ proc runDeliveryLoop(state: ServerState): Future[void] {.async.} =
     if shouldStop:
       return
 
-    let ok = await sendDelivery(next)
-    if ok:
+    let deliveryResult = await sendDelivery(next)
+    if deliveryResult.ok:
       withLock state.lock:
         inc state.deliverySent
         dec state.deliveryInFlight
@@ -1411,8 +1442,25 @@ proc runDeliveryLoop(state: ServerState): Future[void] {.async.} =
       dec state.deliveryInFlight
       if retry.attempt >= state.deliveryMaxAttempts:
         inc state.deliveryDeadLetters
+        let detail =
+          if deliveryResult.statusCode > 0:
+            " status=" & $deliveryResult.statusCode &
+              " body=" & summarizeDeliveryResponse(deliveryResult.responseBody)
+          else:
+            " err=" & deliveryResult.errorMessage
+        warn("Appservice delivery dead-lettered registration=" & next.registrationId &
+          " txn=" & next.txnId & " attempts=" & $retry.attempt & detail)
       else:
         let delay = state.computeRetryDelayMs(retry.attempt)
+        let detail =
+          if deliveryResult.statusCode > 0:
+            " status=" & $deliveryResult.statusCode &
+              " body=" & summarizeDeliveryResponse(deliveryResult.responseBody)
+          else:
+            " err=" & deliveryResult.errorMessage
+        warn("Appservice delivery failed registration=" & next.registrationId &
+          " txn=" & next.txnId & " attempt=" & $retry.attempt &
+          " retry_in_ms=" & $delay & detail)
         asyncCheck state.retryDeliveryLater(retry, delay)
 
 proc routeNeedsFederationAuth(routeName: string): bool =
