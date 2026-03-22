@@ -126,6 +126,41 @@ suite "entrypoint compat helpers":
     )
     check stateKey("m.room.power_levels", "") in state.rooms["!room:localhost"].stateByKey
 
+  test "appendEventLocked stores top-level redacts for redaction events":
+    let statePath = getTempDir() / "tuwunel-entrypoint-redact.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+
+    let ev = state.appendEventLocked(
+      "!room:localhost",
+      "@creator:localhost",
+      "m.room.redaction",
+      "",
+      %*{
+        "reason": "Removed in Beenim",
+        "delete_for_everyone": true,
+        "redacts": "$target"
+      },
+      redacts = "$target"
+    )
+
+    check ev.redacts == "$target"
+    let payload = ev.eventToJson()
+    check payload["redacts"].getStr("") == "$target"
+    check payload["content"]["redacts"].getStr("") == "$target"
+
+  test "roomAndRedactFromPath parses client redaction routes":
+    let parsedV3 = roomAndRedactFromPath("/_matrix/client/v3/rooms/%21room%3Alocalhost/redact/%24evt1/txn123")
+    check parsedV3.roomId == "!room:localhost"
+    check parsedV3.eventId == "$evt1"
+    check parsedV3.txnId == "txn123"
+
+    let parsedR0 = roomAndRedactFromPath("/_matrix/client/r0/rooms/%21room%3Alocalhost/redact/%24evt2/txn456")
+    check parsedR0.roomId == "!room:localhost"
+    check parsedR0.eventId == "$evt2"
+    check parsedR0.txnId == "txn456"
+
   test "ensureDefaultPowerLevelsLocked repairs existing rooms":
     let statePath = getTempDir() / "tuwunel-entrypoint-power-repair.json"
     var state = newCompatState(statePath)
@@ -193,3 +228,47 @@ suite "entrypoint compat helpers":
     check headers.hasKey("Authorization")
     check headers["Authorization"] == "Bearer hs-secret"
     check headers["Content-Type"] == "application/json"
+
+  test "appservice delivery payload includes top-level redacts":
+    let statePath = getTempDir() / "tuwunel-entrypoint-redact-delivery.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+
+    state.rooms["!room:localhost"] = RoomData(
+      roomId: "!room:localhost",
+      creator: "@creator:localhost",
+      isDirect: true,
+      members: {
+        "@creator:localhost": "join",
+        "@whatsapp_46707749265:localhost": "join"
+      }.toTable,
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    state.appserviceRegs = @[
+      AppserviceRegistration(
+        id: "whatsapp",
+        url: "http://127.0.0.1:29336",
+        asToken: "as-secret",
+        hsToken: "hs-secret",
+        senderLocalpart: "whatsappbot",
+        userRegexes: @["^@whatsapp_.*:localhost$"],
+        aliasRegexes: @[]
+      )
+    ]
+
+    let ev = state.appendEventLocked(
+      "!room:localhost",
+      "@creator:localhost",
+      "m.room.redaction",
+      "",
+      %*{"reason": "Removed in Beenim", "redacts": "$target"},
+      redacts = "$target"
+    )
+    state.enqueueEventDeliveries(ev)
+
+    check state.pendingDeliveries.len == 1
+    let delivered = state.pendingDeliveries[0].payload["events"][0]
+    check delivered["type"].getStr("") == "m.room.redaction"
+    check delivered["redacts"].getStr("") == "$target"

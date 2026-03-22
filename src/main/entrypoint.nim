@@ -419,6 +419,7 @@ type
     sender: string
     eventType: string
     stateKey: string
+    redacts: string
     originServerTs: int64
     content: JsonNode
 
@@ -615,6 +616,8 @@ proc eventToJson(ev: MatrixEventRecord): JsonNode =
   }
   if ev.stateKey.len > 0:
     result["state_key"] = %ev.stateKey
+  if ev.redacts.len > 0:
+    result["redacts"] = %ev.redacts
 
 proc toPersistentJson(state: ServerState): JsonNode =
   var root = newJObject()
@@ -660,6 +663,7 @@ proc toPersistentJson(state: ServerState): JsonNode =
         "sender": ev.sender,
         "type": ev.eventType,
         "state_key": ev.stateKey,
+        "redacts": ev.redacts,
         "origin_server_ts": ev.originServerTs,
         "content": ev.content
       })
@@ -785,6 +789,13 @@ proc loadPersistentState(path: string): tuple[
               sender: evNode{"sender"}.getStr(""),
               eventType: evNode{"type"}.getStr(""),
               stateKey: evNode{"state_key"}.getStr(""),
+              redacts:
+                block:
+                  let topLevel = evNode{"redacts"}.getStr("")
+                  if topLevel.len > 0:
+                    topLevel
+                  else:
+                    evNode{"content"}{"redacts"}.getStr(""),
               originServerTs: evNode{"origin_server_ts"}.getInt(0).int64,
               content: if evNode.hasKey("content"): evNode["content"] else: newJObject()
             )
@@ -1032,7 +1043,8 @@ proc membershipContent(status: string): JsonNode =
 proc appendEventLocked(
     state: ServerState;
     roomId, sender, eventType, stateKeyValue: string;
-    content: JsonNode
+    content: JsonNode;
+    redacts = ""
 ): MatrixEventRecord {.gcsafe.}
 
 proc isStateEventForStorage(eventType, stateKeyValue: string): bool =
@@ -1161,7 +1173,8 @@ proc applyMembership(state: ServerState; room: var RoomData; userId, membership:
 proc appendEventLocked(
     state: ServerState;
     roomId, sender, eventType, stateKeyValue: string;
-    content: JsonNode
+    content: JsonNode;
+    redacts = ""
 ): MatrixEventRecord {.gcsafe.} =
   if roomId notin state.rooms:
     state.rooms[roomId] = RoomData(
@@ -1182,6 +1195,7 @@ proc appendEventLocked(
     sender: sender,
     eventType: eventType,
     stateKey: stateKeyValue,
+    redacts: redacts,
     originServerTs: nowMs(),
     content: content
   )
@@ -1345,6 +1359,11 @@ proc enqueueEventDeliveries(state: ServerState; ev: MatrixEventRecord) =
     let payload = %*{
       "events": [ev.eventToJson()]
     }
+    if ev.eventType == "m.room.redaction":
+      info("Appservice redaction enqueue registration=" & reg.id &
+        " room_id=" & ev.roomId &
+        " event_id=" & ev.eventId &
+        " redacts=" & ev.redacts)
     state.pendingDeliveries.add(AppserviceDelivery(
       registrationId: reg.id,
       registrationUrl: reg.url,
@@ -1433,6 +1452,13 @@ proc runDeliveryLoop(state: ServerState): Future[void] {.async.} =
       withLock state.lock:
         inc state.deliverySent
         dec state.deliveryInFlight
+      let evt = next.payload{"events"}[0]
+      if evt.kind == JObject and evt{"type"}.getStr("") == "m.room.redaction":
+        info("Appservice redaction delivered registration=" & next.registrationId &
+          " txn=" & next.txnId &
+          " room_id=" & evt{"room_id"}.getStr("") &
+          " event_id=" & evt{"event_id"}.getStr("") &
+          " redacts=" & evt{"redacts"}.getStr(evt{"content"}{"redacts"}.getStr("")))
       continue
 
     var retry = next
@@ -1698,6 +1724,21 @@ proc roomAndSendFromPath(path: string): tuple[roomId: string, eventType: string,
   if segments.len < 5:
     return ("", "", "")
   if segments[2] != "send":
+    return ("", "", "")
+  (
+    decodePath(segments[1]),
+    decodePath(segments[3]),
+    decodePath(segments[4])
+  )
+
+proc roomAndRedactFromPath(path: string): tuple[roomId: string, eventId: string, txnId: string] =
+  let trimmed = trimClientPath(path)
+  if not trimmed.startsWith("rooms/"):
+    return ("", "", "")
+  let segments = trimmed.split('/')
+  if segments.len < 5:
+    return ("", "", "")
+  if segments[2] != "redact":
     return ("", "", "")
   (
     decodePath(segments[1]),
@@ -2698,12 +2739,56 @@ proc runNativeServer(cfg: LoadedConfig): int =
         if resolved.ok and sendParts.roomId in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(sendParts.roomId, resolved.session.userId):
             roomOk = true
+            let redacts =
+              if sendParts.eventType == "m.room.redaction":
+                parsed.value{"redacts"}.getStr("")
+              else:
+                ""
             let ev = state.appendEventLocked(
               sendParts.roomId,
               resolved.session.userId,
               sendParts.eventType,
               "",
-              parsed.value
+              parsed.value,
+              redacts = redacts
+            )
+            sentEventId = ev.eventId
+            state.enqueueEventDeliveries(ev)
+            state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not roomOk:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, %*{"event_id": sentEventId})
+      return
+
+    let redactParts = roomAndRedactFromPath(path)
+    if redactParts.roomId.len > 0:
+      if req.reqMethod != HttpPut:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      parsed.value["redacts"] = %redactParts.eventId
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var sentEventId = ""
+      var roomOk = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and redactParts.roomId in state.rooms:
+          if resolved.session.isAppservice or state.roomJoinedForUser(redactParts.roomId, resolved.session.userId):
+            roomOk = true
+            let ev = state.appendEventLocked(
+              redactParts.roomId,
+              resolved.session.userId,
+              "m.room.redaction",
+              "",
+              parsed.value,
+              redacts = redactParts.eventId
             )
             sentEventId = ev.eventId
             state.enqueueEventDeliveries(ev)
