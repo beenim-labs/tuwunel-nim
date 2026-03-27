@@ -113,22 +113,59 @@ proc versionsResponse(): JsonNode =
     }
   }
 
-proc isAppservicePingPath(path: string): bool =
-  path.startsWith("/_matrix/client/v1/appservice/") and path.endsWith("/ping")
+proc normalizeAppservicePingPath(path: string): string =
+  result = path.strip()
+  while result.len > 1 and result.endsWith("/"):
+    result.setLen(result.len - 1)
 
-proc extractAppservicePingRegistrationId(path: string): string =
+proc looksLikeAppservicePingPath(path: string): bool =
+  let normalized = normalizeAppservicePingPath(path)
+  normalized.startsWith("/_matrix/client/") and
+    "/appservice/" in normalized and
+    normalized.endsWith("/ping")
+
+proc parseAppservicePingPath*(
+    path: string
+): tuple[ok: bool, registrationId: string, normalizedPath: string] =
   const Prefix = "/_matrix/client/v1/appservice/"
   const Suffix = "/ping"
-  if not isAppservicePingPath(path):
-    return ""
+  result = (false, "", normalizeAppservicePingPath(path))
+  if not result.normalizedPath.startsWith(Prefix) or not result.normalizedPath.endsWith(Suffix):
+    return
   let startIdx = Prefix.len
-  let endIdx = path.len - Suffix.len
+  let endIdx = result.normalizedPath.len - Suffix.len
   if endIdx <= startIdx:
-    return ""
-  let raw = path[startIdx ..< endIdx]
+    return
+  let raw = result.normalizedPath[startIdx ..< endIdx]
   if raw.len == 0 or '/' in raw:
-    return ""
-  decodeUrl(raw)
+    return
+  try:
+    result.registrationId = decodeUrl(raw)
+    result.ok = result.registrationId.len > 0
+  except CatchableError:
+    discard
+
+proc isAppservicePingPath*(path: string): bool =
+  parseAppservicePingPath(path).ok
+
+proc extractAppservicePingRegistrationId*(path: string): string =
+  parseAppservicePingPath(path).registrationId
+
+proc logRejectedAppservicePing(
+    reqMethod: HttpMethod,
+    path: string,
+    registrationId: string,
+    authPresent: bool,
+    reason: string
+) =
+  debug(
+    "Rejected appservice ping" &
+    " method=" & $reqMethod &
+    " path=" & path &
+    " registration_id=" & (if registrationId.len > 0: registrationId else: "-") &
+    " auth_present=" & (if authPresent: "1" else: "0") &
+    " reason=" & reason
+  )
 
 proc loginTypesResponse(): JsonNode =
   %*{
@@ -868,10 +905,10 @@ proc appservicePingResponseForRegs(
     registrations: openArray[AppserviceRegistration],
     registrationId: string,
     accessToken: string
-): tuple[code: HttpCode, payload: JsonNode] =
+): tuple[code: HttpCode, payload: JsonNode, rejectionReason: string] =
   let normalizedId = registrationId.strip()
   if normalizedId.len == 0:
-    return (Http404, matrixError("M_NOT_FOUND", "Unknown appservice."))
+    return (Http404, matrixError("M_NOT_FOUND", "Unknown appservice."), "missing_registration_id")
 
   var reg = AppserviceRegistration()
   var found = false
@@ -881,15 +918,15 @@ proc appservicePingResponseForRegs(
       found = true
       break
   if not found:
-    return (Http404, matrixError("M_NOT_FOUND", "Unknown appservice."))
+    return (Http404, matrixError("M_NOT_FOUND", "Unknown appservice."), "unknown_registration")
 
   let token = accessToken.strip()
   if token.len == 0:
-    return (Http401, matrixError("M_MISSING_TOKEN", "Missing access token."))
+    return (Http401, matrixError("M_MISSING_TOKEN", "Missing access token."), "missing_access_token")
   if token != reg.asToken:
-    return (Http401, matrixError("M_UNKNOWN_TOKEN", "Unknown access token."))
+    return (Http401, matrixError("M_UNKNOWN_TOKEN", "Unknown access token."), "invalid_access_token")
 
-  (Http200, %*{"duration_ms": 0})
+  (Http200, %*{"duration_ms": 0}, "")
 
 proc appservicePingTestResponse*(
     registrationYamls: seq[string],
@@ -2872,16 +2909,37 @@ proc runNativeServer(cfg: LoadedConfig): int =
       await respondJson(req, Http200, versionsResponse())
       return
 
-    if isAppservicePingPath(path):
+    let parsedAppservicePing = parseAppservicePingPath(path)
+    if parsedAppservicePing.ok or looksLikeAppservicePingPath(path):
+      let accessToken = queryAccessToken(req)
+      let authPresent = accessToken.strip().len > 0
+      if not parsedAppservicePing.ok:
+        logRejectedAppservicePing(req.reqMethod, path, "", authPresent, "invalid_path")
+        await notFound(req)
+        return
       if req.reqMethod != HttpPost:
+        logRejectedAppservicePing(
+          req.reqMethod,
+          parsedAppservicePing.normalizedPath,
+          parsedAppservicePing.registrationId,
+          authPresent,
+          "method_not_allowed"
+        )
         await methodNotAllowed(req)
         return
-      let registrationId = extractAppservicePingRegistrationId(path)
       let response = appservicePingResponseForRegs(
         state.appserviceRegs,
-        registrationId,
-        queryAccessToken(req)
+        parsedAppservicePing.registrationId,
+        accessToken
       )
+      if response.code != Http200:
+        logRejectedAppservicePing(
+          req.reqMethod,
+          parsedAppservicePing.normalizedPath,
+          parsedAppservicePing.registrationId,
+          authPresent,
+          response.rejectionReason
+        )
       await respondJson(req, response.code, response.payload)
       return
 
