@@ -5,7 +5,7 @@ license       = "Apache-2.0"
 srcDir        = "src"
 bin           = @["tuwunel"]
 
-requires "nim >= 2.3.1"
+requires "nim >= 2.2.10"
 
 task parity_extract, "Extract parity inventory from Rust baseline":
   exec "python3 tools/extract_inventory.py"

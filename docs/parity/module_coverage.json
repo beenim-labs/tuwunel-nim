@@ -1,0 +1,7 @@
+{
+  "mapped": 620,
+  "present": 620,
+  "missing": 0,
+  "missing_paths": [],
+  "note": "Every Rust source path from the tracked baseline has a corresponding Nim module path or generated inventory entry. Behavioral parity is tracked separately."
+}

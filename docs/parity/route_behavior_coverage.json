@@ -1,0 +1,44 @@
+{
+  "summary": {
+    "total_routes": 207,
+    "registered_routes": 207,
+    "behavioral_routes": 55,
+    "fallback_routes": 152
+  },
+  "behavioral_slices": [
+    {
+      "description": "Persisted client appstate routes backed by native Nim state and sync account_data events.",
+      "routes": [
+        "get_filter_route",
+        "create_filter_route",
+        "set_global_account_data_route",
+        "set_room_account_data_route",
+        "get_global_account_data_route",
+        "get_room_account_data_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: filter and account-data path parsers cover stable client routes",
+        "tests/test_entrypoint_compat.nim: account data is persisted and tombstones sync as deltas",
+        "tests/test_entrypoint_compat.nim: filters are persisted per user and filter id"
+      ]
+    },
+    {
+      "description": "Persisted client device-management routes backed by native Nim device metadata and token removal.",
+      "routes": [
+        "get_devices_route",
+        "get_device_route",
+        "update_device_route",
+        "delete_device_route",
+        "delete_devices_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: device path parsers cover collection, detail, and bulk delete",
+        "tests/test_entrypoint_compat.nim: device metadata follows token lifecycle and persists"
+      ]
+    }
+  ],
+  "thresholds": {
+    "all_routes_registered": true,
+    "all_routes_behavioral": false
+  }
+}

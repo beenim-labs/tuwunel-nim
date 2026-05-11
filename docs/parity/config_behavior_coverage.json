@@ -1,0 +1,11 @@
+{
+  "summary": {
+    "total_keys": 308,
+    "default_expected_keys": 302,
+    "default_expected_applied_keys": 302,
+    "missing_expected_keys": 0
+  },
+  "thresholds": {
+    "m2_ready": true
+  }
+}

@@ -183,12 +183,12 @@ proc matrixError(errcode, message: string): JsonNode =
     "error": errcode & ": " & message
   }
 
-proc respondJson(req: Request; code: HttpCode; payload: JsonNode) {.async.} =
+proc respondJson(req: Request; code: HttpCode; payload: JsonNode): Future[void] =
   let headers = newHttpHeaders({
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
   })
-  await req.respond(code, $payload, headers)
+  req.respond(code, $payload, headers)
 
 proc respondRaw(
     req: Request;
@@ -196,12 +196,12 @@ proc respondRaw(
     body: string;
     contentType = "application/octet-stream";
     cacheControl = "no-store"
-) {.async.} =
+): Future[void] =
   let headers = newHttpHeaders({
     "Content-Type": contentType,
     "Cache-Control": cacheControl,
   })
-  await req.respond(code, body, headers)
+  req.respond(code, body, headers)
 
 proc hasAccessToken(req: Request): bool =
   if req.headers.hasKey("Authorization"):
@@ -449,6 +449,13 @@ type
     displayName: string
     avatarUrl: string
 
+  DeviceRecord = object
+    userId: string
+    deviceId: string
+    displayName: string
+    lastSeenIp: string
+    lastSeenTs: int64
+
   MatrixEventRecord = object
     streamPos: int64
     eventId: string
@@ -458,6 +465,13 @@ type
     stateKey: string
     redacts: string
     originServerTs: int64
+    content: JsonNode
+
+  AccountDataRecord = object
+    streamPos: int64
+    userId: string
+    roomId: string
+    eventType: string
     content: JsonNode
 
   RoomData = object
@@ -502,7 +516,10 @@ type
     users: Table[string, UserProfile]
     tokens: Table[string, AccessSession]
     userTokens: Table[string, seq[string]]
+    devices: Table[string, DeviceRecord]
     rooms: Table[string, RoomData]
+    accountData: Table[string, AccountDataRecord]
+    filters: Table[string, JsonNode]
     userJoinedRooms: Table[string, HashSet[string]]
     appserviceRegs: seq[AppserviceRegistration]
     appserviceByAsToken: Table[string, AppserviceRegistration]
@@ -536,6 +553,15 @@ proc randomString(prefix: string; n = 32): string =
 proc stateKey(eventType, stateKey: string): string =
   eventType & "\x1f" & stateKey
 
+proc deviceKey(userId, deviceId: string): string =
+  userId & "\x1f" & deviceId
+
+proc accountDataKey(roomId, userId, eventType: string): string =
+  roomId & "\x1f" & userId & "\x1f" & eventType
+
+proc filterKey(userId, filterId: string): string =
+  userId & "\x1f" & filterId
+
 proc isStateEventForStorage(eventType, stateKeyValue: string): bool
 
 proc trimQuotes(raw: string): string =
@@ -561,6 +587,61 @@ proc parseSinceToken(sinceToken: string): int64 =
 
 proc encodeSinceToken(streamPos: int64): string =
   "s" & $streamPos
+
+proc isEmptyObjectJson(node: JsonNode): bool =
+  node.kind == JObject and node.len == 0
+
+proc accountDataEventJson(record: AccountDataRecord): JsonNode =
+  %*{
+    "type": record.eventType,
+    "content": record.content,
+  }
+
+proc accountDataEventsForSync(
+    state: ServerState;
+    userId, roomId: string;
+    sincePos: int64;
+    initial: bool
+): JsonNode =
+  result = newJArray()
+  var records: seq[AccountDataRecord] = @[]
+  for _, record in state.accountData:
+    if record.userId == userId and record.roomId == roomId:
+      if initial:
+        if not isEmptyObjectJson(record.content):
+          records.add(record)
+      elif record.streamPos > sincePos:
+        records.add(record)
+  records.sort(proc(a, b: AccountDataRecord): int = cmp(a.streamPos, b.streamPos))
+  for record in records:
+    result.add(record.accountDataEventJson())
+
+proc setAccountDataLocked(
+    state: ServerState;
+    roomId, userId, eventType: string;
+    content: JsonNode
+): AccountDataRecord =
+  inc state.streamPos
+  result = AccountDataRecord(
+    streamPos: state.streamPos,
+    userId: userId,
+    roomId: roomId,
+    eventType: eventType,
+    content: content,
+  )
+  state.accountData[accountDataKey(roomId, userId, eventType)] = result
+
+proc getAccountDataLocked(
+    state: ServerState;
+    roomId, userId, eventType: string
+): tuple[ok: bool, content: JsonNode] =
+  let key = accountDataKey(roomId, userId, eventType)
+  if key notin state.accountData:
+    return (false, newJObject())
+  let record = state.accountData[key]
+  if isEmptyObjectJson(record.content):
+    return (false, newJObject())
+  (true, record.content)
 
 proc statePathFromConfig(cfg: FlatConfig): string =
   var path = getConfigString(cfg, ["state_path", "global.state_path"], "sdk/tuwunel-nim-state.json")
@@ -656,6 +737,63 @@ proc eventToJson(ev: MatrixEventRecord): JsonNode =
   if ev.redacts.len > 0:
     result["redacts"] = %ev.redacts
 
+proc deviceToJson(device: DeviceRecord): JsonNode =
+  result = %*{"device_id": device.deviceId}
+  if device.displayName.len > 0:
+    result["display_name"] = %device.displayName
+  if device.lastSeenIp.len > 0:
+    result["last_seen_ip"] = %device.lastSeenIp
+  if device.lastSeenTs > 0:
+    result["last_seen_ts"] = %device.lastSeenTs
+
+proc upsertDeviceLocked(
+    state: ServerState;
+    userId, deviceId, displayName: string;
+    lastSeenIp = ""
+): DeviceRecord =
+  let key = deviceKey(userId, deviceId)
+  if key in state.devices:
+    result = state.devices[key]
+    if displayName.len > 0:
+      result.displayName = displayName
+  else:
+    result = DeviceRecord(
+      userId: userId,
+      deviceId: deviceId,
+      displayName: displayName,
+      lastSeenIp: "",
+      lastSeenTs: 0,
+    )
+  if lastSeenIp.len > 0:
+    result.lastSeenIp = lastSeenIp
+  result.lastSeenTs = nowMs()
+  state.devices[key] = result
+
+proc listDevicesPayloadLocked(state: ServerState; userId: string): JsonNode =
+  var devices: seq[DeviceRecord] = @[]
+  for _, device in state.devices:
+    if device.userId == userId:
+      devices.add(device)
+  devices.sort(proc(a, b: DeviceRecord): int = cmp(a.deviceId, b.deviceId))
+  var arr = newJArray()
+  for device in devices:
+    arr.add(device.deviceToJson())
+  %*{"devices": arr}
+
+proc removeDeviceLocked(state: ServerState; userId, deviceId: string) =
+  state.devices.del(deviceKey(userId, deviceId))
+  var keptTokens: seq[string] = @[]
+  if userId in state.userTokens:
+    for token in state.userTokens[userId]:
+      if token in state.tokens and state.tokens[token].deviceId == deviceId:
+        state.tokens.del(token)
+      else:
+        keptTokens.add(token)
+    if keptTokens.len == 0:
+      state.userTokens.del(userId)
+    else:
+      state.userTokens[userId] = keptTokens
+
 proc toPersistentJson(state: ServerState): JsonNode =
   var root = newJObject()
   root["stream_pos"] = %state.streamPos
@@ -685,6 +823,17 @@ proc toPersistentJson(state: ServerState): JsonNode =
     })
   root["tokens"] = tokens
 
+  var devices = newJArray()
+  for _, device in state.devices:
+    devices.add(%*{
+      "user_id": device.userId,
+      "device_id": device.deviceId,
+      "display_name": device.displayName,
+      "last_seen_ip": device.lastSeenIp,
+      "last_seen_ts": device.lastSeenTs,
+    })
+  root["devices"] = devices
+
   var rooms = newJArray()
   for _, room in state.rooms:
     var members = newJObject()
@@ -713,6 +862,29 @@ proc toPersistentJson(state: ServerState): JsonNode =
       "timeline": timeline
     })
   root["rooms"] = rooms
+
+  var accountData = newJArray()
+  for _, record in state.accountData:
+    accountData.add(%*{
+      "stream_pos": record.streamPos,
+      "user_id": record.userId,
+      "room_id": record.roomId,
+      "type": record.eventType,
+      "content": record.content,
+    })
+  root["account_data"] = accountData
+
+  var filters = newJArray()
+  for key, filter in state.filters:
+    let parts = key.split("\x1f")
+    if parts.len != 2:
+      continue
+    filters.add(%*{
+      "user_id": parts[0],
+      "filter_id": parts[1],
+      "filter": filter,
+    })
+  root["filters"] = filters
   root
 
 proc rebuildJoinedRooms(state: ServerState) =
@@ -730,7 +902,10 @@ proc loadPersistentState(path: string): tuple[
     users: Table[string, UserProfile],
     tokens: Table[string, AccessSession],
     userTokens: Table[string, seq[string]],
+    devices: Table[string, DeviceRecord],
     rooms: Table[string, RoomData],
+    accountData: Table[string, AccountDataRecord],
+    filters: Table[string, JsonNode],
     streamPos: int64,
     deliveryCounter: int64,
     roomCounter: int64
@@ -740,7 +915,10 @@ proc loadPersistentState(path: string): tuple[
     users: initTable[string, UserProfile](),
     tokens: initTable[string, AccessSession](),
     userTokens: initTable[string, seq[string]](),
+    devices: initTable[string, DeviceRecord](),
     rooms: initTable[string, RoomData](),
+    accountData: initTable[string, AccountDataRecord](),
+    filters: initTable[string, JsonNode](),
     streamPos: 0'i64,
     deliveryCounter: 0'i64,
     roomCounter: 0'i64
@@ -794,6 +972,23 @@ proc loadPersistentState(path: string): tuple[
           result.userTokens[userId] = @[]
         result.userTokens[userId].add(token)
 
+    if root.hasKey("devices") and root["devices"].kind == JArray:
+      for node in root["devices"]:
+        if node.kind != JObject:
+          continue
+        let userId = node{"user_id"}.getStr("")
+        let deviceId = node{"device_id"}.getStr("")
+        if userId.len == 0 or deviceId.len == 0:
+          continue
+        let device = DeviceRecord(
+          userId: userId,
+          deviceId: deviceId,
+          displayName: node{"display_name"}.getStr(""),
+          lastSeenIp: node{"last_seen_ip"}.getStr(""),
+          lastSeenTs: node{"last_seen_ts"}.getInt(0).int64,
+        )
+        result.devices[deviceKey(userId, deviceId)] = device
+
     if root.hasKey("rooms") and root["rooms"].kind == JArray:
       for roomNode in root["rooms"]:
         if roomNode.kind != JObject:
@@ -844,6 +1039,36 @@ proc loadPersistentState(path: string): tuple[
           room.timeline.sort(proc(a, b: MatrixEventRecord): int = cmp(a.streamPos, b.streamPos))
 
         result.rooms[roomId] = room
+
+    if root.hasKey("account_data") and root["account_data"].kind == JArray:
+      for node in root["account_data"]:
+        if node.kind != JObject:
+          continue
+        let userId = node{"user_id"}.getStr("")
+        let eventType = node{"type"}.getStr("")
+        if userId.len == 0 or eventType.len == 0:
+          continue
+        let record = AccountDataRecord(
+          streamPos: node{"stream_pos"}.getInt(0).int64,
+          userId: userId,
+          roomId: node{"room_id"}.getStr(""),
+          eventType: eventType,
+          content: if node.hasKey("content"): node["content"] else: newJObject()
+        )
+        result.accountData[accountDataKey(record.roomId, record.userId, record.eventType)] = record
+        if record.streamPos > result.streamPos:
+          result.streamPos = record.streamPos
+
+    if root.hasKey("filters") and root["filters"].kind == JArray:
+      for node in root["filters"]:
+        if node.kind != JObject:
+          continue
+        let userId = node{"user_id"}.getStr("")
+        let filterId = node{"filter_id"}.getStr("")
+        if userId.len == 0 or filterId.len == 0:
+          continue
+        result.filters[filterKey(userId, filterId)] =
+          if node.hasKey("filter"): node["filter"] else: newJObject()
   except CatchableError as e:
     warn("Failed to load persisted native state: " & e.msg)
 
@@ -1015,7 +1240,10 @@ proc newServerState(cfg: FlatConfig; serverName: string): ServerState =
     users: loaded.users,
     tokens: loaded.tokens,
     userTokens: loaded.userTokens,
+    devices: loaded.devices,
     rooms: loaded.rooms,
+    accountData: loaded.accountData,
+    filters: loaded.filters,
     userJoinedRooms: initTable[string, HashSet[string]](),
     appserviceRegs: loadAppserviceRegistrations(cfg),
     appserviceByAsToken: initTable[string, AppserviceRegistration](),
@@ -1031,12 +1259,15 @@ proc newServerState(cfg: FlatConfig; serverName: string): ServerState =
   )
   initLock(result.lock)
   result.rebuildJoinedRooms()
+  for _, session in result.tokens:
+    if session.deviceId.len > 0 and deviceKey(session.userId, session.deviceId) notin result.devices:
+      discard result.upsertDeviceLocked(session.userId, session.deviceId, "")
 
   for reg in result.appserviceRegs:
     result.appserviceByAsToken[reg.asToken] = reg
   info("Loaded appservice registrations: " & $result.appserviceRegs.len)
 
-proc addTokenForUser(state: ServerState; userId, deviceId: string): string =
+proc addTokenForUser(state: ServerState; userId, deviceId: string; displayName = ""): string =
   let token = randomString("syt_", 48)
   let session = AccessSession(
     userId: userId,
@@ -1049,6 +1280,8 @@ proc addTokenForUser(state: ServerState; userId, deviceId: string): string =
   if userId notin state.userTokens:
     state.userTokens[userId] = @[]
   state.userTokens[userId].add(token)
+  if deviceId.len > 0:
+    discard state.upsertDeviceLocked(userId, deviceId, displayName)
   token
 
 proc removeToken(state: ServerState; token: string) =
@@ -1430,6 +1663,7 @@ proc summarizeDeliveryResponse(body: string; maxLen = 240): string =
     return normalized
   normalized[0 ..< maxLen] & "..."
 
+{.push warning[Uninit]: off.}
 proc sendDelivery(delivery: AppserviceDelivery): Future[AppserviceDeliveryResult] {.async.} =
   let url = appserviceDeliveryUrl(delivery)
   let client = newAsyncHttpClient()
@@ -1456,7 +1690,9 @@ proc sendDelivery(delivery: AppserviceDelivery): Future[AppserviceDeliveryResult
       responseBody: "",
       errorMessage: e.msg
     )
+{.pop.}
 
+{.push warning[Uninit]: off.}
 proc retryDeliveryLater(state: ServerState; delivery: AppserviceDelivery; delayMs: int): Future[void] {.async.} =
   if delayMs > 0:
     await sleepAsync(delayMs)
@@ -1525,6 +1761,7 @@ proc runDeliveryLoop(state: ServerState): Future[void] {.async.} =
           " txn=" & next.txnId & " attempt=" & $retry.attempt &
           " retry_in_ms=" & $delay & detail)
         asyncCheck state.retryDeliveryLater(retry, delay)
+{.pop.}
 
 proc routeNeedsFederationAuth(routeName: string): bool =
   case routeName
@@ -1686,14 +1923,14 @@ proc isUnstableSummaryPath(path: string): bool =
   path.startsWith("/_matrix/client/unstable/im.nheko.summary/rooms/") and
     path.endsWith("/summary")
 
-proc methodNotAllowed(req: Request) {.async.} =
-  await respondJson(req, Http405, matrixError("M_UNRECOGNIZED", "Method Not Allowed"))
+proc methodNotAllowed(req: Request): Future[void] =
+  respondJson(req, Http405, matrixError("M_UNRECOGNIZED", "Method Not Allowed"))
 
-proc notFound(req: Request) {.async.} =
-  await respondJson(req, Http404, matrixError("M_UNRECOGNIZED", "Not Found"))
+proc notFound(req: Request): Future[void] =
+  respondJson(req, Http404, matrixError("M_UNRECOGNIZED", "Not Found"))
 
-proc notFoundWithCode(req: Request; errcode: string) {.async.} =
-  await respondJson(req, Http404, matrixError(errcode, "Not Found"))
+proc notFoundWithCode(req: Request; errcode: string): Future[void] =
+  respondJson(req, Http404, matrixError(errcode, "Not Found"))
 
 proc parseRequestJson(req: Request): tuple[ok: bool, value: JsonNode] =
   if req.body.len == 0:
@@ -1710,6 +1947,15 @@ proc trimClientPath(path: string): string =
   if path.startsWith("/_matrix/client/r0/"):
     return path["/_matrix/client/r0/".len .. ^1]
   ""
+
+proc trimAccountDataClientPath(path: string): string =
+  result = trimClientPath(path)
+  if result.len > 0:
+    return
+  const UnstablePrefix = "/_matrix/client/unstable/org.matrix.msc3391/"
+  if path.startsWith(UnstablePrefix):
+    return path[UnstablePrefix.len .. ^1]
+  return ""
 
 proc decodePath(value: string): string =
   try:
@@ -1729,6 +1975,40 @@ proc roomIdFromRoomsPath(path, suffix: string): string =
   if segments.len < 2:
     return ""
   decodePath(segments[1])
+
+proc userFilterPathParts(path: string): tuple[ok: bool, userId: string, filterId: string, create: bool] =
+  result = (false, "", "", false)
+  let trimmed = trimClientPath(path)
+  if trimmed.len == 0:
+    return
+  let parts = trimmed.split("/")
+  if parts.len == 3 and parts[0] == "user" and parts[2] == "filter":
+    return (true, decodePath(parts[1]), "", true)
+  if parts.len == 4 and parts[0] == "user" and parts[2] == "filter":
+    return (true, decodePath(parts[1]), decodePath(parts[3]), false)
+
+proc userAccountDataPathParts(path: string): tuple[ok: bool, userId: string, roomId: string, eventType: string] =
+  result = (false, "", "", "")
+  let trimmed = trimAccountDataClientPath(path)
+  if trimmed.len == 0:
+    return
+  let parts = trimmed.split("/")
+  if parts.len >= 4 and parts[0] == "user" and parts[2] == "account_data":
+    return (true, decodePath(parts[1]), "", decodePath(parts[3 .. ^1].join("/")))
+  if parts.len >= 6 and parts[0] == "user" and parts[2] == "rooms" and parts[4] == "account_data":
+    return (true, decodePath(parts[1]), decodePath(parts[3]), decodePath(parts[5 .. ^1].join("/")))
+
+proc devicePathParts(path: string): tuple[ok: bool, deviceId: string, collection: bool] =
+  result = (false, "", false)
+  let trimmed = trimClientPath(path)
+  if trimmed == "devices":
+    return (true, "", true)
+  let parts = trimmed.split("/")
+  if parts.len == 2 and parts[0] == "devices":
+    return (true, decodePath(parts[1]), false)
+
+proc deleteDevicesPath(path: string): bool =
+  trimClientPath(path) == "delete_devices"
 
 proc mediaDownloadParts(path: string): tuple[ok: bool, mediaId: string] =
   let normalized = path.strip()
@@ -1812,6 +2092,7 @@ proc profilePathParts(path: string): tuple[userId: string, field: string] =
   let field = if segments.len >= 3: segments[2] else: ""
   (userId, field)
 
+{.push warning[Uninit]: off.}
 proc runNativeServer(cfg: LoadedConfig): int =
   let bindAddress = getConfigString(cfg.values, ["global.address", "address"], "127.0.0.1")
   let bindPort = getConfigInt(cfg.values, ["global.port", "port"], 8008)
@@ -1990,6 +2271,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var deviceId = body{"device_id"}.getStr("")
       if deviceId.len == 0:
         deviceId = randomString("DEV", 12)
+      let deviceDisplayName = body{"initial_device_display_name"}.getStr("")
 
       var userId = ""
       var token = ""
@@ -2006,7 +2288,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
               loginErrCode = "M_FORBIDDEN"
               loginErrMsg = "Invalid username or password."
             else:
-              token = state.addTokenForUser(userId, deviceId)
+              token = state.addTokenForUser(userId, deviceId, deviceDisplayName)
               state.savePersistentState()
         elif loginType == "m.login.application_service":
           let sessionRes = state.getSessionFromToken(accessToken, impersonateUser)
@@ -2015,7 +2297,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
             loginErrMsg = sessionRes.message
           else:
             userId = sessionRes.session.userId
-            token = state.addTokenForUser(userId, deviceId)
+            token = state.addTokenForUser(userId, deviceId, deviceDisplayName)
             state.savePersistentState()
         else:
           loginErrCode = "M_UNRECOGNIZED"
@@ -2052,6 +2334,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var deviceId = body{"device_id"}.getStr("")
       if deviceId.len == 0:
         deviceId = randomString("DEV", 12)
+      let deviceDisplayName = body{"initial_device_display_name"}.getStr("")
 
       var userId = ""
       var token = ""
@@ -2069,7 +2352,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
             displayName: username,
             avatarUrl: ""
           )
-          token = state.addTokenForUser(userId, deviceId)
+          token = state.addTokenForUser(userId, deviceId, deviceDisplayName)
           state.savePersistentState()
 
       if registerErr:
@@ -2140,6 +2423,206 @@ proc runNativeServer(cfg: LoadedConfig): int =
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
       await respondJson(req, Http200, buildCapabilitiesPayload())
+      return
+
+    let filterParts = userFilterPathParts(path)
+    if filterParts.ok:
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not resolved.session.isAppservice and resolved.session.userId != filterParts.userId:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "You cannot access filters for other users."))
+        return
+
+      if filterParts.create:
+        if req.reqMethod != HttpPost and req.reqMethod != HttpPut:
+          await methodNotAllowed(req)
+          return
+        let parsed = parseRequestJson(req)
+        if not parsed.ok or parsed.value.kind != JObject:
+          await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+          return
+        var filterId = ""
+        withLock state.lock:
+          for _ in 0 ..< 32:
+            let candidate = randomString("", 4)
+            if filterKey(filterParts.userId, candidate) notin state.filters:
+              filterId = candidate
+              break
+          if filterId.len == 0:
+            filterId = randomString("", 12)
+          state.filters[filterKey(filterParts.userId, filterId)] = parsed.value
+          state.savePersistentState()
+        await respondJson(req, Http200, %*{"filter_id": filterId})
+        return
+
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var found = false
+      var payload = newJObject()
+      withLock state.lock:
+        let key = filterKey(filterParts.userId, filterParts.filterId)
+        if key in state.filters:
+          found = true
+          payload = state.filters[key]
+      if not found:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Filter not found."))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    let accountParts = userAccountDataPathParts(path)
+    if accountParts.ok:
+      if req.reqMethod != HttpGet and req.reqMethod != HttpPut and req.reqMethod != HttpDelete:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not resolved.session.isAppservice and resolved.session.userId != accountParts.userId:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "You cannot access account data for other users."))
+        return
+
+      if req.reqMethod == HttpGet:
+        var found = false
+        var payload = newJObject()
+        withLock state.lock:
+          let data = state.getAccountDataLocked(accountParts.roomId, accountParts.userId, accountParts.eventType)
+          found = data.ok
+          payload = data.content
+        if not found:
+          await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Data not found."))
+          return
+        await respondJson(req, Http200, payload)
+        return
+
+      if accountParts.eventType == "m.fully_read":
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "This endpoint cannot be used for marking a room as fully read."))
+        return
+      if accountParts.eventType == "m.push_rules":
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "This endpoint cannot be used for setting push rules."))
+        return
+
+      let content =
+        if req.reqMethod == HttpDelete:
+          newJObject()
+        else:
+          block:
+            let parsed = parseRequestJson(req)
+            if not parsed.ok or parsed.value.kind != JObject:
+              await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+              return
+            parsed.value
+      withLock state.lock:
+        discard state.setAccountDataLocked(
+          accountParts.roomId,
+          accountParts.userId,
+          accountParts.eventType,
+          content
+        )
+        state.savePersistentState()
+      await respondJson(req, Http200, %*{})
+      return
+
+    let deviceParts = devicePathParts(path)
+    if deviceParts.ok:
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+
+      if deviceParts.collection:
+        if req.reqMethod != HttpGet:
+          await methodNotAllowed(req)
+          return
+        var payload = newJObject()
+        withLock state.lock:
+          payload = state.listDevicesPayloadLocked(resolved.session.userId)
+        await respondJson(req, Http200, payload)
+        return
+
+      if req.reqMethod == HttpGet:
+        var found = false
+        var payload = newJObject()
+        withLock state.lock:
+          let key = deviceKey(resolved.session.userId, deviceParts.deviceId)
+          if key in state.devices:
+            found = true
+            payload = state.devices[key].deviceToJson()
+        if not found:
+          await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Device not found."))
+          return
+        await respondJson(req, Http200, payload)
+        return
+
+      if req.reqMethod == HttpPut:
+        let parsed = parseRequestJson(req)
+        if not parsed.ok or parsed.value.kind != JObject:
+          await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+          return
+        var found = false
+        withLock state.lock:
+          let key = deviceKey(resolved.session.userId, deviceParts.deviceId)
+          if key in state.devices:
+            found = true
+            var device = state.devices[key]
+            if parsed.value.hasKey("display_name"):
+              if parsed.value["display_name"].kind == JString:
+                device.displayName = parsed.value["display_name"].getStr("")
+              elif parsed.value["display_name"].kind == JNull:
+                device.displayName = ""
+            device.lastSeenTs = nowMs()
+            state.devices[key] = device
+            state.savePersistentState()
+        if not found:
+          await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Device not found."))
+          return
+        await respondJson(req, Http200, %*{})
+        return
+
+      if req.reqMethod == HttpDelete:
+        withLock state.lock:
+          state.removeDeviceLocked(resolved.session.userId, deviceParts.deviceId)
+          state.savePersistentState()
+        await respondJson(req, Http200, %*{})
+        return
+
+      await methodNotAllowed(req)
+      return
+
+    if deleteDevicesPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if parsed.value{"devices"}.kind != JArray:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "devices must be an array."))
+        return
+      withLock state.lock:
+        for deviceNode in parsed.value["devices"]:
+          let deviceId = deviceNode.getStr("")
+          if deviceId.len > 0:
+            state.removeDeviceLocked(resolved.session.userId, deviceId)
+        state.savePersistentState()
+      await respondJson(req, Http200, %*{})
       return
 
     if path == "/_matrix/media/v3/config" or
@@ -2251,7 +2734,10 @@ proc runNativeServer(cfg: LoadedConfig): int =
               for stateEv in allState:
                 stateEvents.add(stateEv.eventToJson())
 
-            if timelineEvents.len > 0 or stateEvents.len > 0 or fullState:
+            let initialSync = fullState or sincePos == 0
+            let roomAccountDataEvents =
+              state.accountDataEventsForSync(resolved.session.userId, roomId, sincePos, initialSync)
+            if timelineEvents.len > 0 or stateEvents.len > 0 or roomAccountDataEvents.len > 0 or fullState:
               joinObj[roomId] = %*{
                 "timeline": {
                   "events": timelineEvents,
@@ -2260,6 +2746,9 @@ proc runNativeServer(cfg: LoadedConfig): int =
                 },
                 "state": {
                   "events": stateEvents
+                },
+                "account_data": {
+                  "events": roomAccountDataEvents
                 },
                 "unread_notifications": {
                   "highlight_count": 0,
@@ -2275,6 +2764,9 @@ proc runNativeServer(cfg: LoadedConfig): int =
             "invite": {},
             "leave": {},
           },
+          "account_data": {
+            "events": state.accountDataEventsForSync(resolved.session.userId, "", sincePos, fullState or sincePos == 0)
+          },
           "presence": {
             "events": [],
           },
@@ -2286,7 +2778,9 @@ proc runNativeServer(cfg: LoadedConfig): int =
         }
 
       var payload = buildSyncPayload()
-      if payload["rooms"]["join"].len == 0 and timeoutMs > 0:
+      if payload["rooms"]["join"].len == 0 and
+          payload["account_data"]["events"].len == 0 and
+          timeoutMs > 0:
         await sleepAsync(timeoutMs)
         payload = buildSyncPayload()
       await respondJson(req, Http200, payload)
@@ -3281,6 +3775,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
   asyncCheck deliveryPump()
   waitFor server.serve(Port(bindPort), cb, address = bindAddress)
   0
+{.pop.}
 
 proc main*(): int =
   info("Starting native Nim runtime")

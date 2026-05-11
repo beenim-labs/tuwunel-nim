@@ -1,0 +1,17 @@
+{
+  "baseline_commit": "8c1274c03c64c1e20e0b57bc17929886375ae9aa",
+  "scenarios_total": 8,
+  "passes_total": 7,
+  "mismatches_total": 0,
+  "skipped_total": 1,
+  "scenarios": [
+    "versions",
+    "login_types",
+    "register",
+    "login",
+    "whoami",
+    "create_room",
+    "sync",
+    "federation_full_suite_skipped"
+  ]
+}

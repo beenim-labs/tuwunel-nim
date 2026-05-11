@@ -1,0 +1,17 @@
+{
+  "baseline": {
+    "rust_commit": "8c1274c03c64c1e20e0b57bc17929886375ae9aa",
+    "rust_version": "1.4.9"
+  },
+  "totals": {
+    "route_total": 207,
+    "client_route_total": 149,
+    "server_route_total": 29,
+    "manual_route_total": 29,
+    "config_field_total": 308,
+    "database_column_family_total": 103,
+    "rust_function_total": 2820,
+    "rust_source_files": 620,
+    "nim_source_files": 573
+  }
+}
