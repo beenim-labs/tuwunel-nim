@@ -2,8 +2,9 @@
   "summary": {
     "total_routes": 207,
     "registered_routes": 207,
-    "behavioral_routes": 55,
-    "fallback_routes": 152
+    "behavioral_routes": 90,
+    "compatibility_shell_routes": 57,
+    "fallback_routes": 60
   },
   "behavioral_slices": [
     {
@@ -14,12 +15,17 @@
         "set_global_account_data_route",
         "set_room_account_data_route",
         "get_global_account_data_route",
-        "get_room_account_data_route"
+        "get_room_account_data_route",
+        "get_tags_route",
+        "update_tag_route",
+        "delete_tag_route"
       ],
       "evidence": [
         "tests/test_entrypoint_compat.nim: filter and account-data path parsers cover stable client routes",
         "tests/test_entrypoint_compat.nim: account data is persisted and tombstones sync as deltas",
-        "tests/test_entrypoint_compat.nim: filters are persisted per user and filter id"
+        "tests/test_entrypoint_compat.nim: filters are persisted per user and filter id",
+        "tests/test_entrypoint_compat.nim: tag path parsers cover stable client routes",
+        "tests/test_entrypoint_compat.nim: tags are backed by m.tag account data and sync deltas"
       ]
     },
     {
@@ -34,6 +40,152 @@
       "evidence": [
         "tests/test_entrypoint_compat.nim: device path parsers cover collection, detail, and bulk delete",
         "tests/test_entrypoint_compat.nim: device metadata follows token lifecycle and persists"
+      ]
+    },
+    {
+      "description": "Client room ephemeral routes backed by native Nim typing, receipt, and fully-read account-data state.",
+      "routes": [
+        "set_read_marker_route",
+        "create_receipt_route",
+        "create_typing_event_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: typing, receipt, and read-marker path parsers cover stable client routes",
+        "tests/test_entrypoint_compat.nim: typing state emits active and cleared ephemeral sync events",
+        "tests/test_entrypoint_compat.nim: receipt records are grouped for sync and persisted"
+      ]
+    },
+    {
+      "description": "Persisted local presence routes with shared-room visibility and sync presence events.",
+      "routes": [
+        "set_presence_route",
+        "get_presence_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: presence path parser covers stable client routes",
+        "tests/test_entrypoint_compat.nim: presence records persist and sync only to users sharing rooms"
+      ]
+    },
+    {
+      "description": "Client profile routes backed by native Nim user profile state, including display name, avatar, blurhash, timezone, and custom profile fields.",
+      "routes": [
+        "get_timezone_key_route",
+        "get_profile_field_route",
+        "set_profile_field_route",
+        "delete_profile_field_route",
+        "set_timezone_key_route",
+        "delete_timezone_key_route",
+        "set_displayname_route",
+        "get_displayname_route",
+        "set_avatar_url_route",
+        "get_avatar_url_route",
+        "get_profile_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: profile path parser covers stable and unstable field routes",
+        "tests/test_entrypoint_compat.nim: profile fields include blurhash timezone custom keys and persistence"
+      ]
+    },
+    {
+      "description": "Client room history routes backed by native Nim timeline and room state, including event lookup, context windows, aliases, member-event filters, and message pagination.",
+      "routes": [
+        "get_room_event_route",
+        "get_room_aliases_route",
+        "get_member_events_route",
+        "get_context_route",
+        "get_message_events_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: room event path parser covers event and context routes",
+        "tests/test_entrypoint_compat.nim: room history helpers expose aliases context members and state-keyed events",
+        "manual HTTP smoke: register/createRoom/send plus GET room event, context, aliases, members?membership=join, and messages"
+      ]
+    },
+    {
+      "description": "Persisted client pusher and push-rule routes backed by native Nim per-user appstate.",
+      "routes": [
+        "get_pushers_route",
+        "set_pushers_route",
+        "get_pushrules_all_route",
+        "get_pushrules_global_route",
+        "set_pushrule_route",
+        "get_pushrule_route",
+        "set_pushrule_enabled_route",
+        "get_pushrule_enabled_route",
+        "get_pushrule_actions_route",
+        "set_pushrule_actions_route",
+        "delete_pushrule_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: client compatibility path parsers cover remaining local route families",
+        "tests/test_entrypoint_compat.nim: pushers and push rules persist Matrix client appstate"
+      ]
+    },
+    {
+      "description": "Matrix-shaped client compatibility shells that avoid registered-route 501s for local client workflows while deeper federation, backup, E2EE, and room graph semantics are still incomplete.",
+      "routes": [
+        "joined_rooms_route",
+        "get_public_rooms_route",
+        "get_public_rooms_filtered_route",
+        "get_protocols_route",
+        "third_party_route",
+        "turn_server_route",
+        "get_notifications_route",
+        "upload_keys_route",
+        "get_keys_route",
+        "claim_keys_route",
+        "get_key_changes_route",
+        "upload_signing_keys_route",
+        "upload_signatures_route",
+        "search_events_route",
+        "search_users_route",
+        "create_openid_token_route",
+        "send_event_to_device_route",
+        "create_alias_route",
+        "get_alias_route",
+        "delete_alias_route",
+        "set_room_visibility_route",
+        "get_room_visibility_route",
+        "report_event_route",
+        "report_room_route",
+        "forget_room_route",
+        "kick_user_route",
+        "ban_user_route",
+        "unban_user_route",
+        "knock_room_route",
+        "room_initial_sync_route",
+        "get_room_summary",
+        "get_relating_events_with_rel_type_and_event_type_route",
+        "get_relating_events_with_rel_type_route",
+        "get_relating_events_route",
+        "get_threads_route",
+        "get_hierarchy_route",
+        "get_mutual_rooms_route",
+        "upgrade_room_route",
+        "create_backup_version_route",
+        "update_backup_version_route",
+        "delete_backup_version_route",
+        "get_latest_backup_info_route",
+        "get_backup_info_route",
+        "add_backup_keys_route",
+        "add_backup_keys_for_room_route",
+        "add_backup_keys_for_session_route",
+        "delete_backup_keys_for_room_route",
+        "delete_backup_keys_for_session_route",
+        "delete_backup_keys_route",
+        "get_backup_keys_for_room_route",
+        "get_backup_keys_for_session_route",
+        "get_backup_keys_route",
+        "put_dehydrated_device_route",
+        "delete_dehydrated_device_route",
+        "get_dehydrated_device_route",
+        "get_dehydrated_events_route",
+        "events_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: client compatibility path parsers cover remaining local route families",
+        "tests/test_entrypoint_compat.nim: client compatibility payloads return Matrix-shaped empty or local state",
+        "manual HTTP smoke: real tuwunel binary served register, createRoom, joined_rooms, publicRooms, typing, send, receipt, presence, sync, keys upload/query, search, pushrules, pushers, notifications, and turnServer without M_NOT_YET_IMPLEMENTED"
       ]
     }
   ],

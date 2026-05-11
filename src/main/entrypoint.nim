@@ -448,6 +448,9 @@ type
     password: string
     displayName: string
     avatarUrl: string
+    blurhash: string
+    timezone: string
+    profileFields: Table[string, JsonNode]
 
   DeviceRecord = object
     userId: string
@@ -473,6 +476,45 @@ type
     roomId: string
     eventType: string
     content: JsonNode
+
+  TypingRecord = object
+    roomId: string
+    userId: string
+    expiresAtMs: int64
+    streamPos: int64
+
+  ReceiptRecord = object
+    roomId: string
+    eventId: string
+    receiptType: string
+    userId: string
+    threadId: string
+    ts: int64
+    streamPos: int64
+
+  PresenceRecord = object
+    userId: string
+    presence: string
+    statusMsg: string
+    currentlyActive: bool
+    lastActiveTs: int64
+    streamPos: int64
+
+  BackupVersionRecord = object
+    userId: string
+    version: string
+    algorithm: string
+    authData: JsonNode
+    etag: string
+    streamPos: int64
+
+  BackupSessionRecord = object
+    userId: string
+    version: string
+    roomId: string
+    sessionId: string
+    sessionData: JsonNode
+    streamPos: int64
 
   RoomData = object
     roomId: string
@@ -520,6 +562,15 @@ type
     rooms: Table[string, RoomData]
     accountData: Table[string, AccountDataRecord]
     filters: Table[string, JsonNode]
+    pushers: Table[string, JsonNode]
+    pushRules: Table[string, JsonNode]
+    backupCounter: int64
+    backupVersions: Table[string, BackupVersionRecord]
+    backupSessions: Table[string, BackupSessionRecord]
+    typing: Table[string, TypingRecord]
+    typingUpdates: Table[string, int64]
+    receipts: Table[string, ReceiptRecord]
+    presence: Table[string, PresenceRecord]
     userJoinedRooms: Table[string, HashSet[string]]
     appserviceRegs: seq[AppserviceRegistration]
     appserviceByAsToken: Table[string, AppserviceRegistration]
@@ -562,7 +613,25 @@ proc accountDataKey(roomId, userId, eventType: string): string =
 proc filterKey(userId, filterId: string): string =
   userId & "\x1f" & filterId
 
-proc isStateEventForStorage(eventType, stateKeyValue: string): bool
+proc pusherKey(userId, appId, pushKey: string): string =
+  userId & "\x1f" & appId & "\x1f" & pushKey
+
+proc pushRuleKey(userId, scope, kind, ruleId: string): string =
+  userId & "\x1f" & scope & "\x1f" & kind & "\x1f" & ruleId
+
+proc backupVersionKey(userId, version: string): string =
+  userId & "\x1f" & version
+
+proc backupSessionKey(userId, version, roomId, sessionId: string): string =
+  userId & "\x1f" & version & "\x1f" & roomId & "\x1f" & sessionId
+
+proc typingKey(roomId, userId: string): string =
+  roomId & "\x1f" & userId
+
+proc receiptKey(roomId, eventId, receiptType, userId, threadId: string): string =
+  roomId & "\x1f" & eventId & "\x1f" & receiptType & "\x1f" & userId & "\x1f" & threadId
+
+proc isStateEventForStorage(eventType, stateKeyValue: string): bool {.gcsafe.}
 
 proc trimQuotes(raw: string): string =
   result = raw.strip()
@@ -616,6 +685,189 @@ proc accountDataEventsForSync(
   for record in records:
     result.add(record.accountDataEventJson())
 
+proc setTypingLocked(
+    state: ServerState;
+    roomId, userId: string;
+    typing: bool;
+    timeoutMs: int64
+) =
+  inc state.streamPos
+  if typing:
+    let clampedTimeout =
+      if timeoutMs < 1000'i64:
+        1000'i64
+      elif timeoutMs > 300000'i64:
+        300000'i64
+      else:
+        timeoutMs
+    state.typing[typingKey(roomId, userId)] = TypingRecord(
+      roomId: roomId,
+      userId: userId,
+      expiresAtMs: nowMs() + clampedTimeout,
+      streamPos: state.streamPos,
+    )
+  else:
+    state.typing.del(typingKey(roomId, userId))
+  state.typingUpdates[roomId] = state.streamPos
+
+proc pruneExpiredTypingLocked(state: ServerState; nowValue = nowMs()) =
+  var expired: seq[TypingRecord] = @[]
+  for _, record in state.typing:
+    if record.expiresAtMs <= nowValue:
+      expired.add(record)
+  for record in expired:
+    state.typing.del(typingKey(record.roomId, record.userId))
+    inc state.streamPos
+    state.typingUpdates[record.roomId] = state.streamPos
+
+proc typingEventsForSync(
+    state: ServerState;
+    roomId: string;
+    sincePos: int64;
+    initial: bool
+): JsonNode =
+  result = newJArray()
+  let roomUpdatePos = state.typingUpdates.getOrDefault(roomId, 0'i64)
+  if not initial and roomUpdatePos <= sincePos:
+    return
+
+  var userIds: seq[string] = @[]
+  for _, record in state.typing:
+    if record.roomId == roomId:
+      userIds.add(record.userId)
+  userIds.sort(system.cmp[string])
+
+  if userIds.len == 0 and initial:
+    return
+
+  var ids = newJArray()
+  for userId in userIds:
+    ids.add(%userId)
+  result.add(%*{
+    "type": "m.typing",
+    "content": {
+      "user_ids": ids
+    }
+  })
+
+proc setReceiptLocked(
+    state: ServerState;
+    roomId, eventId, receiptType, userId, threadId: string
+): ReceiptRecord =
+  inc state.streamPos
+  result = ReceiptRecord(
+    roomId: roomId,
+    eventId: eventId,
+    receiptType: receiptType,
+    userId: userId,
+    threadId: threadId,
+    ts: nowMs(),
+    streamPos: state.streamPos,
+  )
+  state.receipts[receiptKey(roomId, eventId, receiptType, userId, threadId)] = result
+
+proc receiptEventsForSync(
+    state: ServerState;
+    roomId: string;
+    sincePos: int64;
+    initial: bool
+): JsonNode =
+  result = newJArray()
+  var records: seq[ReceiptRecord] = @[]
+  for _, record in state.receipts:
+    if record.roomId == roomId and (initial or record.streamPos > sincePos):
+      records.add(record)
+  if records.len == 0:
+    return
+  records.sort(proc(a, b: ReceiptRecord): int = cmp(a.streamPos, b.streamPos))
+
+  var content = newJObject()
+  for record in records:
+    if not content.hasKey(record.eventId):
+      content[record.eventId] = newJObject()
+    if not content[record.eventId].hasKey(record.receiptType):
+      content[record.eventId][record.receiptType] = newJObject()
+    var userEntry = %*{"ts": record.ts}
+    if record.threadId.len > 0:
+      userEntry["thread_id"] = %record.threadId
+    content[record.eventId][record.receiptType][record.userId] = userEntry
+
+  result.add(%*{
+    "type": "m.receipt",
+    "content": content
+  })
+
+proc isValidPresenceValue(value: string): bool =
+  value in ["online", "offline", "unavailable", "busy"]
+
+proc presenceEventJson(state: ServerState; record: PresenceRecord): JsonNode =
+  let user = state.users.getOrDefault(record.userId, UserProfile())
+  var content = %*{
+    "presence": record.presence,
+    "currently_active": record.currentlyActive,
+    "last_active_ago": max(0'i64, nowMs() - record.lastActiveTs),
+  }
+  if record.statusMsg.len > 0:
+    content["status_msg"] = %record.statusMsg
+  if user.displayName.len > 0:
+    content["displayname"] = %user.displayName
+  if user.avatarUrl.len > 0:
+    content["avatar_url"] = %user.avatarUrl
+  %*{
+    "sender": record.userId,
+    "type": "m.presence",
+    "content": content,
+  }
+
+proc presenceResponseJson(record: PresenceRecord): JsonNode =
+  result = %*{
+    "presence": record.presence,
+    "currently_active": record.currentlyActive,
+  }
+  if not record.currentlyActive:
+    result["last_active_ago"] = %max(0'i64, nowMs() - record.lastActiveTs)
+  if record.statusMsg.len > 0:
+    result["status_msg"] = %record.statusMsg
+
+proc setPresenceLocked(
+    state: ServerState;
+    userId, presenceValue, statusMsg: string
+): PresenceRecord =
+  inc state.streamPos
+  result = PresenceRecord(
+    userId: userId,
+    presence: presenceValue,
+    statusMsg: statusMsg,
+    currentlyActive: presenceValue == "online",
+    lastActiveTs: nowMs(),
+    streamPos: state.streamPos,
+  )
+  state.presence[userId] = result
+
+proc presenceEventsForSync(
+    state: ServerState;
+    viewerUserId: string;
+    sincePos: int64;
+    initial: bool
+): JsonNode =
+  result = newJArray()
+  var records: seq[PresenceRecord] = @[]
+  var visibleUsers = initHashSet[string]()
+  visibleUsers.incl(viewerUserId)
+  if viewerUserId in state.userJoinedRooms:
+    for roomId in state.userJoinedRooms[viewerUserId]:
+      if roomId notin state.rooms:
+        continue
+      for userId, membership in state.rooms[roomId].members:
+        if membership == "join":
+          visibleUsers.incl(userId)
+  for _, record in state.presence:
+    if record.userId in visibleUsers and (initial or record.streamPos > sincePos):
+      records.add(record)
+  records.sort(proc(a, b: PresenceRecord): int = cmp(a.streamPos, b.streamPos))
+  for record in records:
+    result.add(state.presenceEventJson(record))
+
 proc setAccountDataLocked(
     state: ServerState;
     roomId, userId, eventType: string;
@@ -642,6 +894,32 @@ proc getAccountDataLocked(
   if isEmptyObjectJson(record.content):
     return (false, newJObject())
   (true, record.content)
+
+proc roomTagsContentLocked(state: ServerState; roomId, userId: string): JsonNode =
+  let existing = state.getAccountDataLocked(roomId, userId, "m.tag")
+  if existing.ok and existing.content.kind == JObject:
+    result = existing.content.copy()
+  else:
+    result = newJObject()
+  if not result.hasKey("tags") or result["tags"].kind != JObject:
+    result["tags"] = newJObject()
+
+proc setRoomTagLocked(
+    state: ServerState;
+    roomId, userId, tag: string;
+    tagContent: JsonNode
+): AccountDataRecord =
+  var content = state.roomTagsContentLocked(roomId, userId)
+  content["tags"][tag] = tagContent
+  state.setAccountDataLocked(roomId, userId, "m.tag", content)
+
+proc deleteRoomTagLocked(
+    state: ServerState;
+    roomId, userId, tag: string
+): AccountDataRecord =
+  var content = state.roomTagsContentLocked(roomId, userId)
+  content["tags"].delete(tag)
+  state.setAccountDataLocked(roomId, userId, "m.tag", content)
 
 proc statePathFromConfig(cfg: FlatConfig): string =
   var path = getConfigString(cfg, ["state_path", "global.state_path"], "sdk/tuwunel-nim-state.json")
@@ -732,7 +1010,7 @@ proc eventToJson(ev: MatrixEventRecord): JsonNode =
     "origin_server_ts": ev.originServerTs,
     "content": ev.content,
   }
-  if ev.stateKey.len > 0:
+  if isStateEventForStorage(ev.eventType, ev.stateKey):
     result["state_key"] = %ev.stateKey
   if ev.redacts.len > 0:
     result["redacts"] = %ev.redacts
@@ -802,12 +1080,18 @@ proc toPersistentJson(state: ServerState): JsonNode =
 
   var users = newJArray()
   for _, user in state.users:
+    var profileFields = newJObject()
+    for key, value in user.profileFields:
+      profileFields[key] = value
     users.add(%*{
       "user_id": user.userId,
       "username": user.username,
       "password": user.password,
       "display_name": user.displayName,
-      "avatar_url": user.avatarUrl
+      "avatar_url": user.avatarUrl,
+      "blurhash": user.blurhash,
+      "timezone": user.timezone,
+      "profile_fields": profileFields
     })
   root["users"] = users
 
@@ -885,6 +1169,58 @@ proc toPersistentJson(state: ServerState): JsonNode =
       "filter": filter,
     })
   root["filters"] = filters
+
+  var pushers = newJArray()
+  for key, pusher in state.pushers:
+    let parts = key.split("\x1f")
+    if parts.len != 3:
+      continue
+    pushers.add(%*{
+      "user_id": parts[0],
+      "app_id": parts[1],
+      "pushkey": parts[2],
+      "pusher": pusher,
+    })
+  root["pushers"] = pushers
+
+  var pushRules = newJArray()
+  for key, rule in state.pushRules:
+    let parts = key.split("\x1f")
+    if parts.len != 4:
+      continue
+    pushRules.add(%*{
+      "user_id": parts[0],
+      "scope": parts[1],
+      "kind": parts[2],
+      "rule_id": parts[3],
+      "rule": rule,
+    })
+  root["push_rules"] = pushRules
+
+  var receipts = newJArray()
+  for _, record in state.receipts:
+    receipts.add(%*{
+      "stream_pos": record.streamPos,
+      "room_id": record.roomId,
+      "event_id": record.eventId,
+      "receipt_type": record.receiptType,
+      "user_id": record.userId,
+      "thread_id": record.threadId,
+      "ts": record.ts,
+    })
+  root["receipts"] = receipts
+
+  var presence = newJArray()
+  for _, record in state.presence:
+    presence.add(%*{
+      "stream_pos": record.streamPos,
+      "user_id": record.userId,
+      "presence": record.presence,
+      "status_msg": record.statusMsg,
+      "currently_active": record.currentlyActive,
+      "last_active_ts": record.lastActiveTs,
+    })
+  root["presence"] = presence
   root
 
 proc rebuildJoinedRooms(state: ServerState) =
@@ -906,6 +1242,10 @@ proc loadPersistentState(path: string): tuple[
     rooms: Table[string, RoomData],
     accountData: Table[string, AccountDataRecord],
     filters: Table[string, JsonNode],
+    pushers: Table[string, JsonNode],
+    pushRules: Table[string, JsonNode],
+    receipts: Table[string, ReceiptRecord],
+    presence: Table[string, PresenceRecord],
     streamPos: int64,
     deliveryCounter: int64,
     roomCounter: int64
@@ -919,6 +1259,10 @@ proc loadPersistentState(path: string): tuple[
     rooms: initTable[string, RoomData](),
     accountData: initTable[string, AccountDataRecord](),
     filters: initTable[string, JsonNode](),
+    pushers: initTable[string, JsonNode](),
+    pushRules: initTable[string, JsonNode](),
+    receipts: initTable[string, ReceiptRecord](),
+    presence: initTable[string, PresenceRecord](),
     streamPos: 0'i64,
     deliveryCounter: 0'i64,
     roomCounter: 0'i64
@@ -941,13 +1285,20 @@ proc loadPersistentState(path: string): tuple[
         let username = node{"username"}.getStr("")
         if userId.len == 0:
           continue
-        let user = UserProfile(
+        var user = UserProfile(
           userId: userId,
           username: username,
           password: node{"password"}.getStr(""),
           displayName: node{"display_name"}.getStr(""),
-          avatarUrl: node{"avatar_url"}.getStr("")
+          avatarUrl: node{"avatar_url"}.getStr(""),
+          blurhash: node{"blurhash"}.getStr(""),
+          timezone: node{"timezone"}.getStr(""),
+          profileFields: initTable[string, JsonNode]()
         )
+        if node.hasKey("profile_fields") and node["profile_fields"].kind == JObject:
+          for key, value in node["profile_fields"]:
+            if key.len > 0:
+              user.profileFields[key] = value
         result.users[userId] = user
         if username.len > 0:
           result.usersByName[username] = userId
@@ -1069,6 +1420,74 @@ proc loadPersistentState(path: string): tuple[
           continue
         result.filters[filterKey(userId, filterId)] =
           if node.hasKey("filter"): node["filter"] else: newJObject()
+
+    if root.hasKey("pushers") and root["pushers"].kind == JArray:
+      for node in root["pushers"]:
+        if node.kind != JObject:
+          continue
+        let userId = node{"user_id"}.getStr("")
+        let appId = node{"app_id"}.getStr("")
+        let pushKeyValue = node{"pushkey"}.getStr("")
+        if userId.len == 0 or appId.len == 0 or pushKeyValue.len == 0:
+          continue
+        result.pushers[pusherKey(userId, appId, pushKeyValue)] =
+          if node.hasKey("pusher"): node["pusher"] else: newJObject()
+
+    if root.hasKey("push_rules") and root["push_rules"].kind == JArray:
+      for node in root["push_rules"]:
+        if node.kind != JObject:
+          continue
+        let userId = node{"user_id"}.getStr("")
+        let scope = node{"scope"}.getStr("")
+        let kind = node{"kind"}.getStr("")
+        let ruleId = node{"rule_id"}.getStr("")
+        if userId.len == 0 or scope.len == 0 or kind.len == 0 or ruleId.len == 0:
+          continue
+        result.pushRules[pushRuleKey(userId, scope, kind, ruleId)] =
+          if node.hasKey("rule"): node["rule"] else: newJObject()
+
+    if root.hasKey("receipts") and root["receipts"].kind == JArray:
+      for node in root["receipts"]:
+        if node.kind != JObject:
+          continue
+        let roomId = node{"room_id"}.getStr("")
+        let eventId = node{"event_id"}.getStr("")
+        let receiptType = node{"receipt_type"}.getStr("")
+        let userId = node{"user_id"}.getStr("")
+        if roomId.len == 0 or eventId.len == 0 or receiptType.len == 0 or userId.len == 0:
+          continue
+        let record = ReceiptRecord(
+          roomId: roomId,
+          eventId: eventId,
+          receiptType: receiptType,
+          userId: userId,
+          threadId: node{"thread_id"}.getStr(""),
+          ts: node{"ts"}.getInt(0).int64,
+          streamPos: node{"stream_pos"}.getInt(0).int64,
+        )
+        result.receipts[receiptKey(record.roomId, record.eventId, record.receiptType, record.userId, record.threadId)] = record
+        if record.streamPos > result.streamPos:
+          result.streamPos = record.streamPos
+
+    if root.hasKey("presence") and root["presence"].kind == JArray:
+      for node in root["presence"]:
+        if node.kind != JObject:
+          continue
+        let userId = node{"user_id"}.getStr("")
+        let presenceValue = node{"presence"}.getStr("")
+        if userId.len == 0 or not isValidPresenceValue(presenceValue):
+          continue
+        let record = PresenceRecord(
+          userId: userId,
+          presence: presenceValue,
+          statusMsg: node{"status_msg"}.getStr(""),
+          currentlyActive: node{"currently_active"}.getBool(presenceValue == "online"),
+          lastActiveTs: node{"last_active_ts"}.getInt(0).int64,
+          streamPos: node{"stream_pos"}.getInt(0).int64,
+        )
+        result.presence[userId] = record
+        if record.streamPos > result.streamPos:
+          result.streamPos = record.streamPos
   except CatchableError as e:
     warn("Failed to load persisted native state: " & e.msg)
 
@@ -1244,6 +1663,12 @@ proc newServerState(cfg: FlatConfig; serverName: string): ServerState =
     rooms: loaded.rooms,
     accountData: loaded.accountData,
     filters: loaded.filters,
+    pushers: loaded.pushers,
+    pushRules: loaded.pushRules,
+    typing: initTable[string, TypingRecord](),
+    typingUpdates: initTable[string, int64](),
+    receipts: loaded.receipts,
+    presence: loaded.presence,
     userJoinedRooms: initTable[string, HashSet[string]](),
     appserviceRegs: loadAppserviceRegistrations(cfg),
     appserviceByAsToken: initTable[string, AppserviceRegistration](),
@@ -1317,7 +1742,7 @@ proc appendEventLocked(
     redacts = ""
 ): MatrixEventRecord {.gcsafe.}
 
-proc isStateEventForStorage(eventType, stateKeyValue: string): bool =
+proc isStateEventForStorage(eventType, stateKeyValue: string): bool {.gcsafe.} =
   if stateKeyValue.len > 0:
     return true
   eventType in [
@@ -1326,6 +1751,7 @@ proc isStateEventForStorage(eventType, stateKeyValue: string): bool =
     "m.room.name",
     "m.room.topic",
     "m.room.avatar",
+    "m.room.canonical_alias",
     "m.room.join_rules",
     "m.room.encryption",
     "m.room.history_visibility",
@@ -1533,15 +1959,121 @@ proc buildCapabilitiesPayload(): JsonNode =
 
 proc userProfilePayload(user: UserProfile): JsonNode =
   var payload = newJObject()
-  payload["displayname"] = %user.displayName
-  payload["avatar_url"] = %user.avatarUrl
+  if user.displayName.len > 0:
+    payload["displayname"] = %user.displayName
+  if user.avatarUrl.len > 0:
+    payload["avatar_url"] = %user.avatarUrl
+  if user.blurhash.len > 0:
+    payload["blurhash"] = %user.blurhash
+  if user.timezone.len > 0:
+    payload["m.tz"] = %user.timezone
+  for key, value in user.profileFields:
+    if key notin ["displayname", "avatar_url", "blurhash", "m.tz", "us.cloke.msc4175.tz"]:
+      payload[key] = value
   payload
+
+proc profileFieldPayload(user: UserProfile; field: string): tuple[ok: bool, payload: JsonNode] =
+  case field
+  of "":
+    result = (true, userProfilePayload(user))
+  of "displayname":
+    result = (true, %*{"displayname": user.displayName})
+  of "avatar_url":
+    result = (true, %*{"avatar_url": user.avatarUrl})
+    if user.blurhash.len > 0:
+      result.payload["blurhash"] = %user.blurhash
+  of "blurhash":
+    if user.blurhash.len == 0:
+      return (false, newJObject())
+    result = (true, %*{"blurhash": user.blurhash})
+  of "m.tz", "us.cloke.msc4175.tz":
+    if user.timezone.len == 0:
+      return (false, newJObject())
+    result = (true, newJObject())
+    result.payload[field] = %user.timezone
+  else:
+    if field in user.profileFields:
+      result = (true, newJObject())
+      result.payload[field] = user.profileFields[field]
+    else:
+      result = (false, newJObject())
+
+proc firstJsonFieldValue(node: JsonNode; keys: openArray[string]): JsonNode =
+  if node.kind != JObject:
+    return newJNull()
+  for key in keys:
+    if node.hasKey(key):
+      return node[key]
+  newJNull()
+
+proc setUserProfileField(user: var UserProfile; field: string; body: JsonNode) =
+  case field
+  of "displayname":
+    let value = firstJsonFieldValue(body, ["displayname"])
+    if value.kind == JNull:
+      user.displayName = ""
+    elif value.kind == JString:
+      user.displayName = value.getStr("")
+  of "avatar_url":
+    let value = firstJsonFieldValue(body, ["avatar_url"])
+    if value.kind == JNull:
+      user.avatarUrl = ""
+    elif value.kind == JString:
+      user.avatarUrl = value.getStr("")
+    let blurhash = firstJsonFieldValue(body, ["blurhash"])
+    if blurhash.kind == JNull:
+      discard
+    elif blurhash.kind == JString:
+      user.blurhash = blurhash.getStr("")
+  of "blurhash":
+    let value = firstJsonFieldValue(body, ["blurhash"])
+    if value.kind == JNull:
+      user.blurhash = ""
+    elif value.kind == JString:
+      user.blurhash = value.getStr("")
+  of "m.tz", "us.cloke.msc4175.tz":
+    let value = firstJsonFieldValue(body, [field, "m.tz", "us.cloke.msc4175.tz"])
+    if value.kind == JNull:
+      user.timezone = ""
+    elif value.kind == JString:
+      user.timezone = value.getStr("")
+  else:
+    if body.kind == JObject and body.hasKey(field):
+      user.profileFields[field] = body[field]
+    else:
+      user.profileFields[field] = body
+
+proc deleteUserProfileField(user: var UserProfile; field: string) =
+  case field
+  of "displayname":
+    user.displayName = ""
+  of "avatar_url":
+    user.avatarUrl = ""
+    user.blurhash = ""
+  of "blurhash":
+    user.blurhash = ""
+  of "m.tz", "us.cloke.msc4175.tz":
+    user.timezone = ""
+    user.profileFields.del("m.tz")
+    user.profileFields.del("us.cloke.msc4175.tz")
+  else:
+    user.profileFields.del(field)
 
 proc roomJoinedForUser(state: ServerState; roomId, userId: string): bool =
   if roomId notin state.rooms:
     return false
   let room = state.rooms[roomId]
   room.members.getOrDefault(userId, "") == "join"
+
+proc usersShareJoinedRoom(state: ServerState; a, b: string): bool =
+  if a == b:
+    return true
+  if a notin state.userJoinedRooms or b notin state.userJoinedRooms:
+    return false
+  for roomId in state.userJoinedRooms[a]:
+    if roomId in state.userJoinedRooms[b]:
+      return true
+  false
 
 proc joinedRoomsForUser(state: ServerState; userId: string): seq[string] =
   result = @[]
@@ -1571,6 +2103,443 @@ proc roomMembersArray(room: RoomData): JsonNode =
   for ev in allState:
     entries.add(ev.eventToJson())
   entries
+
+proc roomMembersArray(room: RoomData; membership, notMembership: string): JsonNode =
+  var entries = newJArray()
+  var allState: seq[MatrixEventRecord] = @[]
+  for _, ev in room.stateByKey:
+    if ev.eventType != "m.room.member":
+      continue
+    let current = ev.content{"membership"}.getStr("")
+    if membership.len > 0 and current != membership:
+      continue
+    if notMembership.len > 0 and current == notMembership:
+      continue
+    allState.add(ev)
+  allState.sort(proc(a, b: MatrixEventRecord): int = cmp(a.streamPos, b.streamPos))
+  for ev in allState:
+    entries.add(ev.eventToJson())
+  entries
+
+proc roomEventIndex(room: RoomData; eventId: string): int =
+  for idx, ev in room.timeline:
+    if ev.eventId == eventId:
+      return idx
+  -1
+
+proc roomAliasesPayload(room: RoomData): JsonNode =
+  var seen = initHashSet[string]()
+  var aliases = newJArray()
+  let key = stateKey("m.room.canonical_alias", "")
+  if key in room.stateByKey:
+    let content = room.stateByKey[key].content
+    let canonical = content{"alias"}.getStr("")
+    if canonical.len > 0:
+      aliases.add(%canonical)
+      seen.incl(canonical)
+    if content.hasKey("alt_aliases") and content["alt_aliases"].kind == JArray:
+      for aliasNode in content["alt_aliases"]:
+        let alias = aliasNode.getStr("")
+        if alias.len > 0 and alias notin seen:
+          aliases.add(%alias)
+          seen.incl(alias)
+  %*{"aliases": aliases}
+
+proc roomHasAlias(room: RoomData; alias: string): bool =
+  if alias.len == 0:
+    return false
+  let key = stateKey("m.room.canonical_alias", "")
+  if key notin room.stateByKey:
+    return false
+  let content = room.stateByKey[key].content
+  if content{"alias"}.getStr("") == alias:
+    return true
+  if content.hasKey("alt_aliases") and content["alt_aliases"].kind == JArray:
+    for node in content["alt_aliases"]:
+      if node.getStr("") == alias:
+        return true
+  false
+
+proc findRoomByAliasLocked(state: ServerState; alias: string): string =
+  for roomId, room in state.rooms:
+    if room.roomHasAlias(alias):
+      return roomId
+  ""
+
+proc aliasContentWith(room: RoomData; alias: string): JsonNode =
+  let key = stateKey("m.room.canonical_alias", "")
+  if key in room.stateByKey and room.stateByKey[key].content.kind == JObject:
+    result = room.stateByKey[key].content.copy()
+  else:
+    result = newJObject()
+
+  let existingAlias = result{"alias"}.getStr("")
+  if existingAlias.len == 0:
+    result["alias"] = %alias
+    return
+  if existingAlias == alias:
+    return
+
+  var alt = newJArray()
+  var seen = initHashSet[string]()
+  if result.hasKey("alt_aliases") and result["alt_aliases"].kind == JArray:
+    for node in result["alt_aliases"]:
+      let item = node.getStr("")
+      if item.len > 0 and item != existingAlias and item notin seen:
+        alt.add(%item)
+        seen.incl(item)
+  if alias notin seen:
+    alt.add(%alias)
+  result["alt_aliases"] = alt
+
+proc aliasContentWithout(room: RoomData; alias: string): JsonNode =
+  let key = stateKey("m.room.canonical_alias", "")
+  if key in room.stateByKey and room.stateByKey[key].content.kind == JObject:
+    result = room.stateByKey[key].content.copy()
+  else:
+    return newJObject()
+
+  var altValues: seq[string] = @[]
+  if result.hasKey("alt_aliases") and result["alt_aliases"].kind == JArray:
+    for node in result["alt_aliases"]:
+      let item = node.getStr("")
+      if item.len > 0 and item != alias:
+        altValues.add(item)
+
+  if result{"alias"}.getStr("") == alias:
+    if altValues.len > 0:
+      result["alias"] = %altValues[0]
+      altValues.delete(0)
+    else:
+      result.delete("alias")
+
+  var alt = newJArray()
+  for item in altValues:
+    if item != result{"alias"}.getStr(""):
+      alt.add(%item)
+  if alt.len > 0:
+    result["alt_aliases"] = alt
+  else:
+    result.delete("alt_aliases")
+
+proc roomContextPayload(room: RoomData; eventIndex: int; limit: int): JsonNode =
+  var eventsBefore = newJArray()
+  var eventsAfter = newJArray()
+  let beforeLimit = max(0, limit div 2)
+  let afterLimit = max(0, limit - beforeLimit)
+
+  var beforeCount = 0
+  var idx = eventIndex - 1
+  while idx >= 0 and beforeCount < beforeLimit:
+    eventsBefore.add(room.timeline[idx].eventToJson())
+    inc beforeCount
+    dec idx
+
+  var afterCount = 0
+  idx = eventIndex + 1
+  while idx < room.timeline.len and afterCount < afterLimit:
+    eventsAfter.add(room.timeline[idx].eventToJson())
+    inc afterCount
+    inc idx
+
+  let basePos = room.timeline[eventIndex].streamPos
+  let startPos =
+    if beforeCount > 0:
+      room.timeline[eventIndex - beforeCount].streamPos
+    else:
+      basePos
+  let endPos =
+    if afterCount > 0:
+      room.timeline[eventIndex + afterCount].streamPos
+    else:
+      basePos
+
+  %*{
+    "event": room.timeline[eventIndex].eventToJson(),
+    "events_before": eventsBefore,
+    "events_after": eventsAfter,
+    "start": encodeSinceToken(startPos),
+    "end": encodeSinceToken(endPos),
+    "state": roomStateArray(room),
+  }
+
+proc joinedMemberCount(room: RoomData): int =
+  result = 0
+  for _, membership in room.members:
+    if membership == "join":
+      inc result
+
+proc roomDisplayName(room: RoomData): string =
+  result = ""
+  let nameKey = stateKey("m.room.name", "")
+  if nameKey in room.stateByKey:
+    result = room.stateByKey[nameKey].content{"name"}.getStr("")
+  if result.len == 0:
+    let aliasKey = stateKey("m.room.canonical_alias", "")
+    if aliasKey in room.stateByKey:
+      result = room.stateByKey[aliasKey].content{"alias"}.getStr("")
+  if result.len == 0:
+    result = room.roomId
+
+proc publicRoomsPayload(state: ServerState): JsonNode =
+  var chunk = newJArray()
+  var rooms: seq[RoomData] = @[]
+  for _, room in state.rooms:
+    rooms.add(room)
+  rooms.sort(proc(a, b: RoomData): int = cmp(a.roomId, b.roomId))
+  for room in rooms:
+    let aliases = room.roomAliasesPayload()
+    let canonicalAlias =
+      if aliases["aliases"].len > 0:
+        aliases["aliases"][0].getStr("")
+      else:
+        ""
+    var entry = %*{
+      "room_id": room.roomId,
+      "name": room.roomDisplayName(),
+      "num_joined_members": room.joinedMemberCount(),
+      "world_readable": false,
+      "guest_can_join": false,
+    }
+    if canonicalAlias.len > 0:
+      entry["canonical_alias"] = %canonicalAlias
+    chunk.add(entry)
+  result = %*{
+    "chunk": chunk,
+    "total_room_count_estimate": chunk.len,
+  }
+
+proc userDirectorySearchPayload(state: ServerState; body: JsonNode): JsonNode =
+  let searchTerm = body{"search_term"}.getStr("").toLowerAscii()
+  let limit = max(1, min(100, body{"limit"}.getInt(10)))
+  var matches = newJArray()
+  var users: seq[UserProfile] = @[]
+  for _, user in state.users:
+    users.add(user)
+  users.sort(proc(a, b: UserProfile): int = cmp(a.userId, b.userId))
+  for user in users:
+    if matches.len >= limit:
+      break
+    let haystack = (user.userId & " " & user.username & " " & user.displayName).toLowerAscii()
+    if searchTerm.len > 0 and searchTerm notin haystack:
+      continue
+    var item = %*{"user_id": user.userId}
+    if user.displayName.len > 0:
+      item["display_name"] = %user.displayName
+    if user.avatarUrl.len > 0:
+      item["avatar_url"] = %user.avatarUrl
+    matches.add(item)
+  %*{"limited": false, "results": matches}
+
+proc emptyPushRulesPayload(): JsonNode =
+  %*{
+    "global": {
+      "override": [],
+      "content": [],
+      "room": [],
+      "sender": [],
+      "underride": []
+    }
+  }
+
+proc pushRuleKinds(): seq[string] =
+  @["override", "content", "room", "sender", "underride"]
+
+proc isPushRuleKind(kind: string): bool =
+  kind in pushRuleKinds()
+
+proc listPushersPayload(state: ServerState; userId: string): JsonNode =
+  var keys: seq[string] = @[]
+  for key, _ in state.pushers:
+    let parts = key.split("\x1f")
+    if parts.len == 3 and parts[0] == userId:
+      keys.add(key)
+  keys.sort(system.cmp[string])
+  var arr = newJArray()
+  for key in keys:
+    arr.add(state.pushers[key])
+  %*{"pushers": arr}
+
+proc setPusherLocked(state: ServerState; userId: string; body: JsonNode): tuple[ok: bool, errcode: string, message: string] =
+  if body.kind != JObject:
+    return (false, "M_BAD_JSON", "Pusher body must be an object.")
+  let appId = body{"app_id"}.getStr("")
+  let pushKeyValue = body{"pushkey"}.getStr("")
+  if appId.len == 0 or pushKeyValue.len == 0:
+    return (false, "M_MISSING_PARAM", "app_id and pushkey are required.")
+  let key = pusherKey(userId, appId, pushKeyValue)
+  if body.hasKey("kind") and body["kind"].kind == JNull:
+    state.pushers.del(key)
+    return (true, "", "")
+  var pusher = body
+  pusher["app_id"] = %appId
+  pusher["pushkey"] = %pushKeyValue
+  if not pusher.hasKey("kind") or pusher["kind"].kind == JNull:
+    pusher["kind"] = %"http"
+  if not pusher.hasKey("app_display_name"):
+    pusher["app_display_name"] = %""
+  if not pusher.hasKey("device_display_name"):
+    pusher["device_display_name"] = %""
+  if not pusher.hasKey("lang"):
+    pusher["lang"] = %"en"
+  if not pusher.hasKey("data") or pusher["data"].kind != JObject:
+    pusher["data"] = newJObject()
+  state.pushers[key] = pusher
+  (true, "", "")
+
+proc normalizePushRule(rule: JsonNode; ruleId, kind: string; existing = newJObject()): JsonNode =
+  result = newJObject()
+  if existing.kind == JObject:
+    for key, value in existing:
+      result[key] = value
+  if rule.kind == JObject:
+    for key, value in rule:
+      result[key] = value
+  result["rule_id"] = %ruleId
+  if not result.hasKey("default"):
+    result["default"] = %false
+  if not result.hasKey("enabled"):
+    result["enabled"] = %true
+  if not result.hasKey("actions") or result["actions"].kind != JArray:
+    result["actions"] = newJArray()
+  if kind == "content" and not result.hasKey("pattern"):
+    result["pattern"] = %""
+  if kind in ["override", "underride"] and
+      (not result.hasKey("conditions") or result["conditions"].kind != JArray):
+    result["conditions"] = newJArray()
+
+proc pushRuleScopePayload(state: ServerState; userId, scope: string): JsonNode =
+  result = newJObject()
+  for kind in pushRuleKinds():
+    result[kind] = newJArray()
+  var keys: seq[string] = @[]
+  for key, _ in state.pushRules:
+    let parts = key.split("\x1f")
+    if parts.len == 4 and parts[0] == userId and parts[1] == scope and parts[2].isPushRuleKind():
+      keys.add(key)
+  keys.sort(system.cmp[string])
+  for key in keys:
+    let parts = key.split("\x1f")
+    result[parts[2]].add(state.pushRules[key])
+
+proc pushRulesPayload(state: ServerState; userId: string): JsonNode =
+  result = emptyPushRulesPayload()
+  result["global"] = state.pushRuleScopePayload(userId, "global")
+
+proc getPushRuleLocked(state: ServerState; userId, scope, kind, ruleId: string): Option[JsonNode] =
+  let key = pushRuleKey(userId, scope, kind, ruleId)
+  if key in state.pushRules:
+    return some(state.pushRules[key])
+  none(JsonNode)
+
+proc putPushRuleLocked(state: ServerState; userId, scope, kind, ruleId: string; body: JsonNode): tuple[ok: bool, errcode: string, message: string] =
+  if scope.len == 0 or kind.len == 0 or ruleId.len == 0 or not kind.isPushRuleKind():
+    return (false, "M_INVALID_PARAM", "Invalid push rule path.")
+  if body.kind != JObject:
+    return (false, "M_BAD_JSON", "Push rule body must be an object.")
+  let key = pushRuleKey(userId, scope, kind, ruleId)
+  let existing = if key in state.pushRules: state.pushRules[key] else: newJObject()
+  state.pushRules[key] = normalizePushRule(body, ruleId, kind, existing)
+  (true, "", "")
+
+proc updatePushRuleAttrLocked(
+    state: ServerState;
+    userId, scope, kind, ruleId, attr: string;
+    body: JsonNode
+): tuple[ok: bool, errcode: string, message: string] =
+  if scope.len == 0 or kind.len == 0 or ruleId.len == 0 or not kind.isPushRuleKind():
+    return (false, "M_INVALID_PARAM", "Invalid push rule path.")
+  let key = pushRuleKey(userId, scope, kind, ruleId)
+  var rule =
+    if key in state.pushRules:
+      state.pushRules[key]
+    else:
+      normalizePushRule(newJObject(), ruleId, kind)
+  case attr
+  of "enabled":
+    if body.kind != JObject or not body.hasKey("enabled") or body["enabled"].kind != JBool:
+      return (false, "M_BAD_JSON", "enabled must be a boolean.")
+    rule["enabled"] = %body["enabled"].getBool(false)
+  of "actions":
+    if body.kind != JObject or not body.hasKey("actions") or body["actions"].kind != JArray:
+      return (false, "M_BAD_JSON", "actions must be an array.")
+    rule["actions"] = body["actions"]
+  else:
+    return (false, "M_INVALID_PARAM", "Unsupported push rule attribute.")
+  state.pushRules[key] = normalizePushRule(rule, ruleId, kind)
+  (true, "", "")
+
+proc keyUploadCounts(body: JsonNode): JsonNode =
+  result = newJObject()
+  let oneTimeKeys = body{"one_time_keys"}
+  if oneTimeKeys.kind != JObject:
+    return
+  for key, _ in oneTimeKeys:
+    let alg = key.split(":", maxsplit = 1)[0]
+    if alg.len == 0:
+      continue
+    result[alg] = %(result.getOrDefault(alg).getInt(0) + 1)
+
+proc deviceKeyPayload(userId: string; device: DeviceRecord): JsonNode =
+  %*{
+    "user_id": userId,
+    "device_id": device.deviceId,
+    "algorithms": [],
+    "keys": {},
+    "signatures": {}
+  }
+
+proc keysQueryPayload(state: ServerState; body: JsonNode): JsonNode =
+  var deviceKeys = newJObject()
+  let requested = body{"device_keys"}
+  if requested.kind == JObject:
+    for userId, devicesNode in requested:
+      var userDevices = newJObject()
+      if devicesNode.kind == JArray and devicesNode.len > 0:
+        for deviceNode in devicesNode:
+          let deviceId = deviceNode.getStr("")
+          let key = deviceKey(userId, deviceId)
+          if key in state.devices:
+            userDevices[deviceId] = deviceKeyPayload(userId, state.devices[key])
+      else:
+        for _, device in state.devices:
+          if device.userId == userId:
+            userDevices[device.deviceId] = deviceKeyPayload(userId, device)
+      if userDevices.len > 0:
+        deviceKeys[userId] = userDevices
+  %*{
+    "device_keys": deviceKeys,
+    "failures": {}
+  }
+
+proc roomInitialSyncPayload(room: RoomData; limit: int): JsonNode =
+  var chunk = newJArray()
+  let maxEvents = max(0, min(limit, room.timeline.len))
+  let startIdx = max(0, room.timeline.len - maxEvents)
+  for idx in startIdx ..< room.timeline.len:
+    chunk.add(room.timeline[idx].eventToJson())
+  %*{
+    "room_id": room.roomId,
+    "membership": "join",
+    "messages": {
+      "chunk": chunk,
+      "start": encodeSinceToken(0),
+      "end": if room.timeline.len > 0: encodeSinceToken(room.timeline[^1].streamPos) else: encodeSinceToken(0)
+    },
+    "state": roomStateArray(room),
+    "presence": []
+  }
+
+proc roomSummaryPayload(room: RoomData): JsonNode =
+  %*{
+    "room_id": room.roomId,
+    "name": room.roomDisplayName(),
+    "num_joined_members": room.joinedMemberCount(),
+    "joined_member_count": room.joinedMemberCount(),
+    "heroes": [],
+    "world_readable": false,
+    "guest_can_join": false
+  }
 
 proc joinedMembersPayload(state: ServerState; room: RoomData): JsonNode =
   result = %*{"joined": newJObject()}
@@ -1941,6 +2910,16 @@ proc parseRequestJson(req: Request): tuple[ok: bool, value: JsonNode] =
   except CatchableError:
     (false, newJObject())
 
+proc firstJsonString(node: JsonNode; keys: openArray[string]): string =
+  if node.kind != JObject:
+    return ""
+  for key in keys:
+    if node.hasKey(key) and node[key].kind == JString:
+      let value = node[key].getStr("")
+      if value.len > 0:
+        return value
+  ""
+
 proc trimClientPath(path: string): string =
   if path.startsWith("/_matrix/client/v3/"):
     return path["/_matrix/client/v3/".len .. ^1]
@@ -1963,6 +2942,26 @@ proc decodePath(value: string): string =
   except CatchableError:
     value
 
+proc pushRulePathParts(path: string): tuple[
+    ok: bool,
+    scope: string,
+    kind: string,
+    ruleId: string,
+    attr: string
+] =
+  result = (false, "", "", "", "")
+  let parts = trimClientPath(path).split("/")
+  if parts.len == 1 and parts[0] == "pushrules":
+    return (true, "", "", "", "")
+  if parts.len == 2 and parts[0] == "pushrules":
+    return (true, decodePath(parts[1]), "", "", "")
+  if parts.len == 3 and parts[0] == "pushrules":
+    return (true, decodePath(parts[1]), decodePath(parts[2]), "", "")
+  if parts.len == 4 and parts[0] == "pushrules":
+    return (true, decodePath(parts[1]), decodePath(parts[2]), decodePath(parts[3]), "")
+  if parts.len == 5 and parts[0] == "pushrules":
+    return (true, decodePath(parts[1]), decodePath(parts[2]), decodePath(parts[3]), decodePath(parts[4]))
+
 proc roomIdFromRoomsPath(path, suffix: string): string =
   let trimmed = trimClientPath(path)
   if not trimmed.startsWith("rooms/"):
@@ -1975,6 +2974,28 @@ proc roomIdFromRoomsPath(path, suffix: string): string =
   if segments.len < 2:
     return ""
   decodePath(segments[1])
+
+proc roomTypingPathParts(path: string): tuple[ok: bool, roomId: string, userId: string] =
+  result = (false, "", "")
+  let trimmed = trimClientPath(path)
+  if trimmed.len == 0:
+    return
+  let parts = trimmed.split("/")
+  if parts.len == 4 and parts[0] == "rooms" and parts[2] == "typing":
+    return (true, decodePath(parts[1]), decodePath(parts[3]))
+
+proc roomReceiptPathParts(path: string): tuple[ok: bool, roomId: string, receiptType: string, eventId: string] =
+  result = (false, "", "", "")
+  let trimmed = trimClientPath(path)
+  if trimmed.len == 0:
+    return
+  let parts = trimmed.split("/")
+  if parts.len == 5 and parts[0] == "rooms" and parts[2] == "receipt":
+    return (true, decodePath(parts[1]), decodePath(parts[3]), decodePath(parts[4]))
+
+proc roomReadMarkersPathParts(path: string): tuple[ok: bool, roomId: string] =
+  let roomId = roomIdFromRoomsPath(path, "read_markers")
+  (roomId.len > 0, roomId)
 
 proc userFilterPathParts(path: string): tuple[ok: bool, userId: string, filterId: string, create: bool] =
   result = (false, "", "", false)
@@ -1997,6 +3018,17 @@ proc userAccountDataPathParts(path: string): tuple[ok: bool, userId: string, roo
     return (true, decodePath(parts[1]), "", decodePath(parts[3 .. ^1].join("/")))
   if parts.len >= 6 and parts[0] == "user" and parts[2] == "rooms" and parts[4] == "account_data":
     return (true, decodePath(parts[1]), decodePath(parts[3]), decodePath(parts[5 .. ^1].join("/")))
+
+proc userTagsPathParts(path: string): tuple[ok: bool, userId: string, roomId: string, tag: string, collection: bool] =
+  result = (false, "", "", "", false)
+  let trimmed = trimClientPath(path)
+  if trimmed.len == 0:
+    return
+  let parts = trimmed.split("/")
+  if parts.len == 5 and parts[0] == "user" and parts[2] == "rooms" and parts[4] == "tags":
+    return (true, decodePath(parts[1]), decodePath(parts[3]), "", true)
+  if parts.len >= 6 and parts[0] == "user" and parts[2] == "rooms" and parts[4] == "tags":
+    return (true, decodePath(parts[1]), decodePath(parts[3]), decodePath(parts[5 .. ^1].join("/")), false)
 
 proc devicePathParts(path: string): tuple[ok: bool, deviceId: string, collection: bool] =
   result = (false, "", false)
@@ -2048,6 +3080,17 @@ proc roomAndSendFromPath(path: string): tuple[roomId: string, eventType: string,
     decodePath(segments[4])
   )
 
+proc roomAndEventFromPath(path: string; marker: string): tuple[roomId: string, eventId: string] =
+  let trimmed = trimClientPath(path)
+  if not trimmed.startsWith("rooms/"):
+    return ("", "")
+  let segments = trimmed.split('/')
+  if segments.len != 4:
+    return ("", "")
+  if segments[2] != marker:
+    return ("", "")
+  (decodePath(segments[1]), decodePath(segments[3]))
+
 proc roomAndRedactFromPath(path: string): tuple[roomId: string, eventId: string, txnId: string] =
   let trimmed = trimClientPath(path)
   if not trimmed.startsWith("rooms/"):
@@ -2082,15 +3125,163 @@ proc roomAndStateEventFromPath(path: string): tuple[roomId: string, eventType: s
   )
 
 proc profilePathParts(path: string): tuple[userId: string, field: string] =
-  let trimmed = trimClientPath(path)
+  var trimmed = trimClientPath(path)
+  if trimmed.len == 0:
+    const UnstableProfilePrefixes = [
+      "/_matrix/client/unstable/uk.tcpip.msc4133/profile/",
+      "/_matrix/client/unstable/us.cloke.msc4175/profile/"
+    ]
+    for prefix in UnstableProfilePrefixes:
+      if path.startsWith(prefix):
+        trimmed = "profile/" & path[prefix.len .. ^1]
+        break
   if not trimmed.startsWith("profile/"):
     return ("", "")
   let segments = trimmed.split('/')
   if segments.len < 2:
     return ("", "")
   let userId = decodePath(segments[1])
-  let field = if segments.len >= 3: segments[2] else: ""
+  let field = if segments.len >= 3: decodePath(segments[2 .. ^1].join("/")) else: ""
   (userId, field)
+
+proc presencePathParts(path: string): tuple[ok: bool, userId: string] =
+  result = (false, "")
+  let trimmed = trimClientPath(path)
+  if trimmed.len == 0:
+    return
+  let parts = trimmed.split("/")
+  if parts.len == 3 and parts[0] == "presence" and parts[2] == "status":
+    return (true, decodePath(parts[1]))
+
+proc isJoinedRoomsPath(path: string): bool =
+  trimClientPath(path) == "joined_rooms"
+
+proc isThirdPartyProtocolsPath(path: string): bool =
+  let trimmed = trimClientPath(path)
+  trimmed == "thirdparty/protocols" or trimmed.startsWith("thirdparty/protocol/")
+
+proc isTurnServerPath(path: string): bool =
+  trimClientPath(path) == "voip/turnServer"
+
+proc isAccount3pidPath(path: string): bool =
+  trimClientPath(path) == "account/3pid"
+
+proc isNotificationsPath(path: string): bool =
+  trimClientPath(path) == "notifications"
+
+proc isPushersPath(path: string): bool =
+  trimClientPath(path) == "pushers"
+
+proc isPushRulesPath(path: string): bool =
+  let trimmed = trimClientPath(path)
+  trimmed == "pushrules" or trimmed == "pushrules/" or trimmed.startsWith("pushrules/")
+
+proc isKeysQueryPath(path: string): bool =
+  trimClientPath(path) == "keys/query"
+
+proc isKeysClaimPath(path: string): bool =
+  trimClientPath(path) == "keys/claim"
+
+proc isKeysUploadPath(path: string): bool =
+  trimClientPath(path) == "keys/upload"
+
+proc isKeysChangesPath(path: string): bool =
+  trimClientPath(path).startsWith("keys/changes")
+
+proc isSigningKeyUploadPath(path: string): bool =
+  let trimmed = trimClientPath(path)
+  trimmed == "keys/device_signing/upload" or trimmed == "keys/signatures/upload"
+
+proc isSearchPath(path: string): bool =
+  trimClientPath(path) == "search"
+
+proc isUserDirectorySearchPath(path: string): bool =
+  trimClientPath(path) == "user_directory/search"
+
+proc openIdPathParts(path: string): tuple[ok: bool, userId: string] =
+  result = (false, "")
+  let parts = trimClientPath(path).split("/")
+  if parts.len == 4 and parts[0] == "user" and parts[2] == "openid" and parts[3] == "request_token":
+    return (true, decodePath(parts[1]))
+
+proc sendToDevicePathParts(path: string): tuple[ok: bool, eventType: string, txnId: string] =
+  result = (false, "", "")
+  let parts = trimClientPath(path).split("/")
+  if parts.len == 3 and parts[0] == "sendToDevice":
+    return (true, decodePath(parts[1]), decodePath(parts[2]))
+
+proc directoryAliasPathParts(path: string): tuple[ok: bool, alias: string] =
+  result = (false, "")
+  let parts = trimClientPath(path).split("/")
+  if parts.len >= 3 and parts[0] == "directory" and parts[1] == "room":
+    return (true, decodePath(parts[2 .. ^1].join("/")))
+
+proc roomVisibilityPathParts(path: string): tuple[ok: bool, roomId: string] =
+  result = (false, "")
+  let parts = trimClientPath(path).split("/")
+  if parts.len >= 4 and parts[0] == "directory" and parts[1] == "list" and parts[2] == "room":
+    return (true, decodePath(parts[3 .. ^1].join("/")))
+
+proc reportPathParts(path: string): tuple[ok: bool, roomId: string, eventId: string] =
+  result = (false, "", "")
+  let parts = trimClientPath(path).split("/")
+  if parts.len == 3 and parts[0] == "rooms" and parts[2] == "report":
+    return (true, decodePath(parts[1]), "")
+  if parts.len == 4 and parts[0] == "rooms" and parts[2] == "report":
+    return (true, decodePath(parts[1]), decodePath(parts[3]))
+
+proc knockTargetFromPath(path: string): string =
+  let trimmed = trimClientPath(path)
+  if trimmed.startsWith("knock/"):
+    return decodePath(trimmed["knock/".len .. ^1])
+  roomIdFromRoomsPath(path, "knock")
+
+proc roomInitialSyncId(path: string): string =
+  roomIdFromRoomsPath(path, "initialSync")
+
+proc unstableSummaryRoomId(path: string): string =
+  const Prefix = "/_matrix/client/unstable/im.nheko.summary/rooms/"
+  const Suffix = "/summary"
+  if path.startsWith(Prefix) and path.endsWith(Suffix):
+    return decodePath(path[Prefix.len ..< path.len - Suffix.len])
+  let trimmed = trimClientPath(path)
+  let parts = trimmed.split("/")
+  if parts.len == 4 and parts[0] == "rooms" and parts[2] == "summary":
+    return decodePath(parts[1])
+  ""
+
+proc relationRoomId(path: string): string =
+  let parts = trimClientPath(path).split("/")
+  if parts.len >= 4 and parts[0] == "rooms" and parts[2] == "relations":
+    return decodePath(parts[1])
+  ""
+
+proc threadsRoomId(path: string): string =
+  roomIdFromRoomsPath(path, "threads")
+
+proc hierarchyRoomId(path: string): string =
+  roomIdFromRoomsPath(path, "hierarchy")
+
+proc upgradeRoomId(path: string): string =
+  roomIdFromRoomsPath(path, "upgrade")
+
+proc mutualRoomsUserId(path: string): string =
+  let parts = trimClientPath(path).split("/")
+  if parts.len == 3 and parts[0] == "user" and parts[2] == "mutual_rooms":
+    return decodePath(parts[1])
+  ""
+
+proc roomKeysPathKind(path: string): string =
+  let trimmed = trimClientPath(path)
+  if trimmed == "room_keys/version" or trimmed.startsWith("room_keys/version/"):
+    return "version"
+  if trimmed == "room_keys/keys" or trimmed.startsWith("room_keys/keys/"):
+    return "keys"
+  ""
+
+proc isDehydratedDevicePath(path: string): bool =
+  let trimmed = trimClientPath(path)
+  "dehydrated_device" in trimmed or "dehydrated_device" in path
 
 {.push warning[Uninit]: off.}
 proc runNativeServer(cfg: LoadedConfig): int =
@@ -2101,6 +3292,11 @@ proc runNativeServer(cfg: LoadedConfig): int =
   let allowFederation = getConfigBool(
     cfg.values,
     ["global.allow_federation", "allow_federation"],
+    true,
+  )
+  let allowLocalPresence = getConfigBool(
+    cfg.values,
+    ["global.allow_local_presence", "allow_local_presence"],
     true,
   )
   let syncTimeoutMin = max(0, getConfigInt(cfg.values, ["client_sync_timeout_min", "global.client_sync_timeout_min"], 1000))
@@ -2350,7 +3546,10 @@ proc runNativeServer(cfg: LoadedConfig): int =
             username: username,
             password: password,
             displayName: username,
-            avatarUrl: ""
+            avatarUrl: "",
+            blurhash: "",
+            timezone: "",
+            profileFields: initTable[string, JsonNode]()
           )
           token = state.addTokenForUser(userId, deviceId, deviceDisplayName)
           state.savePersistentState()
@@ -2531,6 +3730,191 @@ proc runNativeServer(cfg: LoadedConfig): int =
       await respondJson(req, Http200, %*{})
       return
 
+    let tagsParts = userTagsPathParts(path)
+    if tagsParts.ok:
+      if tagsParts.collection:
+        if req.reqMethod != HttpGet:
+          await methodNotAllowed(req)
+          return
+      elif req.reqMethod != HttpPut and req.reqMethod != HttpDelete:
+        await methodNotAllowed(req)
+        return
+
+      var tagContent = newJObject()
+      if req.reqMethod == HttpPut:
+        let parsed = parseRequestJson(req)
+        if not parsed.ok or parsed.value.kind != JObject:
+          await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+          return
+        tagContent = parsed.value
+
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var allowed = false
+      var payload = %*{"tags": newJObject()}
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          allowed = resolved.session.isAppservice or resolved.session.userId == tagsParts.userId
+          if allowed:
+            allowed = state.roomJoinedForUser(tagsParts.roomId, tagsParts.userId)
+          if allowed:
+            if tagsParts.collection:
+              payload = state.roomTagsContentLocked(tagsParts.roomId, tagsParts.userId)
+            elif req.reqMethod == HttpPut:
+              discard state.setRoomTagLocked(tagsParts.roomId, tagsParts.userId, tagsParts.tag, tagContent)
+              state.savePersistentState()
+            elif req.reqMethod == HttpDelete:
+              discard state.deleteRoomTagLocked(tagsParts.roomId, tagsParts.userId, tagsParts.tag)
+              state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not allowed:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "You cannot access tags for this room."))
+        return
+      await respondJson(req, Http200, if tagsParts.collection: payload else: %*{})
+      return
+
+    let typingParts = roomTypingPathParts(path)
+    if typingParts.ok:
+      if req.reqMethod != HttpPut:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var allowed = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          allowed = resolved.session.isAppservice or resolved.session.userId == typingParts.userId
+          if allowed:
+            allowed = state.roomJoinedForUser(typingParts.roomId, typingParts.userId)
+            if allowed:
+              let isTyping = parsed.value{"typing"}.getBool(false)
+              let timeoutMs = parsed.value{"timeout"}.getInt(30000).int64
+              state.setTypingLocked(typingParts.roomId, typingParts.userId, isTyping, timeoutMs)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not allowed:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "You are not joined to this room."))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    let receiptParts = roomReceiptPathParts(path)
+    if receiptParts.ok:
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var threadId = queryParam(req, "thread_id")
+      if threadId.len == 0 and parsed.value.hasKey("thread_id"):
+        if parsed.value["thread_id"].kind != JString or parsed.value["thread_id"].getStr("").len == 0:
+          await respondJson(req, Http400, matrixError("M_INVALID_PARAM", "thread_id must be a non-empty string."))
+          return
+        threadId = parsed.value["thread_id"].getStr("")
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var allowed = false
+      var supportedReceipt = true
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          allowed = state.roomJoinedForUser(receiptParts.roomId, resolved.session.userId)
+          if allowed:
+            case receiptParts.receiptType
+            of "m.fully_read":
+              discard state.setAccountDataLocked(
+                receiptParts.roomId,
+                resolved.session.userId,
+                "m.fully_read",
+                %*{"event_id": receiptParts.eventId}
+              )
+              state.savePersistentState()
+            of "m.read", "m.read.private":
+              discard state.setReceiptLocked(
+                receiptParts.roomId,
+                receiptParts.eventId,
+                receiptParts.receiptType,
+                resolved.session.userId,
+                threadId
+              )
+              state.savePersistentState()
+            else:
+              supportedReceipt = false
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not allowed:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "You are not joined to this room."))
+        return
+      if not supportedReceipt:
+        await respondJson(req, Http400, matrixError("M_INVALID_PARAM", "Unsupported receipt type."))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    let readMarkerParts = roomReadMarkersPathParts(path)
+    if readMarkerParts.ok:
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      let fullyReadEventId = firstJsonString(parsed.value, ["m.fully_read", "fully_read"])
+      let publicReadEventId = firstJsonString(parsed.value, ["m.read", "read_receipt"])
+      let privateReadEventId = firstJsonString(parsed.value, ["m.read.private", "private_read_receipt"])
+      if fullyReadEventId.len == 0 and publicReadEventId.len == 0 and privateReadEventId.len == 0:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "No read marker or receipt event id supplied."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var allowed = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          allowed = state.roomJoinedForUser(readMarkerParts.roomId, resolved.session.userId)
+          if allowed:
+            if fullyReadEventId.len > 0:
+              discard state.setAccountDataLocked(
+                readMarkerParts.roomId,
+                resolved.session.userId,
+                "m.fully_read",
+                %*{"event_id": fullyReadEventId}
+              )
+            if publicReadEventId.len > 0:
+              discard state.setReceiptLocked(
+                readMarkerParts.roomId,
+                publicReadEventId,
+                "m.read",
+                resolved.session.userId,
+                ""
+              )
+            if privateReadEventId.len > 0:
+              discard state.setReceiptLocked(
+                readMarkerParts.roomId,
+                privateReadEventId,
+                "m.read.private",
+                resolved.session.userId,
+                ""
+              )
+            state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not allowed:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "You are not joined to this room."))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
     let deviceParts = devicePathParts(path)
     if deviceParts.ok:
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
@@ -2685,6 +4069,750 @@ proc runNativeServer(cfg: LoadedConfig): int =
       )
       return
 
+    if isJoinedRoomsPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var payload = %*{"joined_rooms": []}
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          var rooms = newJArray()
+          for roomId in state.joinedRoomsForUser(resolved.session.userId):
+            rooms.add(%roomId)
+          payload["joined_rooms"] = rooms
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    if isPublicRoomsPath(path):
+      if req.reqMethod != HttpGet and req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var payload = newJObject()
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          payload = publicRoomsPayload(state)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    if isThirdPartyProtocolsPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    if isTurnServerPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"uris": [], "username": "", "password": "", "ttl": 86400})
+      return
+
+    if isAccount3pidPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"threepids": []})
+      return
+
+    if isNotificationsPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"notifications": [], "next_token": ""})
+      return
+
+    if isPushersPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      var payload: JsonNode
+      withLock state.lock:
+        payload = state.listPushersPayload(resolved.session.userId)
+      await respondJson(req, Http200, payload)
+      return
+
+    if isPushersSetPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var setResult: tuple[ok: bool, errcode: string, message: string]
+      withLock state.lock:
+        setResult = state.setPusherLocked(resolved.session.userId, parsed.value)
+        if setResult.ok:
+          state.savePersistentState()
+      if not setResult.ok:
+        await respondJson(req, Http400, matrixError(setResult.errcode, setResult.message))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    if isPushRulesPath(path):
+      if req.reqMethod notin {HttpGet, HttpPut, HttpDelete}:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      let rulePath = pushRulePathParts(path)
+      if not rulePath.ok:
+        await notFound(req)
+        return
+      if req.reqMethod == HttpGet:
+        if rulePath.scope.len == 0:
+          var payload: JsonNode
+          withLock state.lock:
+            payload = state.pushRulesPayload(resolved.session.userId)
+          await respondJson(req, Http200, payload)
+        elif rulePath.kind.len == 0:
+          if rulePath.scope != "global":
+            await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Push rule scope not found."))
+          else:
+            var payload: JsonNode
+            withLock state.lock:
+              payload = state.pushRuleScopePayload(resolved.session.userId, rulePath.scope)
+            await respondJson(req, Http200, payload)
+        elif rulePath.ruleId.len == 0:
+          if rulePath.scope != "global" or not rulePath.kind.isPushRuleKind():
+            await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Push rule kind not found."))
+          else:
+            var payload: JsonNode
+            withLock state.lock:
+              payload = state.pushRuleScopePayload(resolved.session.userId, rulePath.scope)[rulePath.kind]
+            await respondJson(req, Http200, payload)
+        else:
+          var found: Option[JsonNode]
+          withLock state.lock:
+            found = state.getPushRuleLocked(resolved.session.userId, rulePath.scope, rulePath.kind, rulePath.ruleId)
+          if found.isNone:
+            await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Push rule not found."))
+          elif rulePath.attr == "enabled":
+            await respondJson(req, Http200, %*{"enabled": found.get{"enabled"}.getBool(true)})
+          elif rulePath.attr == "actions":
+            await respondJson(req, Http200, %*{"actions": found.get{"actions"}})
+          elif rulePath.attr.len == 0:
+            await respondJson(req, Http200, found.get)
+          else:
+            await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Push rule attribute not found."))
+      else:
+        if rulePath.scope != "global" or not rulePath.kind.isPushRuleKind() or rulePath.ruleId.len == 0:
+          await respondJson(req, Http400, matrixError("M_INVALID_PARAM", "Invalid push rule path."))
+          return
+        if req.reqMethod == HttpDelete:
+          withLock state.lock:
+            state.pushRules.del(pushRuleKey(resolved.session.userId, rulePath.scope, rulePath.kind, rulePath.ruleId))
+            state.savePersistentState()
+          await respondJson(req, Http200, %*{})
+          return
+        let parsed = parseRequestJson(req)
+        if not parsed.ok or parsed.value.kind != JObject:
+          await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+          return
+        var updateResult: tuple[ok: bool, errcode: string, message: string]
+        withLock state.lock:
+          if rulePath.attr.len == 0:
+            updateResult = state.putPushRuleLocked(
+              resolved.session.userId,
+              rulePath.scope,
+              rulePath.kind,
+              rulePath.ruleId,
+              parsed.value,
+            )
+          else:
+            updateResult = state.updatePushRuleAttrLocked(
+              resolved.session.userId,
+              rulePath.scope,
+              rulePath.kind,
+              rulePath.ruleId,
+              rulePath.attr,
+              parsed.value,
+            )
+          if updateResult.ok:
+            state.savePersistentState()
+        if not updateResult.ok:
+          await respondJson(req, Http400, matrixError(updateResult.errcode, updateResult.message))
+          return
+        await respondJson(req, Http200, %*{})
+      return
+
+    if isKeysUploadPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"one_time_key_counts": keyUploadCounts(parsed.value)})
+      return
+
+    if isKeysQueryPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var payload = newJObject()
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          payload = keysQueryPayload(state, parsed.value)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    if isKeysClaimPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"one_time_keys": {}, "failures": {}})
+      return
+
+    if isKeysChangesPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"changed": [], "left": []})
+      return
+
+    if isSigningKeyUploadPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    if isSearchPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{
+        "search_categories": {
+          "room_events": {
+            "count": 0,
+            "highlights": [],
+            "results": []
+          }
+        }
+      })
+      return
+
+    if isUserDirectorySearchPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var payload = newJObject()
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          payload = userDirectorySearchPayload(state, parsed.value)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    let openIdParts = openIdPathParts(path)
+    if openIdParts.ok:
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var forbidden = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and not resolved.session.isAppservice and resolved.session.userId != openIdParts.userId:
+          forbidden = true
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if forbidden:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Cannot request OpenID token for another user."))
+        return
+      await respondJson(req, Http200, %*{
+        "access_token": randomString("oidc_", 32),
+        "token_type": "Bearer",
+        "matrix_server_name": serverName,
+        "expires_in": 3600
+      })
+      return
+
+    let toDeviceParts = sendToDevicePathParts(path)
+    if toDeviceParts.ok:
+      if req.reqMethod != HttpPut:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    let roomAliasParts = directoryAliasPathParts(path)
+    if roomAliasParts.ok:
+      if req.reqMethod notin {HttpGet, HttpPut, HttpDelete}:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = ""
+      var sentEvent: MatrixEventRecord
+      let parsed =
+        if req.reqMethod == HttpPut:
+          parseRequestJson(req)
+        else:
+          (ok: true, value: newJObject())
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          case req.reqMethod
+          of HttpGet:
+            foundRoom = state.findRoomByAliasLocked(roomAliasParts.alias)
+          of HttpPut:
+            let roomId = parsed.value{"room_id"}.getStr("")
+            if roomId in state.rooms:
+              let content = aliasContentWith(state.rooms[roomId], roomAliasParts.alias)
+              sentEvent = state.appendEventLocked(roomId, resolved.session.userId, "m.room.canonical_alias", "", content)
+              state.enqueueEventDeliveries(sentEvent)
+              state.savePersistentState()
+              foundRoom = roomId
+          of HttpDelete:
+            let roomId = state.findRoomByAliasLocked(roomAliasParts.alias)
+            if roomId.len > 0:
+              let content = aliasContentWithout(state.rooms[roomId], roomAliasParts.alias)
+              sentEvent = state.appendEventLocked(roomId, resolved.session.userId, "m.room.canonical_alias", "", content)
+              state.enqueueEventDeliveries(sentEvent)
+              state.savePersistentState()
+              foundRoom = roomId
+          else:
+            discard
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if foundRoom.len == 0:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room alias not found."))
+        return
+      if req.reqMethod == HttpGet:
+        await respondJson(req, Http200, %*{"room_id": foundRoom, "servers": [serverName]})
+      else:
+        await respondJson(req, Http200, %*{})
+      return
+
+    let visibilityParts = roomVisibilityPathParts(path)
+    if visibilityParts.ok:
+      if req.reqMethod != HttpGet and req.reqMethod != HttpPut:
+        await methodNotAllowed(req)
+        return
+      let parsed =
+        if req.reqMethod == HttpPut:
+          parseRequestJson(req)
+        else:
+          (ok: true, value: newJObject())
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      var visibility = "private"
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and visibilityParts.roomId in state.rooms:
+          foundRoom = true
+          if req.reqMethod == HttpPut:
+            visibility = parsed.value{"visibility"}.getStr("private")
+            let joinRule = if visibility == "public": "public" else: "invite"
+            let ev = state.appendEventLocked(
+              visibilityParts.roomId,
+              resolved.session.userId,
+              "m.room.join_rules",
+              "",
+              %*{"join_rule": joinRule}
+            )
+            state.enqueueEventDeliveries(ev)
+            state.savePersistentState()
+          else:
+            let key = stateKey("m.room.join_rules", "")
+            if key in state.rooms[visibilityParts.roomId].stateByKey and
+                state.rooms[visibilityParts.roomId].stateByKey[key].content{"join_rule"}.getStr("") == "public":
+              visibility = "public"
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, if req.reqMethod == HttpGet: %*{"visibility": visibility} else: %*{})
+      return
+
+    let reportParts = reportPathParts(path)
+    if reportParts.ok:
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    let forgetRoom = roomIdFromRoomsPath(path, "forget")
+    if forgetRoom.len > 0:
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and forgetRoom in state.userJoinedRooms.getOrDefault(resolved.session.userId, initHashSet[string]()):
+          state.userJoinedRooms[resolved.session.userId].excl(forgetRoom)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    for actionName in ["kick", "ban", "unban"]:
+      let actionRoom = roomIdFromRoomsPath(path, actionName)
+      if actionRoom.len == 0:
+        continue
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      let targetUser = parsed.value{"user_id"}.getStr("")
+      if targetUser.len == 0:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "user_id is required."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and actionRoom in state.rooms:
+          foundRoom = true
+          let membership = if actionName == "ban": "ban" else: "leave"
+          let ev = state.appendEventLocked(actionRoom, resolved.session.userId, "m.room.member", targetUser, membershipContent(membership))
+          state.enqueueEventDeliveries(ev)
+          state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    let knockTarget = knockTargetFromPath(path)
+    if knockTarget.len > 0:
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = ""
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          foundRoom = state.resolveRoomByJoinTarget(knockTarget)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if foundRoom.len == 0:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, %*{"room_id": foundRoom})
+      return
+
+    let initialSyncRoom = roomInitialSyncId(path)
+    if initialSyncRoom.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var limit = 10
+      try:
+        let raw = queryParam(req, "limit")
+        if raw.len > 0:
+          limit = parseInt(raw)
+      except ValueError:
+        discard
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      var payload = newJObject()
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and initialSyncRoom in state.rooms:
+          foundRoom = true
+          payload = roomInitialSyncPayload(state.rooms[initialSyncRoom], limit)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    let summaryRoom = unstableSummaryRoomId(path)
+    if summaryRoom.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      var payload = newJObject()
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and summaryRoom in state.rooms:
+          foundRoom = true
+          payload = roomSummaryPayload(state.rooms[summaryRoom])
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    let relationRoom = relationRoomId(path)
+    if relationRoom.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"chunk": [], "next_batch": ""})
+      return
+
+    let threadsRoom = threadsRoomId(path)
+    if threadsRoom.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"chunk": [], "next_batch": ""})
+      return
+
+    let hierarchyRoom = hierarchyRoomId(path)
+    if hierarchyRoom.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"rooms": [], "next_batch": ""})
+      return
+
+    let mutualUser = mutualRoomsUserId(path)
+    if mutualUser.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var joined = newJArray()
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and resolved.session.userId in state.userJoinedRooms and mutualUser in state.userJoinedRooms:
+          for roomId in state.userJoinedRooms[resolved.session.userId]:
+            if roomId in state.userJoinedRooms[mutualUser]:
+              joined.add(%roomId)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"joined": joined})
+      return
+
+    let upgradeRoom = upgradeRoomId(path)
+    if upgradeRoom.len > 0:
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        foundRoom = resolved.ok and upgradeRoom in state.rooms
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, %*{"replacement_room": upgradeRoom})
+      return
+
+    let roomKeysKind = roomKeysPathKind(path)
+    if roomKeysKind.len > 0:
+      if req.reqMethod notin {HttpGet, HttpPost, HttpPut, HttpDelete}:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if roomKeysKind == "version":
+        if req.reqMethod == HttpDelete:
+          await respondJson(req, Http200, %*{})
+        elif req.reqMethod == HttpPost:
+          await respondJson(req, Http200, %*{"version": "1"})
+        else:
+          await respondJson(req, Http200, %*{"version": "1", "algorithm": "m.megolm_backup.v1.curve25519-aes-sha2", "auth_data": {}})
+      else:
+        if req.reqMethod == HttpGet:
+          await respondJson(req, Http200, %*{"rooms": {}})
+        else:
+          await respondJson(req, Http200, %*{})
+      return
+
+    if isDehydratedDevicePath(path):
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if req.reqMethod == HttpGet:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "No dehydrated device is stored."))
+      elif req.reqMethod == HttpPut:
+        await respondJson(req, Http200, %*{"device_id": randomString("DEHYD", 8)})
+      elif req.reqMethod == HttpDelete:
+        await respondJson(req, Http200, %*{})
+      else:
+        await methodNotAllowed(req)
+      return
+
+    if isEventsPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      let fromToken = queryParam(req, "from")
+      await respondJson(req, Http200, %*{"chunk": [], "start": fromToken, "end": encodeSinceToken(0)})
+      return
+
     if isSyncPath(path):
       if req.reqMethod != HttpGet:
         await methodNotAllowed(req)
@@ -2709,17 +4837,28 @@ proc runNativeServer(cfg: LoadedConfig): int =
       let sinceToken = queryParam(req, "since")
       let sincePos = parseSinceToken(sinceToken)
       let fullState = queryParam(req, "full_state").toLowerAscii() in ["1", "true", "yes"]
+      let setPresenceValue = queryParam(req, "set_presence").strip().toLowerAscii()
+      if setPresenceValue.len > 0:
+        if not isValidPresenceValue(setPresenceValue):
+          await respondJson(req, Http400, matrixError("M_INVALID_PARAM", "Invalid presence value."))
+          return
+        if allowLocalPresence:
+          withLock state.lock:
+            discard state.setPresenceLocked(resolved.session.userId, setPresenceValue, "")
+            state.savePersistentState()
 
       proc buildSyncPayload(): JsonNode =
         var joinObj = newJObject()
+        var presenceEvents = newJArray()
         var nextBatch = "s0"
         withLock state.lock:
+          state.pruneExpiredTypingLocked()
           let joinedRooms = state.joinedRoomsForUser(resolved.session.userId)
           for roomId in joinedRooms:
             if roomId notin state.rooms:
               continue
-            let room = state.rooms[roomId]
             var timelineEvents = newJArray()
+            var room = state.rooms[roomId]
             for ev in room.timeline:
               if ev.streamPos > sincePos:
                 timelineEvents.add(ev.eventToJson())
@@ -2727,6 +4866,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
             var stateEvents = newJArray()
             if fullState or sincePos == 0:
               discard state.ensureDefaultRoomStateLocked(roomId, resolved.session.userId)
+              room = state.rooms[roomId]
               var allState: seq[MatrixEventRecord] = @[]
               for _, stateEv in room.stateByKey:
                 allState.add(stateEv)
@@ -2737,7 +4877,11 @@ proc runNativeServer(cfg: LoadedConfig): int =
             let initialSync = fullState or sincePos == 0
             let roomAccountDataEvents =
               state.accountDataEventsForSync(resolved.session.userId, roomId, sincePos, initialSync)
-            if timelineEvents.len > 0 or stateEvents.len > 0 or roomAccountDataEvents.len > 0 or fullState:
+            var ephemeralEvents = state.typingEventsForSync(roomId, sincePos, initialSync)
+            for receiptEvent in state.receiptEventsForSync(roomId, sincePos, initialSync):
+              ephemeralEvents.add(receiptEvent)
+            if timelineEvents.len > 0 or stateEvents.len > 0 or
+                roomAccountDataEvents.len > 0 or ephemeralEvents.len > 0 or fullState:
               joinObj[roomId] = %*{
                 "timeline": {
                   "events": timelineEvents,
@@ -2750,11 +4894,20 @@ proc runNativeServer(cfg: LoadedConfig): int =
                 "account_data": {
                   "events": roomAccountDataEvents
                 },
+                "ephemeral": {
+                  "events": ephemeralEvents
+                },
                 "unread_notifications": {
                   "highlight_count": 0,
                   "notification_count": 0
                 }
               }
+          if allowLocalPresence:
+            presenceEvents = state.presenceEventsForSync(
+              resolved.session.userId,
+              sincePos,
+              fullState or sincePos == 0
+            )
           nextBatch = encodeSinceToken(state.streamPos)
 
         %*{
@@ -2768,7 +4921,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
             "events": state.accountDataEventsForSync(resolved.session.userId, "", sincePos, fullState or sincePos == 0)
           },
           "presence": {
-            "events": [],
+            "events": presenceEvents,
           },
           "to_device": {
             "events": [],
@@ -2780,6 +4933,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var payload = buildSyncPayload()
       if payload["rooms"]["join"].len == 0 and
           payload["account_data"]["events"].len == 0 and
+          payload["presence"]["events"].len == 0 and
           timeoutMs > 0:
         await sleepAsync(timeoutMs)
         payload = buildSyncPayload()
@@ -2886,7 +5040,10 @@ proc runNativeServer(cfg: LoadedConfig): int =
                   username: localpart,
                   password: "",
                   displayName: localpart,
-                  avatarUrl: ""
+                  avatarUrl: "",
+                  blurhash: "",
+                  timezone: "",
+                  profileFields: initTable[string, JsonNode]()
                 )
                 if localpart.len > 0 and localpart notin state.usersByName:
                   state.usersByName[localpart] = inviteeId
@@ -2993,7 +5150,10 @@ proc runNativeServer(cfg: LoadedConfig): int =
               username: localpart,
               password: "",
               displayName: localpart,
-              avatarUrl: ""
+              avatarUrl: "",
+              blurhash: "",
+              timezone: "",
+              profileFields: initTable[string, JsonNode]()
             )
             if localpart.len > 0 and localpart notin state.usersByName:
               state.usersByName[localpart] = inviteeId
@@ -3072,6 +5232,8 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if req.reqMethod != HttpGet:
         await methodNotAllowed(req)
         return
+      let membership = queryParam(req, "membership")
+      let notMembership = queryParam(req, "not_membership")
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var foundRoom = false
       var payload = %*{"chunk": newJArray()}
@@ -3080,12 +5242,104 @@ proc runNativeServer(cfg: LoadedConfig): int =
         if resolved.ok and membersRoom in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(membersRoom, resolved.session.userId):
             foundRoom = true
-            payload = %*{"chunk": roomMembersArray(state.rooms[membersRoom])}
+            payload = %*{"chunk": roomMembersArray(state.rooms[membersRoom], membership, notMembership)}
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
       if not foundRoom:
         await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    let aliasesRoom = roomIdFromRoomsPath(path, "aliases")
+    if aliasesRoom.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var foundRoom = false
+      var payload = %*{"aliases": newJArray()}
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and aliasesRoom in state.rooms:
+          if resolved.session.isAppservice or state.roomJoinedForUser(aliasesRoom, resolved.session.userId):
+            foundRoom = true
+            payload = roomAliasesPayload(state.rooms[aliasesRoom])
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not foundRoom:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    let eventParts = roomAndEventFromPath(path, "event")
+    if eventParts.roomId.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var roomOk = false
+      var foundEvent = false
+      var payload = newJObject()
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and eventParts.roomId in state.rooms:
+          if resolved.session.isAppservice or state.roomJoinedForUser(eventParts.roomId, resolved.session.userId):
+            roomOk = true
+            let room = state.rooms[eventParts.roomId]
+            let idx = roomEventIndex(room, eventParts.eventId)
+            if idx >= 0:
+              foundEvent = true
+              payload = room.timeline[idx].eventToJson()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not roomOk:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      if not foundEvent:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Event not found."))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
+    let contextParts = roomAndEventFromPath(path, "context")
+    if contextParts.roomId.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var limit = 10
+      let limitRaw = queryParam(req, "limit")
+      if limitRaw.len > 0:
+        try:
+          limit = max(0, min(100, parseInt(limitRaw)))
+        except ValueError:
+          discard
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var roomOk = false
+      var foundEvent = false
+      var payload = newJObject()
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and contextParts.roomId in state.rooms:
+          if resolved.session.isAppservice or state.roomJoinedForUser(contextParts.roomId, resolved.session.userId):
+            roomOk = true
+            let room = state.rooms[contextParts.roomId]
+            let idx = roomEventIndex(room, contextParts.eventId)
+            if idx >= 0:
+              foundEvent = true
+              payload = roomContextPayload(room, idx, limit)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if not roomOk:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room not found."))
+        return
+      if not foundEvent:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Event not found."))
         return
       await respondJson(req, Http200, payload)
       return
@@ -3099,11 +5353,11 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if dir notin ["", "b", "f"]:
         await respondJson(req, Http400, matrixError("M_INVALID_PARAM", "dir must be 'b' or 'f'."))
         return
-      var limit = 25
+      var limit = 10
       let limitRaw = queryParam(req, "limit")
       if limitRaw.len > 0:
         try:
-          limit = max(1, min(200, parseInt(limitRaw)))
+          limit = max(1, min(1000, parseInt(limitRaw)))
         except ValueError:
           discard
 
@@ -3131,10 +5385,13 @@ proc runNativeServer(cfg: LoadedConfig): int =
             var chunk = newJArray()
             if dir == "" or dir == "b":
               var endPos = 0'i64
+              let toPos = parseSinceToken(queryParam(req, "to"))
               for idx in countdown(room.timeline.high, 0):
                 let ev = room.timeline[idx]
                 if ev.streamPos >= fromPos:
                   continue
+                if toPos > 0 and ev.streamPos <= toPos:
+                  break
                 chunk.add(ev.eventToJson())
                 endPos = ev.streamPos
                 if chunk.len >= limit:
@@ -3144,9 +5401,12 @@ proc runNativeServer(cfg: LoadedConfig): int =
               payload["end"] = %(if endPos > 0: encodeSinceToken(endPos) else: "")
             else:
               var endPos = 0'i64
+              let toPos = parseSinceToken(queryParam(req, "to"))
               for ev in room.timeline:
                 if ev.streamPos <= fromPos:
                   continue
+                if toPos > 0 and ev.streamPos >= toPos:
+                  break
                 chunk.add(ev.eventToJson())
                 endPos = ev.streamPos
                 if chunk.len >= limit:
@@ -3333,6 +5593,71 @@ proc runNativeServer(cfg: LoadedConfig): int =
       await respondJson(req, Http200, %*{"event_id": sentEventId})
       return
 
+    let presenceParts = presencePathParts(path)
+    if presenceParts.ok:
+      if not allowLocalPresence:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Presence is disabled on this server."))
+        return
+
+      if req.reqMethod == HttpGet:
+        var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+        var found = false
+        var visible = false
+        var payload = newJObject()
+        withLock state.lock:
+          resolved = state.getSessionFromToken(accessToken, impersonateUser)
+          if resolved.ok:
+            visible = resolved.session.isAppservice or
+              state.usersShareJoinedRoom(resolved.session.userId, presenceParts.userId)
+            if visible and presenceParts.userId in state.presence:
+              found = true
+              payload = presenceResponseJson(state.presence[presenceParts.userId])
+        if not resolved.ok:
+          await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+          return
+        if not visible or not found:
+          await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Presence state for this user was not found."))
+          return
+        await respondJson(req, Http200, payload)
+        return
+
+      if req.reqMethod != HttpPut:
+        await methodNotAllowed(req)
+        return
+
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      let presenceValue = parsed.value{"presence"}.getStr("").toLowerAscii()
+      if not isValidPresenceValue(presenceValue):
+        await respondJson(req, Http400, matrixError("M_INVALID_PARAM", "Invalid presence value."))
+        return
+      let statusMsg =
+        if parsed.value.hasKey("status_msg") and parsed.value["status_msg"].kind == JString:
+          parsed.value["status_msg"].getStr("")
+        else:
+          ""
+
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var forbidden = false
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          if not resolved.session.isAppservice and resolved.session.userId != presenceParts.userId:
+            forbidden = true
+          else:
+            discard state.setPresenceLocked(presenceParts.userId, presenceValue, statusMsg)
+            state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      if forbidden:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Not allowed to set presence of other users."))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
     let profileParts = profilePathParts(path)
     if profileParts.userId.len > 0:
       if req.reqMethod == HttpGet:
@@ -3341,26 +5666,26 @@ proc runNativeServer(cfg: LoadedConfig): int =
         withLock state.lock:
           if profileParts.userId in state.users:
             let user = state.users[profileParts.userId]
-            found = true
-            if profileParts.field == "displayname":
-              payload = %*{"displayname": user.displayName}
-            elif profileParts.field == "avatar_url":
-              payload = %*{"avatar_url": user.avatarUrl}
-            else:
-              payload = userProfilePayload(user)
+            let field = profileFieldPayload(user, profileParts.field)
+            found = field.ok
+            payload = field.payload
         if not found:
           await notFoundWithCode(req, "M_NOT_FOUND")
           return
         await respondJson(req, Http200, payload)
         return
 
-      if req.reqMethod != HttpPut:
+      if req.reqMethod != HttpPut and req.reqMethod != HttpDelete:
         await methodNotAllowed(req)
         return
-      let parsed = parseRequestJson(req)
-      if not parsed.ok:
-        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
-        return
+      let parsed =
+        if req.reqMethod == HttpDelete:
+          (ok: true, value: newJObject())
+        else:
+          parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+          await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+          return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var forbidden = false
       withLock state.lock:
@@ -3376,16 +5701,20 @@ proc runNativeServer(cfg: LoadedConfig): int =
                 username: local,
                 password: "",
                 displayName: local,
-                avatarUrl: ""
+                avatarUrl: "",
+                blurhash: "",
+                timezone: "",
+                profileFields: initTable[string, JsonNode]()
               )
               if local.len > 0 and local notin state.usersByName:
                 state.usersByName[local] = profileParts.userId
             var user = state.users[profileParts.userId]
-            if profileParts.field == "displayname":
-              user.displayName = parsed.value{"displayname"}.getStr(user.displayName)
-            elif profileParts.field == "avatar_url":
-              user.avatarUrl = parsed.value{"avatar_url"}.getStr(user.avatarUrl)
+            if req.reqMethod == HttpDelete:
+              user.deleteUserProfileField(profileParts.field)
+            else:
+              user.setUserProfileField(profileParts.field, parsed.value)
             state.users[profileParts.userId] = user
+            discard state.setPresenceLocked(profileParts.userId, "online", "")
             state.savePersistentState()
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
