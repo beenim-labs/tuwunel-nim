@@ -21,10 +21,22 @@ proc newCompatState(statePath: string): ServerState =
     filters: initTable[string, JsonNode](),
     pushers: initTable[string, JsonNode](),
     pushRules: initTable[string, JsonNode](),
+    backupCounter: 0,
+    backupVersions: initTable[string, BackupVersionRecord](),
+    backupSessions: initTable[string, BackupSessionRecord](),
+    deviceKeys: initTable[string, DeviceKeyRecord](),
+    oneTimeKeys: initTable[string, OneTimeKeyRecord](),
+    fallbackKeys: initTable[string, FallbackKeyRecord](),
+    dehydratedDevices: initTable[string, DehydratedDeviceRecord](),
+    crossSigningKeys: initTable[string, CrossSigningKeyRecord](),
+    toDeviceEvents: initTable[string, ToDeviceEventRecord](),
+    toDeviceTxnIds: initHashSet[string](),
+    openIdTokens: initTable[string, OpenIdTokenRecord](),
     typing: initTable[string, TypingRecord](),
     typingUpdates: initTable[string, int64](),
     receipts: initTable[string, ReceiptRecord](),
     presence: initTable[string, PresenceRecord](),
+    reports: @[],
     userJoinedRooms: initTable[string, HashSet[string]](),
     appserviceRegs: @[],
     appserviceByAsToken: initTable[string, AppserviceRegistration](),
@@ -293,6 +305,249 @@ suite "entrypoint compat helpers":
     check context["events_after"].len == 1
     check context["events_after"][0]["event_id"].getStr("") == msg3.eventId
     check context["state"].len >= 2
+
+  test "room search returns timeline hits pagination highlights and state":
+    let statePath = getTempDir() / "tuwunel-entrypoint-room-search.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+
+    state.rooms["!room:localhost"] = RoomData(
+      roomId: "!room:localhost",
+      creator: "@alice:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    state.rooms["!other:localhost"] = RoomData(
+      roomId: "!other:localhost",
+      creator: "@alice:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.name", "", %*{"name": "Search Room"})
+    let older = state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.message", "", %*{"msgtype": "m.text", "body": "needle alpha"})
+    let newer = state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.message", "", %*{"msgtype": "m.text", "body": "needle beta"})
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.message", "", %*{"msgtype": "m.text", "body": "other text"})
+    discard state.appendEventLocked("!other:localhost", "@alice:localhost", "m.room.member", "@bob:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!other:localhost", "@bob:localhost", "m.room.message", "", %*{"msgtype": "m.text", "body": "needle hidden"})
+
+    let firstPage = state.searchRoomEventsPayload(
+      "@alice:localhost",
+      %*{
+        "search_categories": {
+          "room_events": {
+            "search_term": "needle beta",
+            "include_state": true,
+            "filter": {
+              "limit": 1,
+              "rooms": ["!room:localhost", "!other:localhost"]
+            }
+          }
+        }
+      },
+      ""
+    )
+    let roomEvents = firstPage["search_categories"]["room_events"]
+    check roomEvents["count"].getInt() == 1
+    check roomEvents["results"].len == 1
+    check roomEvents["results"][0]["result"]["event_id"].getStr("") == newer.eventId
+    check roomEvents["results"][0]["context"]["events_before"].len >= 1
+    check roomEvents["state"].hasKey("!room:localhost")
+    check not roomEvents["state"].hasKey("!other:localhost")
+    check roomEvents["highlights"].len == 2
+
+    let paged = state.searchRoomEventsPayload(
+      "@alice:localhost",
+      %*{
+        "search_categories": {
+          "room_events": {
+            "search_term": "needle",
+            "filter": {"limit": 1}
+          }
+        }
+      },
+      "1"
+    )
+    let pagedEvents = paged["search_categories"]["room_events"]
+    check pagedEvents["count"].getInt() == 2
+    check pagedEvents["results"].len == 1
+    check pagedEvents["results"][0]["result"]["event_id"].getStr("") == older.eventId
+
+  test "events stream returns joined-room timeline events after token":
+    let statePath = getTempDir() / "tuwunel-entrypoint-events-stream.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+
+    state.rooms["!room:localhost"] = RoomData(
+      roomId: "!room:localhost",
+      creator: "@alice:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    state.rooms["!hidden:localhost"] = RoomData(
+      roomId: "!hidden:localhost",
+      creator: "@bob:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    let first = state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.message", "", %*{"body": "first"})
+    let second = state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.message", "", %*{"body": "second"})
+    discard state.appendEventLocked("!hidden:localhost", "@bob:localhost", "m.room.member", "@bob:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!hidden:localhost", "@bob:localhost", "m.room.message", "", %*{"body": "hidden"})
+
+    let stream = state.eventStreamPayload("@alice:localhost", "", encodeSinceToken(first.streamPos))
+    check stream.ok
+    check stream.payload["chunk"].len == 1
+    check stream.payload["chunk"][0]["event_id"].getStr("") == second.eventId
+    check stream.payload["start"].getStr("") == encodeSinceToken(second.streamPos)
+    check stream.payload["end"].getStr("") == encodeSinceToken(second.streamPos)
+
+    let hidden = state.eventStreamPayload("@alice:localhost", "!hidden:localhost", "0")
+    check not hidden.ok
+
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.member", "@bob:localhost", membershipContent("join"))
+    let bobMessage = state.appendEventLocked("!room:localhost", "@bob:localhost", "m.room.message", "", %*{"body": "notify alice"})
+    let notifications = state.notificationsPayload("@alice:localhost", encodeSinceToken(second.streamPos), "", 10)
+    check notifications["notifications"].len == 1
+    check notifications["notifications"][0]["room_id"].getStr("") == "!room:localhost"
+    check notifications["notifications"][0]["event"]["event_id"].getStr("") == bobMessage.eventId
+    check notifications["notifications"][0]["actions"][0].getStr("") == "notify"
+    check state.notificationsPayload("@alice:localhost", "0", "highlight", 10)["notifications"].len == 0
+
+  test "relations and threads return persisted timeline relations":
+    let statePath = getTempDir() / "tuwunel-entrypoint-relations.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+
+    let relationParts = relationPathParts(
+      "/_matrix/client/v3/rooms/%21room%3Alocalhost/relations/%24root/m.annotation/m.reaction"
+    )
+    check relationParts.ok
+    check relationParts.roomId == "!room:localhost"
+    check relationParts.eventId == "$root"
+    check relationParts.relType == "m.annotation"
+    check relationParts.eventType == "m.reaction"
+
+    state.rooms["!room:localhost"] = RoomData(
+      roomId: "!room:localhost",
+      creator: "@alice:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    state.rooms["!hidden:localhost"] = RoomData(
+      roomId: "!hidden:localhost",
+      creator: "@bob:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    let root = state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.message", "", %*{"body": "root"})
+    let reaction = state.appendEventLocked("!room:localhost", "@alice:localhost", "m.reaction", "", %*{
+      "m.relates_to": {
+        "rel_type": "m.annotation",
+        "event_id": root.eventId,
+        "key": "👍"
+      }
+    })
+    let edit = state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.message", "", %*{
+      "body": "edit",
+      "m.relates_to": {
+        "rel_type": "m.replace",
+        "event_id": root.eventId
+      }
+    })
+    let threadReply = state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.message", "", %*{
+      "body": "thread reply",
+      "m.relates_to": {
+        "rel_type": "m.thread",
+        "event_id": root.eventId
+      }
+    })
+    let nestedReaction = state.appendEventLocked("!room:localhost", "@alice:localhost", "m.reaction", "", %*{
+      "m.relates_to": {
+        "rel_type": "m.annotation",
+        "event_id": reaction.eventId,
+        "key": "nested"
+      }
+    })
+    discard edit
+    discard threadReply
+
+    let annotations = state.relatedEventsPayload(
+      "@alice:localhost",
+      (ok: true, roomId: "!room:localhost", eventId: root.eventId, relType: "m.annotation", eventType: "m.reaction"),
+      "",
+      "",
+      "f",
+      10,
+      false,
+    )
+    check annotations.ok
+    check annotations.payload["chunk"].len == 1
+    check annotations.payload["chunk"][0]["event_id"].getStr("") == reaction.eventId
+
+    let allRelations = state.relatedEventsPayload(
+      "@alice:localhost",
+      (ok: true, roomId: "!room:localhost", eventId: root.eventId, relType: "", eventType: ""),
+      "",
+      "",
+      "f",
+      2,
+      false,
+    )
+    check allRelations.ok
+    check allRelations.payload["chunk"].len == 2
+    check allRelations.payload["next_batch"].getStr("").len > 0
+
+    let recursive = state.relatedEventsPayload(
+      "@alice:localhost",
+      (ok: true, roomId: "!room:localhost", eventId: root.eventId, relType: "m.annotation", eventType: "m.reaction"),
+      "",
+      "",
+      "f",
+      10,
+      true,
+    )
+    check recursive.ok
+    check recursive.payload["chunk"].len == 2
+    check recursive.payload["chunk"][1]["event_id"].getStr("") == nestedReaction.eventId
+    check recursive.payload["recursion_depth"].getInt() >= 1
+
+    let threads = state.threadEventsPayload("@alice:localhost", "!room:localhost", "", 10)
+    check threads.ok
+    check threads.payload["chunk"].len == 1
+    check threads.payload["chunk"][0]["event_id"].getStr("") == root.eventId
+
+    discard state.appendEventLocked("!hidden:localhost", "@bob:localhost", "m.room.member", "@bob:localhost", membershipContent("join"))
+    let forbidden = state.relatedEventsPayload(
+      "@alice:localhost",
+      (ok: true, roomId: "!hidden:localhost", eventId: root.eventId, relType: "", eventType: ""),
+      "",
+      "",
+      "b",
+      10,
+      false,
+    )
+    check not forbidden.ok
+    check not forbidden.notFound
 
   test "filter and account-data path parsers cover stable client routes":
     let filterCreate = userFilterPathParts("/_matrix/client/v3/user/%40alice%3Alocalhost/filter")
@@ -671,7 +926,12 @@ suite "entrypoint compat helpers":
     check isUserDirectorySearchPath("/_matrix/client/v3/user_directory/search")
     check roomKeysPathKind("/_matrix/client/v3/room_keys/version") == "version"
     check roomKeysPathKind("/_matrix/client/v3/room_keys/keys/%21room%3Alocalhost") == "keys"
-    check isDehydratedDevicePath("/_matrix/client/unstable/org.matrix.msc2697.v2/dehydrated_device")
+    let backupSession = roomKeysPathParts("/_matrix/client/v3/room_keys/keys/%21room%3Alocalhost/session%2Fone")
+    check backupSession.ok
+    check backupSession.kind == "keys"
+    check backupSession.roomId == "!room:localhost"
+    check backupSession.sessionId == "session/one"
+    check dehydratedDevicePathParts("/_matrix/client/unstable/org.matrix.msc2697.v2/dehydrated_device").ok
 
     let openId = openIdPathParts("/_matrix/client/v3/user/%40alice%3Alocalhost/openid/request_token")
     check openId.ok
@@ -730,6 +990,7 @@ suite "entrypoint compat helpers":
       stateByKey: initTable[string, MatrixEventRecord]()
     )
     discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.name", "", %*{"name": "Lobby"})
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.join_rules", "", %*{"join_rule": "public"})
 
     let publicRooms = publicRoomsPayload(state)
     check publicRooms["chunk"].len == 1
@@ -740,9 +1001,29 @@ suite "entrypoint compat helpers":
     check directory["results"].len == 1
     check directory["results"][0]["user_id"].getStr("") == "@alice:localhost"
 
+    check thirdPartyProtocolsPayload().len == 0
+    check accountThreepidsPayload()["threepids"].len == 0
+
+    var turnCfg = initFlatConfig()
+    check not turnServerPayload(turnCfg, "localhost", "@alice:localhost").ok
+    turnCfg["turn_uris"] = newArrayValue(@[newStringValue("turn:turn.example:3478?transport=udp")])
+    turnCfg["turn_username"] = newStringValue("turn-user")
+    turnCfg["turn_password"] = newStringValue("turn-pass")
+    turnCfg["turn_ttl"] = newIntValue(600)
+    let staticTurn = turnServerPayload(turnCfg, "localhost", "@alice:localhost")
+    check staticTurn.ok
+    check staticTurn.payload["uris"][0].getStr("") == "turn:turn.example:3478?transport=udp"
+    check staticTurn.payload["username"].getStr("") == "turn-user"
+    check staticTurn.payload["password"].getStr("") == "turn-pass"
+    check staticTurn.payload["ttl"].getInt() == 600
+    turnCfg["turn_secret"] = newStringValue("secret")
+    let secretTurn = turnServerPayload(turnCfg, "localhost", "@alice:localhost")
+    check secretTurn.ok
+    check secretTurn.payload["username"].getStr("").endsWith(":@alice:localhost")
+    check secretTurn.payload["password"].getStr("").len > 0
+
     let keyQuery = keysQueryPayload(state, %*{"device_keys": {"@alice:localhost": ["DEV1"]}})
     check keyQuery["device_keys"]["@alice:localhost"]["DEV1"]["user_id"].getStr("") == "@alice:localhost"
-    check keyUploadCounts(%*{"one_time_keys": {"signed_curve25519:AAAA": {}, "signed_curve25519:BBBB": {}}})["signed_curve25519"].getInt() == 2
 
     let initial = roomInitialSyncPayload(state.rooms["!room:localhost"], 10)
     check initial["room_id"].getStr("") == "!room:localhost"
@@ -751,6 +1032,818 @@ suite "entrypoint compat helpers":
     let summary = roomSummaryPayload(state.rooms["!room:localhost"])
     check summary["name"].getStr("") == "Lobby"
     check summary["joined_member_count"].getInt() == 1
+
+  test "room initial sync and summary expose visible local state":
+    let statePath = getTempDir() / "tuwunel-entrypoint-room-summary-initial.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.users["@alice:localhost"] = UserProfile(userId: "@alice:localhost", username: "alice", password: "", displayName: "Alice", avatarUrl: "", blurhash: "", timezone: "", profileFields: initTable[string, JsonNode]())
+    state.users["@bob:localhost"] = UserProfile(userId: "@bob:localhost", username: "bob", password: "", displayName: "Bob", avatarUrl: "", blurhash: "", timezone: "", profileFields: initTable[string, JsonNode]())
+    state.rooms["!room:localhost"] = RoomData(roomId: "!room:localhost", creator: "@alice:localhost", isDirect: false, members: initTable[string, string](), timeline: @[], stateByKey: initTable[string, MatrixEventRecord]())
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.create", "", %*{"creator": "@alice:localhost", "room_version": "11"})
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.name", "", %*{"name": "Lobby"})
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.topic", "", %*{"topic": "General"})
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.canonical_alias", "", aliasContentWith(state.rooms["!room:localhost"], "#lobby:localhost"))
+    discard state.setAccountDataLocked("!room:localhost", "@alice:localhost", "m.tag", %*{"tags": {"m.favourite": {}}})
+
+    let privateInitial = state.roomInitialSyncPayload(state.rooms["!room:localhost"], "@alice:localhost", 50)
+    check privateInitial["membership"].getStr("") == "join"
+    check privateInitial["visibility"].getStr("") == "private"
+    check privateInitial["account_data"].len == 1
+    check privateInitial["state"].len >= 4
+    check state.roomVisibleToUser("!room:localhost", "@alice:localhost")
+    check not state.roomVisibleToUser("!room:localhost", "@bob:localhost")
+
+    let privateSummary = roomSummaryPayload(state.rooms["!room:localhost"], "@alice:localhost")
+    check privateSummary["name"].getStr("") == "Lobby"
+    check privateSummary["topic"].getStr("") == "General"
+    check privateSummary["canonical_alias"].getStr("") == "#lobby:localhost"
+    check privateSummary["membership"].getStr("") == "join"
+    check privateSummary["join_rule"].getStr("") == "invite"
+    check privateSummary["room_version"].getStr("") == "11"
+
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.join_rules", "", %*{"join_rule": "public"})
+    check state.roomVisibleToUser("!room:localhost", "@bob:localhost")
+    let publicSummary = roomSummaryPayload(state.rooms["!room:localhost"], "@bob:localhost")
+    check publicSummary["join_rule"].getStr("") == "public"
+    check publicSummary["membership"].getStr("") == "leave"
+
+  test "space hierarchy and room upgrade use local room graph state":
+    let statePath = getTempDir() / "tuwunel-entrypoint-hierarchy-upgrade.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.rooms["!space:localhost"] = RoomData(roomId: "!space:localhost", creator: "@alice:localhost", isDirect: false, members: initTable[string, string](), timeline: @[], stateByKey: initTable[string, MatrixEventRecord]())
+    state.rooms["!child:localhost"] = RoomData(roomId: "!child:localhost", creator: "@alice:localhost", isDirect: false, members: initTable[string, string](), timeline: @[], stateByKey: initTable[string, MatrixEventRecord]())
+    discard state.appendEventLocked("!space:localhost", "@alice:localhost", "m.room.create", "", %*{"creator": "@alice:localhost", "type": "m.space", "room_version": "10"})
+    discard state.appendEventLocked("!space:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!space:localhost", "@alice:localhost", "m.room.name", "", %*{"name": "Space"})
+    discard state.appendEventLocked("!space:localhost", "@alice:localhost", "m.space.child", "!child:localhost", %*{"via": ["localhost"], "suggested": true})
+    discard state.appendEventLocked("!child:localhost", "@alice:localhost", "m.room.create", "", %*{"creator": "@alice:localhost", "room_version": "10"})
+    discard state.appendEventLocked("!child:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!child:localhost", "@alice:localhost", "m.room.name", "", %*{"name": "Child"})
+    discard state.appendEventLocked("!child:localhost", "@alice:localhost", "m.room.topic", "", %*{"topic": "Old topic"})
+
+    let hierarchy = state.roomHierarchyPayload("!space:localhost", "@alice:localhost")
+    check hierarchy.ok
+    check hierarchy.payload["rooms"].len == 2
+    check hierarchy.payload["rooms"][0]["room_id"].getStr("") == "!space:localhost"
+    check hierarchy.payload["rooms"][0]["children_state"].len == 1
+    check hierarchy.payload["rooms"][1]["room_id"].getStr("") == "!child:localhost"
+
+    let forbiddenHierarchy = state.roomHierarchyPayload("!space:localhost", "@bob:localhost")
+    check not forbiddenHierarchy.ok
+    check forbiddenHierarchy.forbidden
+
+    let upgraded = state.upgradeRoomLocked("!child:localhost", "@alice:localhost", "11")
+    check upgraded.ok
+    check not upgraded.forbidden
+    check upgraded.replacementRoom != "!child:localhost"
+    check upgraded.replacementRoom in state.rooms
+    check state.rooms[upgraded.replacementRoom].stateByKey[stateKey("m.room.create", "")].content["room_version"].getStr("") == "11"
+    check state.rooms[upgraded.replacementRoom].stateByKey[stateKey("m.room.topic", "")].content["topic"].getStr("") == "Old topic"
+    check state.rooms["!child:localhost"].stateByKey[stateKey("m.room.tombstone", "")].content["replacement_room"].getStr("") == upgraded.replacementRoom
+    check state.rooms[upgraded.replacementRoom].members["@alice:localhost"] == "join"
+    check state.upgradeRoomLocked("!child:localhost", "@bob:localhost", "11").forbidden
+
+  test "federation read helpers expose local room user and key state":
+    let statePath = getTempDir() / "tuwunel-entrypoint-federation-read.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.users["@alice:localhost"] = UserProfile(
+      userId: "@alice:localhost",
+      username: "alice",
+      password: "",
+      displayName: "Alice",
+      avatarUrl: "mxc://localhost/alice",
+      blurhash: "hash",
+      timezone: "Europe/Stockholm",
+      profileFields: initTable[string, JsonNode]()
+    )
+    discard state.upsertDeviceLocked("@alice:localhost", "DEV1", "Alice Mac", "127.0.0.1")
+    state.deviceKeys[deviceKey("@alice:localhost", "DEV1")] = DeviceKeyRecord(
+      userId: "@alice:localhost",
+      deviceId: "DEV1",
+      keyData: %*{
+        "user_id": "@alice:localhost",
+        "device_id": "DEV1",
+        "algorithms": ["m.olm.v1.curve25519-aes-sha2"],
+        "keys": {"curve25519:DEV1": "curve-key"},
+        "signatures": {}
+      },
+      streamPos: 1
+    )
+    state.rooms["!fed:localhost"] = RoomData(
+      roomId: "!fed:localhost",
+      creator: "@alice:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    let createEv = state.appendEventLocked("!fed:localhost", "@alice:localhost", "m.room.create", "", %*{"room_version": "11"})
+    let memberEv = state.appendEventLocked("!fed:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!fed:localhost", "@alice:localhost", "m.room.join_rules", "", %*{"join_rule": "public"})
+    discard state.appendEventLocked("!fed:localhost", "@alice:localhost", "m.room.canonical_alias", "", %*{"alias": "#fed:localhost"})
+    let firstMessage = state.appendEventLocked("!fed:localhost", "@alice:localhost", "m.room.message", "", %*{"body": "first", "msgtype": "m.text"})
+    let secondMessage = state.appendEventLocked("!fed:localhost", "@alice:localhost", "m.room.message", "", %*{"body": "second", "msgtype": "m.text"})
+
+    check federationPathParts("/_matrix/federation/v1/state/%21fed%3Alocalhost") == @["state", "!fed:localhost"]
+    check federationVersionPayload()["server"]["version"].getStr("") == RustBaselineVersion
+
+    let eventPayload = state.federationEventPayload(secondMessage.eventId)
+    check eventPayload.ok
+    check eventPayload.payload["pdu"]["event_id"].getStr("") == secondMessage.eventId
+    check eventPayload.payload["pdu"]["content"]["body"].getStr("") == "second"
+
+    let statePayload = state.federationRoomStatePayload("!fed:localhost", secondMessage.eventId, false)
+    check statePayload.ok
+    check statePayload.eventKnown
+    check statePayload.payload["pdus"].len >= 3
+
+    let stateIdsPayload = state.federationRoomStatePayload("!fed:localhost", secondMessage.eventId, true)
+    check stateIdsPayload.ok
+    check stateIdsPayload.payload["pdu_ids"].len >= 3
+    var stateIds = initHashSet[string]()
+    for node in stateIdsPayload.payload["pdu_ids"]:
+      stateIds.incl(node.getStr(""))
+    check createEv.eventId in stateIds
+
+    let backfill = state.federationBackfillPayload("!fed:localhost", @[secondMessage.eventId], 1)
+    check backfill.ok
+    check backfill.payload["pdus"].len == 1
+    check backfill.payload["pdus"][0]["event_id"].getStr("") == firstMessage.eventId
+
+    let missing = state.federationMissingEventsPayload(
+      "!fed:localhost",
+      %*{"earliest_events": [memberEv.eventId], "latest_events": [secondMessage.eventId], "limit": 10}
+    )
+    check missing.ok
+    var missingIds = initHashSet[string]()
+    for node in missing.payload["events"]:
+      missingIds.incl(node["event_id"].getStr(""))
+    check firstMessage.eventId in missingIds
+
+    let auth = state.federationEventAuthPayload("!fed:localhost", secondMessage.eventId)
+    check auth.ok
+    check auth.eventKnown
+    check auth.payload["auth_chain"].len >= 1
+
+    let directory = state.federationDirectoryPayload("#fed:localhost", "localhost")
+    check directory.ok
+    check directory.payload["room_id"].getStr("") == "!fed:localhost"
+    check directory.payload["servers"][0].getStr("") == "localhost"
+
+    let profile = state.federationProfilePayload("@alice:localhost", "")
+    check profile.ok
+    check profile.payload["displayname"].getStr("") == "Alice"
+    check profile.payload["avatar_url"].getStr("") == "mxc://localhost/alice"
+
+    let devices = state.federationUserDevicesPayload("@alice:localhost")
+    check devices.ok
+    check devices.payload["devices"].len == 1
+    check devices.payload["devices"][0]["device_id"].getStr("") == "DEV1"
+    check devices.payload["devices"][0]["keys"]["keys"]["curve25519:DEV1"].getStr("") == "curve-key"
+
+    let keys = keysQueryPayload(state, %*{"device_keys": {"@alice:localhost": ["DEV1"]}})
+    check keys["device_keys"]["@alice:localhost"]["DEV1"]["keys"]["curve25519:DEV1"].getStr("") == "curve-key"
+
+  test "federation transaction and membership helpers mutate native room state":
+    let statePath = getTempDir() / "tuwunel-entrypoint-federation-membership.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.rooms["!fedjoin:localhost"] = RoomData(
+      roomId: "!fedjoin:localhost",
+      creator: "@alice:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    discard state.appendEventLocked("!fedjoin:localhost", "@alice:localhost", "m.room.create", "", %*{"room_version": "11"})
+    discard state.appendEventLocked("!fedjoin:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!fedjoin:localhost", "@alice:localhost", "m.room.join_rules", "", %*{"join_rule": "public"})
+
+    let joinTemplate = state.membershipTemplateEvent("!fedjoin:localhost", "@remote:remote.example", "join", "remote.example")
+    check joinTemplate.ok
+    check joinTemplate.payload["room_version"].getStr("") == "11"
+    check joinTemplate.payload["event"]["content"]["membership"].getStr("") == "join"
+    check joinTemplate.payload["event"]["state_key"].getStr("") == "@remote:remote.example"
+
+    let joinResult = state.federationAcceptMembershipLocked(
+      "!fedjoin:localhost",
+      "$remote_join",
+      "join",
+      %*{
+        "pdu": {
+          "room_id": "!fedjoin:localhost",
+          "sender": "@remote:remote.example",
+          "type": "m.room.member",
+          "state_key": "@remote:remote.example",
+          "origin_server_ts": 1,
+          "content": {"membership": "join"}
+        }
+      }
+    )
+    check joinResult.ok
+    check joinResult.payload["state"].len >= 3
+    check joinResult.payload["event"]["event_id"].getStr("") == "$remote_join"
+    check state.rooms["!fedjoin:localhost"].members["@remote:remote.example"] == "join"
+
+    let txn = state.federationSendTransactionLocked(
+      "remote.example",
+      "txn1",
+      %*{
+        "origin": "remote.example",
+        "pdus": [
+          {
+            "event_id": "$remote_msg",
+            "room_id": "!fedjoin:localhost",
+            "sender": "@remote:remote.example",
+            "type": "m.room.message",
+            "origin_server_ts": 2,
+            "content": {"msgtype": "m.text", "body": "from federation"}
+          }
+        ],
+        "edus": [
+          {
+            "edu_type": "m.typing",
+            "content": {
+              "room_id": "!fedjoin:localhost",
+              "user_id": "@remote:remote.example",
+              "typing": true
+            }
+          }
+        ]
+      }
+    )
+    check txn["pdus"]["$remote_msg"].kind == JObject
+    check state.rooms["!fedjoin:localhost"].timeline[^1].eventId == "$remote_msg"
+    check state.typing.hasKey(typingKey("!fedjoin:localhost", "@remote:remote.example"))
+
+    let leaveResult = state.federationAcceptMembershipLocked(
+      "!fedjoin:localhost",
+      "$remote_leave",
+      "leave",
+      %*{
+        "pdu": {
+          "room_id": "!fedjoin:localhost",
+          "sender": "@remote:remote.example",
+          "type": "m.room.member",
+          "state_key": "@remote:remote.example",
+          "content": {"membership": "leave"}
+        }
+      }
+    )
+    check leaveResult.ok
+    check state.rooms["!fedjoin:localhost"].members["@remote:remote.example"] == "leave"
+
+    let inviteResult = state.federationAcceptMembershipLocked(
+      "!fedjoin:localhost",
+      "$remote_invite",
+      "invite",
+      %*{
+        "event": {
+          "room_id": "!fedjoin:localhost",
+          "sender": "@remote:remote.example",
+          "type": "m.room.member",
+          "state_key": "@localinvite:localhost",
+          "content": {"membership": "invite"}
+        }
+      }
+    )
+    check inviteResult.ok
+    check inviteResult.payload["event"]["event_id"].getStr("") == "$remote_invite"
+    check state.rooms["!fedjoin:localhost"].members["@localinvite:localhost"] == "invite"
+
+  test "room directory aliases visibility public rooms and joined rooms persist":
+    let statePath = getTempDir() / "tuwunel-entrypoint-directory-state.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.rooms["!room:localhost"] = RoomData(
+      roomId: "!room:localhost",
+      creator: "@alice:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.name", "", %*{"name": "Lobby"})
+
+    check state.joinedRoomsForUser("@alice:localhost") == @["!room:localhost"]
+    check publicRoomsPayload(state)["chunk"].len == 0
+
+    discard state.appendEventLocked(
+      "!room:localhost",
+      "@alice:localhost",
+      "m.room.canonical_alias",
+      "",
+      aliasContentWith(state.rooms["!room:localhost"], "#lobby:localhost")
+    )
+    check state.findRoomByAliasLocked("#lobby:localhost") == "!room:localhost"
+    check state.rooms["!room:localhost"].roomAliasesPayload()["aliases"][0].getStr("") == "#lobby:localhost"
+
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.join_rules", "", %*{"join_rule": "public"})
+    let publicRooms = publicRoomsPayload(state)
+    check publicRooms["chunk"].len == 1
+    check publicRooms["chunk"][0]["room_id"].getStr("") == "!room:localhost"
+    check publicRooms["chunk"][0]["canonical_alias"].getStr("") == "#lobby:localhost"
+
+    let filtered = publicRoomsPayload(state, %*{"filter": {"generic_search_term": "lob"}, "limit": 1})
+    check filtered["chunk"].len == 1
+    check filtered["total_room_count_estimate"].getInt() == 1
+    check publicRoomsPayload(state, %*{"filter": {"generic_search_term": "missing"}})["chunk"].len == 0
+
+    state.savePersistentState()
+    let loaded = loadPersistentState(statePath)
+    check loaded.rooms["!room:localhost"].roomHasAlias("#lobby:localhost")
+    check loaded.rooms["!room:localhost"].roomIsPublic()
+
+    discard state.appendEventLocked(
+      "!room:localhost",
+      "@alice:localhost",
+      "m.room.canonical_alias",
+      "",
+      aliasContentWithout(state.rooms["!room:localhost"], "#lobby:localhost")
+    )
+    check state.findRoomByAliasLocked("#lobby:localhost") == ""
+
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.join_rules", "", %*{"join_rule": "invite"})
+    check not state.rooms["!room:localhost"].roomIsPublic()
+    check publicRoomsPayload(state)["chunk"].len == 0
+
+  test "room membership actions persist kick ban unban knock and forget":
+    let statePath = getTempDir() / "tuwunel-entrypoint-membership-actions.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.rooms["!room:localhost"] = RoomData(
+      roomId: "!room:localhost",
+      creator: "@alice:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.member", "@bob:localhost", membershipContent("join"))
+
+    let kick = state.setRoomMembershipLocked("!room:localhost", "@alice:localhost", "@bob:localhost", "leave")
+    check kick.ok
+    check state.rooms["!room:localhost"].members["@bob:localhost"] == "leave"
+    check "!room:localhost" notin state.joinedRoomsForUser("@bob:localhost")
+
+    let ban = state.setRoomMembershipLocked("!room:localhost", "@alice:localhost", "@bob:localhost", "ban")
+    check ban.ok
+    check state.rooms["!room:localhost"].members["@bob:localhost"] == "ban"
+
+    let unban = state.setRoomMembershipLocked("!room:localhost", "@alice:localhost", "@bob:localhost", "leave")
+    check unban.ok
+    check state.rooms["!room:localhost"].members["@bob:localhost"] == "leave"
+
+    let knock = state.setRoomMembershipLocked("!room:localhost", "@carol:localhost", "@carol:localhost", "knock")
+    check knock.ok
+    check state.rooms["!room:localhost"].members["@carol:localhost"] == "knock"
+    check "!room:localhost" notin state.joinedRoomsForUser("@carol:localhost")
+
+    let forgotten = state.forgetRoomLocked("@alice:localhost", "!room:localhost")
+    check forgotten.ok
+    check forgotten.changed
+    check state.rooms["!room:localhost"].members["@alice:localhost"] == "leave"
+    check "!room:localhost" notin state.joinedRoomsForUser("@alice:localhost")
+    check not state.forgetRoomLocked("@alice:localhost", "!missing:localhost").ok
+
+    state.savePersistentState()
+    let loaded = loadPersistentState(statePath)
+    check loaded.rooms["!room:localhost"].members["@alice:localhost"] == "leave"
+    check loaded.rooms["!room:localhost"].members["@bob:localhost"] == "leave"
+    check loaded.rooms["!room:localhost"].members["@carol:localhost"] == "knock"
+
+  test "mutual rooms payload reflects shared joined membership":
+    let statePath = getTempDir() / "tuwunel-entrypoint-mutual-rooms.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.users["@alice:localhost"] = UserProfile(userId: "@alice:localhost", username: "alice", password: "", displayName: "Alice", avatarUrl: "", blurhash: "", timezone: "", profileFields: initTable[string, JsonNode]())
+    state.users["@bob:localhost"] = UserProfile(userId: "@bob:localhost", username: "bob", password: "", displayName: "Bob", avatarUrl: "", blurhash: "", timezone: "", profileFields: initTable[string, JsonNode]())
+    state.rooms["!shared:localhost"] = RoomData(roomId: "!shared:localhost", creator: "@alice:localhost", isDirect: false, members: initTable[string, string](), timeline: @[], stateByKey: initTable[string, MatrixEventRecord]())
+    state.rooms["!alice-only:localhost"] = RoomData(roomId: "!alice-only:localhost", creator: "@alice:localhost", isDirect: false, members: initTable[string, string](), timeline: @[], stateByKey: initTable[string, MatrixEventRecord]())
+    discard state.appendEventLocked("!shared:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!shared:localhost", "@alice:localhost", "m.room.member", "@bob:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!alice-only:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+
+    let mutual = state.mutualRoomsPayloadLocked("@alice:localhost", "@bob:localhost")
+    check mutual["joined"].len == 1
+    check mutual["joined"][0].getStr("") == "!shared:localhost"
+    check mutual["next_batch_token"].kind == JNull
+    check state.mutualRoomsPayloadLocked("@alice:localhost", "@missing:localhost")["joined"].len == 0
+
+  test "user directory search and OpenID token payloads use local state":
+    let statePath = getTempDir() / "tuwunel-entrypoint-directory-openid.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.users["@alice:localhost"] = UserProfile(
+      userId: "@alice:localhost",
+      username: "alice",
+      password: "",
+      displayName: "Alice",
+      avatarUrl: "mxc://localhost/alice",
+      blurhash: "",
+      timezone: "",
+      profileFields: initTable[string, JsonNode]()
+    )
+    state.users["@alicia:localhost"] = UserProfile(
+      userId: "@alicia:localhost",
+      username: "alicia",
+      password: "",
+      displayName: "Alicia",
+      avatarUrl: "",
+      blurhash: "",
+      timezone: "",
+      profileFields: initTable[string, JsonNode]()
+    )
+    state.users["@bob:localhost"] = UserProfile(
+      userId: "@bob:localhost",
+      username: "bob",
+      password: "",
+      displayName: "Bob",
+      avatarUrl: "",
+      blurhash: "",
+      timezone: "",
+      profileFields: initTable[string, JsonNode]()
+    )
+
+    let limited = userDirectorySearchPayload(state, %*{"search_term": "ali", "limit": 1})
+    check limited["limited"].getBool(false)
+    check limited["results"].len == 1
+    check limited["results"][0]["user_id"].getStr("") == "@alice:localhost"
+    check limited["results"][0]["display_name"].getStr("") == "Alice"
+    check limited["results"][0]["avatar_url"].getStr("") == "mxc://localhost/alice"
+
+    let bob = userDirectorySearchPayload(state, %*{"search_term": "bob", "limit": 10})
+    check not bob["limited"].getBool(true)
+    check bob["results"].len == 1
+    check bob["results"][0]["user_id"].getStr("") == "@bob:localhost"
+
+    let token = openIdTokenPayload("localhost")
+    check token["access_token"].getStr("").startsWith("oidc_")
+    check token["token_type"].getStr("") == "Bearer"
+    check token["matrix_server_name"].getStr("") == "localhost"
+    check token["expires_in"].getInt() == 3600
+
+    let issued = state.createOpenIdTokenPayload("@alice:localhost", "localhost")
+    check issued["access_token"].getStr("").startsWith("oidc_")
+    let userInfo = state.federationOpenIdUserInfoPayload(issued["access_token"].getStr(""))
+    check userInfo.ok
+    check userInfo.payload["sub"].getStr("") == "@alice:localhost"
+    check state.openIdTokens.len == 1
+
+  test "room and event reports persist native report records":
+    let statePath = getTempDir() / "tuwunel-entrypoint-reports.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.rooms["!room:localhost"] = RoomData(
+      roomId: "!room:localhost",
+      creator: "@alice:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    let message = state.appendEventLocked("!room:localhost", "@bob:localhost", "m.room.message", "", %*{"body": "spam"})
+
+    let roomReport = state.appendReportLocked("@alice:localhost", "!room:localhost", "", "room spam", 0)
+    check roomReport.eventId == ""
+    check roomReport.reporterUserId == "@alice:localhost"
+    check roomReport.roomId == "!room:localhost"
+    check roomReport.reason == "room spam"
+
+    let eventReport = state.appendReportLocked("@alice:localhost", "!room:localhost", message.eventId, "event spam", -100)
+    check eventReport.eventId == message.eventId
+    check eventReport.score == -100
+    check state.roomJoinedForUser("!room:localhost", "@alice:localhost")
+    check roomEventIndex(state.rooms["!room:localhost"], message.eventId) >= 0
+
+    state.savePersistentState()
+    let loaded = loadPersistentState(statePath)
+    check loaded.reports.len == 2
+    check loaded.reports[0].reason == "room spam"
+    check loaded.reports[1].eventId == message.eventId
+    check loaded.reports[1].score == -100
+
+  test "E2EE device and one-time keys persist query claim and changes":
+    let statePath = getTempDir() / "tuwunel-entrypoint-e2ee-keys.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    discard state.upsertDeviceLocked("@alice:localhost", "DEV1", "Alice laptop")
+    let upload = state.uploadE2eeKeysLocked(
+      "@alice:localhost",
+      "DEV1",
+      %*{
+        "device_keys": {
+          "user_id": "@mallory:localhost",
+          "device_id": "WRONG",
+          "algorithms": ["m.olm.v1.curve25519-aes-sha2"],
+          "keys": {"curve25519:DEV1": "curve-key"},
+          "signatures": {}
+        },
+        "one_time_keys": {
+          "signed_curve25519:AAAA": {"key": "otk-a"},
+          "signed_curve25519:BBBB": {"key": "otk-b"}
+        },
+        "fallback_keys": {
+          "signed_curve25519:FALL": {"key": "fallback"}
+        }
+      }
+    )
+    check upload.ok
+    check upload.payload["one_time_key_counts"]["signed_curve25519"].getInt() == 2
+    check upload.payload["device_unused_fallback_key_types"][0].getStr("") == "signed_curve25519"
+
+    let queried = keysQueryPayload(state, %*{"device_keys": {"@alice:localhost": ["DEV1"]}})
+    check queried["device_keys"]["@alice:localhost"]["DEV1"]["user_id"].getStr("") == "@alice:localhost"
+    check queried["device_keys"]["@alice:localhost"]["DEV1"]["device_id"].getStr("") == "DEV1"
+    check queried["device_keys"]["@alice:localhost"]["DEV1"]["keys"]["curve25519:DEV1"].getStr("") == "curve-key"
+
+    let changed = state.keyChangesPayloadLocked("s0", encodeSinceToken(state.streamPos))
+    check changed["changed"].len == 1
+    check changed["changed"][0].getStr("") == "@alice:localhost"
+
+    let firstClaim = state.claimE2eeKeysLocked(%*{
+      "one_time_keys": {
+        "@alice:localhost": {"DEV1": "signed_curve25519"}
+      }
+    })
+    check firstClaim["one_time_keys"]["@alice:localhost"]["DEV1"].hasKey("signed_curve25519:AAAA")
+    check state.oneTimeKeyCountsLocked("@alice:localhost", "DEV1")["signed_curve25519"].getInt() == 1
+
+    discard state.claimE2eeKeysLocked(%*{
+      "one_time_keys": {
+        "@alice:localhost": {"DEV1": "signed_curve25519"}
+      }
+    })
+    let fallbackClaim = state.claimE2eeKeysLocked(%*{
+      "one_time_keys": {
+        "@alice:localhost": {"DEV1": "signed_curve25519"}
+      }
+    })
+    check fallbackClaim["one_time_keys"]["@alice:localhost"]["DEV1"].hasKey("signed_curve25519:FALL")
+    check state.unusedFallbackKeyTypesLocked("@alice:localhost", "DEV1").len == 0
+
+    state.savePersistentState()
+    let loaded = loadPersistentState(statePath)
+    check loaded.deviceKeys[deviceKey("@alice:localhost", "DEV1")].keyData["keys"]["curve25519:DEV1"].getStr("") == "curve-key"
+    check loaded.oneTimeKeys.len == 0
+    check loaded.fallbackKeys[oneTimeKeyStoreKey("@alice:localhost", "DEV1", "signed_curve25519", "FALL")].used
+
+  test "cross-signing keys persist query signatures and key changes":
+    let statePath = getTempDir() / "tuwunel-entrypoint-cross-signing.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    discard state.upsertDeviceLocked("@alice:localhost", "DEV1", "Alice laptop")
+    let deviceUpload = state.uploadE2eeKeysLocked(
+      "@alice:localhost",
+      "DEV1",
+      %*{
+        "device_keys": {
+          "user_id": "@alice:localhost",
+          "device_id": "DEV1",
+          "algorithms": ["m.olm.v1.curve25519-aes-sha2"],
+          "keys": {"ed25519:DEV1": "device-ed-key"},
+          "signatures": {}
+        }
+      }
+    )
+    check deviceUpload.ok
+
+    let signingUpload = state.uploadSigningKeysLocked(
+      "@alice:localhost",
+      %*{
+        "master_key": {
+          "user_id": "@wrong:localhost",
+          "usage": ["master"],
+          "keys": {"ed25519:MASTER": "master-key"},
+          "signatures": {}
+        },
+        "self_signing_key": {
+          "user_id": "@alice:localhost",
+          "usage": ["self_signing"],
+          "keys": {"ed25519:SELF": "self-key"},
+          "signatures": {}
+        },
+        "user_signing_key": {
+          "user_id": "@alice:localhost",
+          "usage": ["user_signing"],
+          "keys": {"ed25519:USER": "user-key"},
+          "signatures": {}
+        }
+      }
+    )
+    check signingUpload.ok
+
+    let queried = keysQueryPayload(state, %*{"device_keys": {"@alice:localhost": []}})
+    check queried["master_keys"]["@alice:localhost"]["user_id"].getStr("") == "@alice:localhost"
+    check queried["master_keys"]["@alice:localhost"]["keys"]["ed25519:MASTER"].getStr("") == "master-key"
+    check queried["self_signing_keys"]["@alice:localhost"]["keys"]["ed25519:SELF"].getStr("") == "self-key"
+    check queried["user_signing_keys"]["@alice:localhost"]["keys"]["ed25519:USER"].getStr("") == "user-key"
+
+    let signatureResponse = state.uploadKeySignaturesLocked(%*{
+      "@alice:localhost": {
+        "ed25519:MASTER": {
+          "signatures": {
+            "@alice:localhost": {"ed25519:DEV1": "sig-master"}
+          }
+        },
+        "DEV1": {
+          "signatures": {
+            "@alice:localhost": {"ed25519:SELF": "sig-device"}
+          }
+        }
+      }
+    })
+    check signatureResponse["failures"].len == 0
+    check state.crossSigningKeys[crossSigningKey("@alice:localhost", "master")].keyData["signatures"]["@alice:localhost"]["ed25519:DEV1"].getStr("") == "sig-master"
+    check state.deviceKeys[deviceKey("@alice:localhost", "DEV1")].keyData["signatures"]["@alice:localhost"]["ed25519:SELF"].getStr("") == "sig-device"
+
+    let changed = state.keyChangesPayloadLocked("s0", encodeSinceToken(state.streamPos))
+    check changed["changed"].len == 1
+    check changed["changed"][0].getStr("") == "@alice:localhost"
+
+    state.savePersistentState()
+    let loaded = loadPersistentState(statePath)
+    check loaded.crossSigningKeys[crossSigningKey("@alice:localhost", "master")].keyData["keys"]["ed25519:MASTER"].getStr("") == "master-key"
+    check loaded.deviceKeys[deviceKey("@alice:localhost", "DEV1")].keyData["signatures"]["@alice:localhost"]["ed25519:SELF"].getStr("") == "sig-device"
+
+  test "to-device messages persist deliver in sync order and cleanup by token":
+    let statePath = getTempDir() / "tuwunel-entrypoint-to-device.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    discard state.upsertDeviceLocked("@bob:localhost", "BOB1", "Bob laptop")
+    discard state.upsertDeviceLocked("@bob:localhost", "BOB2", "Bob phone")
+
+    let queued = state.queueToDeviceMessagesLocked(
+      "@alice:localhost",
+      "ALICE1",
+      "m.room.encrypted",
+      "txn1",
+      %*{
+        "messages": {
+          "@bob:localhost": {
+            "BOB1": {"ciphertext": "direct"},
+            "*": {"ciphertext": "wildcard"}
+          }
+        }
+      }
+    )
+    check queued.ok
+    check queued.queuedCount == 3
+
+    let duplicate = state.queueToDeviceMessagesLocked(
+      "@alice:localhost",
+      "ALICE1",
+      "m.room.encrypted",
+      "txn1",
+      %*{
+        "messages": {
+          "@bob:localhost": {
+            "BOB1": {"ciphertext": "duplicate"}
+          }
+        }
+      }
+    )
+    check duplicate.ok
+    check duplicate.queuedCount == 0
+
+    let syncLimit = state.streamPos
+    let bobOne = state.toDeviceEventsForSync("@bob:localhost", "BOB1", 0, syncLimit)
+    check bobOne.len == 2
+    check bobOne[0]["sender"].getStr("") == "@alice:localhost"
+    check bobOne[0]["type"].getStr("") == "m.room.encrypted"
+    check bobOne[0]["content"]["ciphertext"].getStr("") == "direct"
+    check bobOne[1]["content"]["ciphertext"].getStr("") == "wildcard"
+
+    let bobTwo = state.toDeviceEventsForSync("@bob:localhost", "BOB2", 0, syncLimit)
+    check bobTwo.len == 1
+    check bobTwo[0]["content"]["ciphertext"].getStr("") == "wildcard"
+
+    state.savePersistentState()
+    let loaded = loadPersistentState(statePath)
+    check loaded.toDeviceEvents.len == 3
+    check toDeviceTxnKey("@alice:localhost", "ALICE1", "txn1") in loaded.toDeviceTxnIds
+
+    check state.removeToDeviceEventsLocked("@bob:localhost", "BOB1", syncLimit)
+    check state.toDeviceEventsForSync("@bob:localhost", "BOB1", 0, syncLimit).len == 0
+    check state.toDeviceEventsForSync("@bob:localhost", "BOB2", 0, syncLimit).len == 1
+
+  test "dehydrated devices persist per user and parse event routes":
+    let statePath = getTempDir() / "tuwunel-entrypoint-dehydrated-device.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    let parts = dehydratedDevicePathParts(
+      "/_matrix/client/unstable/org.matrix.msc2697.v2/dehydrated_device/DEHYD123/events"
+    )
+    check parts.ok
+    check parts.events
+    check parts.deviceId == "DEHYD123"
+
+    let stored = state.putDehydratedDeviceLocked(
+      "@alice:localhost",
+      %*{
+        "device_id": "DEHYD123",
+        "device_data": {
+          "algorithm": "m.megolm.v1.aes-sha2",
+          "account": "opaque"
+        }
+      }
+    )
+    check stored.deviceId == "DEHYD123"
+    check dehydratedDevicePayload(stored)["device_data"]["account"].getStr("") == "opaque"
+    state.savePersistentState()
+
+    let loaded = loadPersistentState(statePath)
+    check loaded.dehydratedDevices["@alice:localhost"].deviceId == "DEHYD123"
+    check loaded.dehydratedDevices["@alice:localhost"].deviceData["algorithm"].getStr("") == "m.megolm.v1.aes-sha2"
+
+    state.deleteDehydratedDeviceLocked("@alice:localhost")
+    check "@alice:localhost" notin state.dehydratedDevices
 
   test "pushers and push rules persist Matrix client appstate":
     let statePath = getTempDir() / "tuwunel-entrypoint-push-appstate.json"
@@ -832,6 +1925,106 @@ suite "entrypoint compat helpers":
     })
     check deleteResult.ok
     check state.listPushersPayload("@alice:localhost")["pushers"].len == 0
+
+  test "room key backups persist versions sessions counts and replacement policy":
+    let statePath = getTempDir() / "tuwunel-entrypoint-key-backups.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    let versionRecord = state.createBackupVersionLocked(
+      "@alice:localhost",
+      %*{
+        "algorithm": "m.megolm_backup.v1.curve25519-aes-sha2",
+        "auth_data": {"public_key": "curve-key"}
+      }
+    )
+    let version = versionRecord.version
+    check version == "1"
+    check state.latestBackupVersionLocked("@alice:localhost") == version
+    check state.backupVersionPayloadLocked(versionRecord)["auth_data"]["public_key"].getStr("") == "curve-key"
+
+    let firstPut = state.putBackupSessionLocked(
+      "@alice:localhost",
+      version,
+      "!room:localhost",
+      "sess1",
+      %*{
+        "first_message_index": 5,
+        "forwarded_count": 1,
+        "is_verified": false,
+        "session_data": {"ciphertext": "old"}
+      },
+      preferBest = false,
+    )
+    check firstPut.ok
+
+    let ignoredWorse = state.putBackupSessionLocked(
+      "@alice:localhost",
+      version,
+      "!room:localhost",
+      "sess1",
+      %*{
+        "first_message_index": 8,
+        "forwarded_count": 9,
+        "is_verified": false,
+        "session_data": {"ciphertext": "worse"}
+      },
+      preferBest = true,
+    )
+    check ignoredWorse.ok
+    check state.getBackupSessionLocked("@alice:localhost", version, "!room:localhost", "sess1").payload["session_data"]["ciphertext"].getStr("") == "old"
+
+    let betterVerified = state.putBackupSessionLocked(
+      "@alice:localhost",
+      version,
+      "!room:localhost",
+      "sess1",
+      %*{
+        "first_message_index": 8,
+        "forwarded_count": 9,
+        "is_verified": true,
+        "session_data": {"ciphertext": "verified"}
+      },
+      preferBest = true,
+    )
+    check betterVerified.ok
+    check state.getBackupSessionLocked("@alice:localhost", version, "!room:localhost", "sess1").payload["session_data"]["ciphertext"].getStr("") == "verified"
+
+    let secondPut = state.putBackupSessionLocked(
+      "@alice:localhost",
+      version,
+      "!room:localhost",
+      "sess2",
+      %*{
+        "first_message_index": 1,
+        "forwarded_count": 0,
+        "is_verified": false,
+        "session_data": {"ciphertext": "second"}
+      },
+      preferBest = false,
+    )
+    check secondPut.ok
+    check state.backupMutationPayloadLocked("@alice:localhost", version)["count"].getInt() == 2
+    let roomsPayload = state.backupRoomsPayloadLocked("@alice:localhost", version)
+    check roomsPayload["rooms"]["!room:localhost"]["sessions"]["sess1"]["session_data"]["ciphertext"].getStr("") == "verified"
+    check state.backupRoomSessionsPayloadLocked("@alice:localhost", version, "!room:localhost")["sessions"].len == 2
+
+    state.savePersistentState()
+    let loaded = loadPersistentState(statePath)
+    check loaded.backupCounter == 1
+    check loaded.backupVersions[backupVersionKey("@alice:localhost", version)].authData["public_key"].getStr("") == "curve-key"
+    check loaded.backupSessions[backupSessionKey("@alice:localhost", version, "!room:localhost", "sess2")].sessionData["session_data"]["ciphertext"].getStr("") == "second"
+
+    state.deleteBackupSessionsLocked("@alice:localhost", version, "!room:localhost", "sess1")
+    check state.backupMutationPayloadLocked("@alice:localhost", version)["count"].getInt() == 1
+    state.deleteBackupVersionLocked("@alice:localhost", version)
+    check not state.backupVersionExistsLocked("@alice:localhost", version)
+    check state.backupKeyCountLocked("@alice:localhost", version) == 0
 
   test "appservice delivery uses bearer auth instead of query token":
     let delivery = AppserviceDelivery(

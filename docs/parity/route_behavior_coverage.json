@@ -2,9 +2,9 @@
   "summary": {
     "total_routes": 207,
     "registered_routes": 207,
-    "behavioral_routes": 90,
-    "compatibility_shell_routes": 57,
-    "fallback_routes": 60
+    "behavioral_routes": 173,
+    "compatibility_shell_routes": 0,
+    "fallback_routes": 34
   },
   "behavioral_slices": [
     {
@@ -87,18 +87,134 @@
       ]
     },
     {
-      "description": "Client room history routes backed by native Nim timeline and room state, including event lookup, context windows, aliases, member-event filters, and message pagination.",
+      "description": "Client room history, search, event-stream, relation, and thread routes backed by native Nim timeline and room state, including event lookup, context windows, aliases, member-event filters, message pagination, joined-room search, deprecated /events polling, relation filters, recursion, and thread roots.",
       "routes": [
         "get_room_event_route",
         "get_room_aliases_route",
         "get_member_events_route",
         "get_context_route",
-        "get_message_events_route"
+        "get_message_events_route",
+        "search_events_route",
+        "events_route",
+        "get_relating_events_with_rel_type_and_event_type_route",
+        "get_relating_events_with_rel_type_route",
+        "get_relating_events_route",
+        "get_threads_route"
       ],
       "evidence": [
         "tests/test_entrypoint_compat.nim: room event path parser covers event and context routes",
         "tests/test_entrypoint_compat.nim: room history helpers expose aliases context members and state-keyed events",
+        "tests/test_entrypoint_compat.nim: room search returns timeline hits pagination highlights and state",
+        "tests/test_entrypoint_compat.nim: events stream returns joined-room timeline events after token",
+        "tests/test_entrypoint_compat.nim: relations and threads return persisted timeline relations",
         "manual HTTP smoke: register/createRoom/send plus GET room event, context, aliases, members?membership=join, and messages"
+      ]
+    },
+    {
+      "description": "Persisted room directory routes backed by native Nim membership and room-state events, including joined rooms, public directory visibility, public-room search, and alias create/get/delete state.",
+      "routes": [
+        "joined_rooms_route",
+        "get_public_rooms_route",
+        "get_public_rooms_filtered_route",
+        "create_alias_route",
+        "get_alias_route",
+        "delete_alias_route",
+        "set_room_visibility_route",
+        "get_room_visibility_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: room directory aliases visibility public rooms and joined rooms persist",
+        "manual HTTP smoke: real tuwunel binary served register, createRoom, joined_rooms, publicRooms, typing, send, receipt, presence, sync, keys upload/query, search, pushrules, pushers, notifications, and turnServer without M_NOT_YET_IMPLEMENTED"
+      ]
+    },
+    {
+      "description": "Persisted room membership action routes backed by native Nim m.room.member state events, including kick, ban, unban, knock, and forget.",
+      "routes": [
+        "forget_room_route",
+        "kick_user_route",
+        "ban_user_route",
+        "unban_user_route",
+        "knock_room_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: room membership actions persist kick ban unban knock and forget"
+      ]
+    },
+    {
+      "description": "Local user directory and OpenID token routes backed by native Nim user profile and session state.",
+      "routes": [
+        "search_users_route",
+        "create_openid_token_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: user directory search and OpenID token payloads use local state"
+      ]
+    },
+    {
+      "description": "Persisted content-report routes backed by native Nim room, event, membership, and report-record state.",
+      "routes": [
+        "report_event_route",
+        "report_room_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: room and event reports persist native report records"
+      ]
+    },
+    {
+      "description": "Mutual-room discovery route backed by native Nim joined-membership state, including missing-user and pagination-token response shape.",
+      "routes": [
+        "get_mutual_rooms_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: mutual rooms payload reflects shared joined membership"
+      ]
+    },
+    {
+      "description": "Room initial-sync and summary routes backed by native Nim room state, timeline, account data, visibility, and membership checks.",
+      "routes": [
+        "room_initial_sync_route",
+        "get_room_summary"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: room initial sync and summary expose visible local state"
+      ]
+    },
+    {
+      "description": "Rust-matching empty third-party protocol and account identifier routes for unsupported local integrations.",
+      "routes": [
+        "get_protocols_route",
+        "third_party_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: client compatibility payloads return Matrix-shaped empty or local state"
+      ]
+    },
+    {
+      "description": "TURN server route backed by native Nim config, including static credentials, shared-secret credentials, TTL, URI lists, and Rust-compatible 404 with no URIs.",
+      "routes": [
+        "turn_server_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: client compatibility payloads return Matrix-shaped empty or local state"
+      ]
+    },
+    {
+      "description": "Notification polling route backed by native Nim joined-room timeline events with pagination token and highlight filtering shape.",
+      "routes": [
+        "get_notifications_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: events stream returns joined-room timeline events after token"
+      ]
+    },
+    {
+      "description": "Room graph routes backed by native Nim space-child state and real room upgrade replacement/tombstone behavior.",
+      "routes": [
+        "get_hierarchy_route",
+        "upgrade_room_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: space hierarchy and room upgrade use local room graph state"
       ]
     },
     {
@@ -122,46 +238,39 @@
       ]
     },
     {
-      "description": "Matrix-shaped client compatibility shells that avoid registered-route 501s for local client workflows while deeper federation, backup, E2EE, and room graph semantics are still incomplete.",
+      "description": "Persisted E2EE device, one-time, and fallback key routes backed by native Nim per-device key state.",
       "routes": [
-        "joined_rooms_route",
-        "get_public_rooms_route",
-        "get_public_rooms_filtered_route",
-        "get_protocols_route",
-        "third_party_route",
-        "turn_server_route",
-        "get_notifications_route",
         "upload_keys_route",
         "get_keys_route",
         "claim_keys_route",
-        "get_key_changes_route",
+        "get_key_changes_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: E2EE device and one-time keys persist query claim and changes"
+      ]
+    },
+    {
+      "description": "Persisted cross-signing key and signature upload routes backed by native Nim per-user signing key state.",
+      "routes": [
         "upload_signing_keys_route",
-        "upload_signatures_route",
-        "search_events_route",
-        "search_users_route",
-        "create_openid_token_route",
-        "send_event_to_device_route",
-        "create_alias_route",
-        "get_alias_route",
-        "delete_alias_route",
-        "set_room_visibility_route",
-        "get_room_visibility_route",
-        "report_event_route",
-        "report_room_route",
-        "forget_room_route",
-        "kick_user_route",
-        "ban_user_route",
-        "unban_user_route",
-        "knock_room_route",
-        "room_initial_sync_route",
-        "get_room_summary",
-        "get_relating_events_with_rel_type_and_event_type_route",
-        "get_relating_events_with_rel_type_route",
-        "get_relating_events_route",
-        "get_threads_route",
-        "get_hierarchy_route",
-        "get_mutual_rooms_route",
-        "upgrade_room_route",
+        "upload_signatures_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: cross-signing keys persist query signatures and key changes"
+      ]
+    },
+    {
+      "description": "Persisted client to-device message route backed by native Nim per-device sync queues and transaction idempotence.",
+      "routes": [
+        "send_event_to_device_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: to-device messages persist deliver in sync order and cleanup by token"
+      ]
+    },
+    {
+      "description": "Persisted client room-key backup routes backed by native Nim backup version and session state.",
+      "routes": [
         "create_backup_version_route",
         "update_backup_version_route",
         "delete_backup_version_route",
@@ -175,13 +284,71 @@
         "delete_backup_keys_route",
         "get_backup_keys_for_room_route",
         "get_backup_keys_for_session_route",
-        "get_backup_keys_route",
+        "get_backup_keys_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: room key backups persist versions sessions counts and replacement policy",
+        "manual HTTP smoke: real tuwunel binary created a backup version, stored a session, returned count/etag, and retrieved the session"
+      ]
+    },
+    {
+      "description": "Persisted dehydrated-device routes backed by native Nim per-user device state.",
+      "routes": [
         "put_dehydrated_device_route",
         "delete_dehydrated_device_route",
         "get_dehydrated_device_route",
-        "get_dehydrated_events_route",
-        "events_route"
+        "get_dehydrated_events_route"
       ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: dehydrated devices persist per user and parse event routes"
+      ]
+    },
+    {
+      "description": "Federation read routes backed by native Nim room, profile, device, key, public-room, alias, and OpenID-token state.",
+      "routes": [
+        "get_openid_userinfo_route",
+        "get_server_version_route",
+        "get_public_rooms_route",
+        "get_public_rooms_filtered_route",
+        "get_event_route",
+        "get_backfill_route",
+        "get_missing_events_route",
+        "get_event_authorization_route",
+        "get_room_state_route",
+        "get_room_state_ids_route",
+        "get_devices_route",
+        "get_room_information_route",
+        "get_profile_information_route",
+        "get_keys_route",
+        "claim_keys_route",
+        "get_hierarchy_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: federation read helpers expose local room user and key state",
+        "manual HTTP smoke: real tuwunel binary served federation version, publicRooms, event, state, state_ids, backfill, get_missing_events, event_auth, directory, profile, devices, user keys query, and OpenID userinfo from native Nim state"
+      ]
+    },
+    {
+      "description": "Federation transaction and membership ingress routes backed by native Nim room timeline, state, membership, typing, and appservice delivery queues.",
+      "routes": [
+        "send_transaction_message_route",
+        "create_join_event_template_route",
+        "create_join_event_v1_route",
+        "create_join_event_v2_route",
+        "create_leave_event_template_route",
+        "create_leave_event_v1_route",
+        "create_leave_event_v2_route",
+        "create_knock_event_template_route",
+        "create_knock_event_v1_route",
+        "create_invite_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: federation transaction and membership helpers mutate native room state"
+      ]
+    },
+    {
+      "description": "No remaining Matrix client compatibility shell routes; remaining work is in fallback route families and deeper federation/appservice parity.",
+      "routes": [],
       "evidence": [
         "tests/test_entrypoint_compat.nim: client compatibility path parsers cover remaining local route families",
         "tests/test_entrypoint_compat.nim: client compatibility payloads return Matrix-shaped empty or local state",
