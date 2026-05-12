@@ -9,6 +9,7 @@ import generated_column_family_descriptors
 import keyval
 import schema
 import serialization
+import types
 
 type
   DbMode* = enum
@@ -74,6 +75,75 @@ proc del*(db: DatabaseHandle; cf: string; key: openArray[byte]): bool =
     db.memory.del(cf, key)
   of dmRocksDb:
     db.rocks.del(cf, key)
+
+proc clear*(db: DatabaseHandle; cf: string) =
+  case db.mode
+  of dmInMemory:
+    db.memory.clear(cf)
+  of dmRocksDb:
+    db.rocks.clear(cf)
+
+proc scan*(
+    db: DatabaseHandle;
+    cf: string;
+    fromKey: seq[byte] = @[];
+    hasFrom = false;
+    prefix: seq[byte] = @[];
+    hasPrefix = false;
+    reverse = false): seq[DbKeyValue] =
+  case db.mode
+  of dmInMemory:
+    db.memory.scan(cf, fromKey, hasFrom, prefix, hasPrefix, reverse)
+  of dmRocksDb:
+    db.rocks.scan(cf, fromKey, hasFrom, prefix, hasPrefix, reverse)
+
+proc stream*(db: DatabaseHandle; cf: string): seq[DbKeyValue] =
+  db.scan(cf)
+
+proc streamFrom*(db: DatabaseHandle; cf: string; fromKey: openArray[byte]): seq[DbKeyValue] =
+  db.scan(cf, @fromKey, hasFrom = true)
+
+proc streamPrefix*(db: DatabaseHandle; cf: string; prefix: openArray[byte]): seq[DbKeyValue] =
+  db.scan(cf, prefix = @prefix, hasPrefix = true)
+
+proc revStream*(db: DatabaseHandle; cf: string): seq[DbKeyValue] =
+  db.scan(cf, reverse = true)
+
+proc revStreamFrom*(db: DatabaseHandle; cf: string; fromKey: openArray[byte]): seq[DbKeyValue] =
+  db.scan(cf, @fromKey, hasFrom = true, reverse = true)
+
+proc revStreamPrefix*(db: DatabaseHandle; cf: string; prefix: openArray[byte]): seq[DbKeyValue] =
+  db.scan(cf, prefix = @prefix, hasPrefix = true, reverse = true)
+
+proc keys*(db: DatabaseHandle; cf: string): seq[seq[byte]] =
+  result = @[]
+  for item in db.stream(cf):
+    result.add(item.key)
+
+proc keysFrom*(db: DatabaseHandle; cf: string; fromKey: openArray[byte]): seq[seq[byte]] =
+  result = @[]
+  for item in db.streamFrom(cf, fromKey):
+    result.add(item.key)
+
+proc keysPrefix*(db: DatabaseHandle; cf: string; prefix: openArray[byte]): seq[seq[byte]] =
+  result = @[]
+  for item in db.streamPrefix(cf, prefix):
+    result.add(item.key)
+
+proc revKeys*(db: DatabaseHandle; cf: string): seq[seq[byte]] =
+  result = @[]
+  for item in db.revStream(cf):
+    result.add(item.key)
+
+proc revKeysFrom*(db: DatabaseHandle; cf: string; fromKey: openArray[byte]): seq[seq[byte]] =
+  result = @[]
+  for item in db.revStreamFrom(cf, fromKey):
+    result.add(item.key)
+
+proc revKeysPrefix*(db: DatabaseHandle; cf: string; prefix: openArray[byte]): seq[seq[byte]] =
+  result = @[]
+  for item in db.revStreamPrefix(cf, prefix):
+    result.add(item.key)
 
 proc count*(db: DatabaseHandle; cf: string): int =
   case db.mode

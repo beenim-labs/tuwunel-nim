@@ -9,5 +9,7 @@ const
 type
   DbError* = object of CatchableError
 
+  DbKeyValue* = tuple[key: seq[byte], value: seq[byte]]
+
 proc newDbError*(msg: string): ref DbError =
   newException(DbError, msg)

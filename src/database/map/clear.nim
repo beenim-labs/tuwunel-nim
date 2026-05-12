@@ -1,8 +1,8 @@
 ## Map clear helper.
 
 import open
-import ../types
+import ../db
 
 proc clear*(map: MapHandle) =
   map.ensureOpen()
-  raise newDbError("map.clear is not implemented for this backend")
+  map.db.clear(map.columnFamily)

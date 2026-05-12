@@ -243,6 +243,65 @@ when defined(tuwunel_use_rocksdb):
     expectOk(backend.readWriteDb.delete(key, handle), "rocksdb delete(" & cf & ")")
     existed
 
+  proc clear*(backend: RocksDbBackend; cf: string) =
+    if backend.readOnly:
+      raise fail("rocksdb clear disallowed in read-only mode")
+    let handle = requireCf(backend, cf)
+    let iterRes = backend.readWriteDb.openIterator(cfHandle = handle)
+    let iter = expectVal(iterRes, "rocksdb openIterator(" & cf & ")")
+    var keys: seq[seq[byte]] = @[]
+    for item in iter.pairs:
+      keys.add(@item[0])
+    for key in keys:
+      expectOk(backend.readWriteDb.delete(key, handle), "rocksdb clear(" & cf & ")")
+
+  proc compareBytes(a, b: openArray[byte]): int =
+    let common = min(a.len, b.len)
+    for i in 0 ..< common:
+      if a[i] < b[i]:
+        return -1
+      if a[i] > b[i]:
+        return 1
+    cmp(a.len, b.len)
+
+  proc startsWithBytes(value, prefix: openArray[byte]): bool =
+    if prefix.len > value.len:
+      return false
+    for i in 0 ..< prefix.len:
+      if value[i] != prefix[i]:
+        return false
+    true
+
+  proc scan*(
+      backend: RocksDbBackend;
+      cf: string;
+      fromKey: seq[byte] = @[];
+      hasFrom = false;
+      prefix: seq[byte] = @[];
+      hasPrefix = false;
+      reverse = false): seq[DbKeyValue] =
+    let handle = requireCf(backend, cf)
+    let iterRes = backend.dbRef().openIterator(cfHandle = handle)
+    let iter = expectVal(iterRes, "rocksdb openIterator(" & cf & ")")
+    result = @[]
+
+    for item in iter.pairs:
+      let key = @item[0]
+      if hasFrom:
+        let relation = compareBytes(key, fromKey)
+        if reverse:
+          if relation > 0:
+            continue
+        elif relation < 0:
+          continue
+      if hasPrefix and not startsWithBytes(key, prefix):
+        continue
+      result.add((key: key, value: @item[1]))
+
+    result.sort(proc(a, b: DbKeyValue): int = compareBytes(a.key, b.key))
+    if reverse:
+      result.reverse()
+
   proc count*(backend: RocksDbBackend; cf: string): int =
     result = 0
     let handle = requireCf(backend, cf)
@@ -298,6 +357,28 @@ else:
     discard backend
     discard cf
     discard key
+    raise newDbError("RocksDB backend not enabled")
+
+  proc clear*(backend: RocksDbBackend; cf: string) =
+    discard backend
+    discard cf
+    raise newDbError("RocksDB backend not enabled")
+
+  proc scan*(
+      backend: RocksDbBackend;
+      cf: string;
+      fromKey: seq[byte] = @[];
+      hasFrom = false;
+      prefix: seq[byte] = @[];
+      hasPrefix = false;
+      reverse = false): seq[DbKeyValue] =
+    discard backend
+    discard cf
+    discard fromKey
+    discard hasFrom
+    discard prefix
+    discard hasPrefix
+    discard reverse
     raise newDbError("RocksDB backend not enabled")
 
   proc count*(backend: RocksDbBackend; cf: string): int =
