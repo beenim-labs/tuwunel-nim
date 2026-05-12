@@ -23,10 +23,13 @@ import test_database_rocksdb
 import test_route_runtime
 import test_entrypoint_compat
 import test_hash_sha256
+import test_hash_argon
+import test_info_utils
 import test_json_utils
 import test_math_utils
 import test_native_runtime_policy
 import test_rand_utils
+import test_room_version_utils
 import test_syntax_hygiene
 import test_set_utils
 import test_string_utils

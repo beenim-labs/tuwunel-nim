@@ -1,9 +1,17 @@
 {
   "total_modules": 620,
-  "implemented_modules": 613,
-  "generated_inventory_modules": 7,
+  "implemented_modules": 123,
+  "present_modules": 620,
+  "generated_stub_files": 497,
+  "generated_inventory_modules": 0,
+  "notes": [
+    "present_modules tracks mapped Nim files existing on disk.",
+    "implemented_modules excludes files that still carry the generated stub marker.",
+    "full Rust protocol and appservice parity is not complete while generated_stub_files is nonzero and M4+ remains in progress."
+  ],
   "thresholds": {
     "all_modules_implemented": false,
+    "full_protocol_appstate_parity": false,
     "database_modules_implemented": true
   }
 }
