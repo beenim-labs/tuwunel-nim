@@ -26,6 +26,7 @@ import test_hash_sha256
 import test_hash_argon
 import test_info_utils
 import test_json_utils
+import test_federation_discovery
 import test_server_signing
 import test_math_utils
 import test_native_runtime_policy

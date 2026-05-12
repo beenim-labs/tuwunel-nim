@@ -1,9 +1,12 @@
-import std/[json, unittest]
+import std/[json, strutils, tables, unittest]
 
 import core/crypto/ed25519
 import core/matrix/server_signing
 import api/server/key as server_key_api
+import service/server_keys/acquire as server_key_acquire
+import service/server_keys/get as server_key_get
 import service/server_keys/keypair as server_keypair
+import service/server_keys/request as server_key_request
 import service/server_keys/sign as server_key_sign
 import service/server_keys/verify as server_key_verify
 
@@ -89,3 +92,58 @@ suite "Matrix server signing":
       keypair.keypair.keyId,
       keypair.keypair.publicKey,
     )
+
+  test "server key cache and request helpers parse origin and notary responses":
+    let keypair = server_keypair.keypairFromSeed("ed25519:test", fixedSeed())
+    check keypair.ok
+
+    let signed = server_key_api.serverKeysPayload(
+      "localhost",
+      keypair.keypair.keyId,
+      keypair.keypair.seed,
+      keypair.keypair.publicKey,
+      123456789'i64,
+    )
+    check signed.ok
+
+    let parsed = server_key_get.serverSigningKeysFromJson(signed.payload)
+    check parsed.ok
+    check parsed.keys.serverName == "localhost"
+    check len(parsed.keys.verifyKeys) == 1
+
+    var cache = server_key_get.initServerSigningKeyCache()
+    check server_key_acquire.missingKeys(
+      cache,
+      @[server_key_acquire.serverKeyRef("localhost", keypair.keypair.keyId)]
+    ).len == 1
+
+    let acquiredOrigin = server_key_acquire.acquireFromResponse(cache, signed.payload)
+    check acquiredOrigin.ok
+    check acquiredOrigin.added == 1
+    check cache.verifyKeyExists("localhost", keypair.keypair.keyId)
+    check cache.getVerifyKey("localhost", keypair.keypair.keyId).ok
+    check server_key_acquire.missingKeys(
+      cache,
+      @[server_key_acquire.serverKeyRef("localhost", keypair.keypair.keyId)]
+    ).len == 0
+
+    var notaryCache = server_key_get.initServerSigningKeyCache()
+    let acquiredNotary = server_key_acquire.acquireFromResponse(
+      notaryCache,
+      %*{"server_keys": [signed.payload]},
+    )
+    check acquiredNotary.ok
+    check acquiredNotary.added == 1
+    check notaryCache.verifyKeyExists("localhost", keypair.keypair.keyId)
+
+    check server_key_request.originServerKeysPath() == "/_matrix/key/v2/server"
+    check server_key_request.originServerKeysPath(keypair.keypair.keyId).startsWith(
+      "/_matrix/key/v2/server/ed25519"
+    )
+    let query = server_key_request.serverKeyQueryPayload(
+      "localhost",
+      keypair.keypair.keyId,
+      123456789'i64,
+    )
+    check query["server_keys"]["localhost"][keypair.keypair.keyId]["minimum_valid_until_ts"].getInt() ==
+      123456789

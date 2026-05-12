@@ -10,6 +10,10 @@ import api/client/voip as client_voip
 import api/client/rtc as client_rtc
 import api/server/edu_types as server_edu_types
 import api/server/key as server_key_api
+import api/server/openid as server_openid_api
+import api/server/query as server_query_api
+import api/server/version as server_version_api
+import api/server/well_known as server_well_known_api
 import core/crypto/ed25519
 import core/matrix/server_signing
 
@@ -5597,9 +5601,7 @@ proc wellKnownServerPayload(cfg: FlatConfig): tuple[ok: bool, payload: JsonNode]
     ["well_known.server", "global.well_known.server", "well_known_server"],
     "",
   ).strip()
-  if server.len == 0:
-    return (false, newJObject())
-  (true, %*{"m.server": server})
+  server_well_known_api.wellKnownServerPayload(server)
 
 proc generateServerKeyId(): string =
   "ed25519:" & randomString("", 8)
@@ -7785,13 +7787,7 @@ proc roomStateEventIds(room: RoomData): JsonNode =
     result.add(%ev.eventId)
 
 proc federationVersionPayload(): JsonNode =
-  %*{
-    "server": {
-      "name": "Tuwunel",
-      "version": RustBaselineVersion,
-      "compiler": "nim"
-    }
-  }
+  server_version_api.federationVersionPayload(RustBaselineVersion)
 
 proc federationOpenIdUserInfoPayload(
     state: ServerState;
@@ -7803,7 +7799,7 @@ proc federationOpenIdUserInfoPayload(
   if record.expiresAtMs <= nowMs():
     state.openIdTokens.del(accessToken)
     return (false, newJObject())
-  (true, %*{"sub": record.userId})
+  server_openid_api.openIdUserInfoPayload(record.userId)
 
 proc federationEventPayload(
     state: ServerState;
@@ -7932,7 +7928,7 @@ proc federationDirectoryPayload(
   let roomId = state.findRoomByAliasLocked(roomAlias)
   if roomId.len == 0:
     return (false, newJObject())
-  (true, %*{"room_id": roomId, "servers": [serverName]})
+  server_query_api.directoryPayload(roomId, @[serverName])
 
 proc federationProfilePayload(
     state: ServerState;
@@ -7940,9 +7936,7 @@ proc federationProfilePayload(
 ): tuple[ok: bool, payload: JsonNode] =
   if userId notin state.users:
     return (false, newJObject())
-  if field.len == 0:
-    return (true, userProfilePayload(state.users[userId]))
-  profileFieldPayload(state.users[userId], field)
+  server_query_api.profilePayload(userProfilePayload(state.users[userId]), field)
 
 proc federationUserDevicesPayload(
     state: ServerState;
