@@ -8,10 +8,29 @@ import api/client/versions as client_versions
 import api/client/tuwunel as tuwunel_api
 import api/client/voip as client_voip
 import api/client/rtc as client_rtc
+import api/server/backfill as server_backfill_api
 import api/server/edu_types as server_edu_types
+import api/server/event as server_event_api
+import api/server/event_auth as server_event_auth_api
+import api/server/get_missing_events as server_missing_api
+import api/server/hierarchy as server_hierarchy_api
+import api/server/invite as server_invite_api
 import api/server/key as server_key_api
+import api/server/make_join as server_make_join_api
+import api/server/make_knock as server_make_knock_api
+import api/server/make_leave as server_make_leave_api
+import api/server/media as server_media_api
 import api/server/openid as server_openid_api
+import api/server/publicrooms as server_publicrooms_api
 import api/server/query as server_query_api
+import api/server/send as server_send_api
+import api/server/send_join as server_send_join_api
+import api/server/send_knock as server_send_knock_api
+import api/server/send_leave as server_send_leave_api
+import api/server/state as server_state_api
+import api/server/state_ids as server_state_ids_api
+import api/server/user as server_user_api
+import api/server/utils as server_utils_api
 import api/server/version as server_version_api
 import api/server/well_known as server_well_known_api
 import core/crypto/ed25519
@@ -4794,12 +4813,13 @@ proc publicRoomsPayload(state: ServerState; body: JsonNode = nil): JsonNode =
       if canonicalAlias.len > 0:
         entry["canonical_alias"] = %canonicalAlias
       chunk.add(entry)
-  result = %*{
-    "chunk": chunk,
-    "total_room_count_estimate": filtered.len,
-  }
-  if startIndex + capped < filtered.len:
-    result["next_batch"] = %($(startIndex + capped))
+  let nextBatch =
+    if startIndex + capped < filtered.len:
+      $(startIndex + capped)
+    else:
+      ""
+  let payload = server_publicrooms_api.publicRoomsPayload(chunk, filtered.len, nextBatch)
+  if payload.ok: payload.payload else: newJObject()
 
 proc userDirectorySearchPayload(state: ServerState; body: JsonNode): JsonNode =
   let searchTerm = body{"search_term"}.getStr("").toLowerAscii()
@@ -6750,7 +6770,8 @@ proc roomHierarchyPayload(
       continue
     rooms.add(roomSummaryPayload(state.rooms[childId], userId))
 
-  (true, false, %*{"rooms": rooms, "next_batch": ""})
+  let payload = server_hierarchy_api.hierarchyPayload(rooms)
+  (payload.ok, false, payload.payload)
 
 proc joinedMembersPayload(state: ServerState; room: RoomData): JsonNode =
   result = %*{"joined": newJObject()}
@@ -7741,29 +7762,11 @@ proc dehydratedDevicePathParts(path: string): tuple[ok: bool, events: bool, devi
     return (true, true, decodePath(parts[0]))
   (true, false, decodePath(parts[0]))
 
-proc trimFederationPath(path: string): string =
-  const Prefixes = [
-    "/_matrix/federation/v1/",
-    "/_matrix/federation/v2/",
-  ]
-  for prefix in Prefixes:
-    if path.startsWith(prefix):
-      return path[prefix.len .. ^1]
-  ""
-
 proc federationPathParts(path: string): seq[string] =
-  result = @[]
-  let trimmed = trimFederationPath(path)
-  if trimmed.len == 0:
-    return
-  for part in trimmed.split('/'):
-    result.add(decodePath(part))
+  server_utils_api.federationPathParts(path)
 
 proc federationMediaPathParts(path: string): tuple[ok: bool, thumbnail: bool, mediaId: string] =
-  let parts = federationPathParts(path)
-  if parts.len == 3 and parts[0] == "media" and parts[1] in ["download", "thumbnail"]:
-    return (parts[2].len > 0, parts[1] == "thumbnail", parts[2])
-  (false, false, "")
+  server_media_api.mediaPathParts(federationPathParts(path))
 
 proc findEventLocked(
     state: ServerState;
@@ -7781,10 +7784,10 @@ proc roomStateEvents(room: RoomData): seq[MatrixEventRecord] =
     result.add(ev)
   result.sort(proc(a, b: MatrixEventRecord): int = cmp(a.streamPos, b.streamPos))
 
-proc roomStateEventIds(room: RoomData): JsonNode =
-  result = newJArray()
+proc roomStateEventIdSeq(room: RoomData): seq[string] =
+  result = @[]
   for ev in room.roomStateEvents():
-    result.add(%ev.eventId)
+    result.add(ev.eventId)
 
 proc federationVersionPayload(): JsonNode =
   server_version_api.federationVersionPayload(RustBaselineVersion)
@@ -7808,11 +7811,7 @@ proc federationEventPayload(
   let found = state.findEventLocked(eventId)
   if not found.ok:
     return (false, newJObject())
-  (true, %*{
-    "origin": state.serverName,
-    "origin_server_ts": nowMs(),
-    "pdu": found.event.eventToJson()
-  })
+  server_event_api.eventPayload(state.serverName, nowMs(), found.event.eventToJson())
 
 proc federationRoomStatePayload(
     state: ServerState;
@@ -7826,15 +7825,11 @@ proc federationRoomStatePayload(
     return (true, false, newJObject())
 
   if idsOnly:
-    return (true, true, %*{
-      "auth_chain_ids": [],
-      "pdu_ids": room.roomStateEventIds()
-    })
+    let payload = server_state_ids_api.roomStateIdsPayload(@[], room.roomStateEventIdSeq())
+    return (payload.ok, true, payload.payload)
 
-  (true, true, %*{
-    "auth_chain": [],
-    "pdus": roomStateArray(room)
-  })
+  let payload = server_state_api.roomStatePayload(newJArray(), roomStateArray(room))
+  (payload.ok, true, payload.payload)
 
 proc federationBackfillPayload(
     state: ServerState;
@@ -7845,33 +7840,10 @@ proc federationBackfillPayload(
   if roomId notin state.rooms:
     return (false, newJObject())
   let room = state.rooms[roomId]
-  var fromPos = high(int64)
-  for eventId in fromEventIds:
-    let idx = roomEventIndex(room, eventId)
-    if idx >= 0:
-      fromPos = min(fromPos, room.timeline[idx].streamPos)
-  if fromPos == high(int64):
-    if room.timeline.len == 0:
-      fromPos = 0
-    else:
-      fromPos = room.timeline[^1].streamPos + 1
-
-  let cappedLimit = max(0, min(150, limit))
-  var pdus = newJArray()
-  if cappedLimit > 0:
-    for idx in countdown(room.timeline.high, 0):
-      let ev = room.timeline[idx]
-      if ev.streamPos >= fromPos:
-        continue
-      pdus.add(ev.eventToJson())
-      if pdus.len >= cappedLimit:
-        break
-
-  (true, %*{
-    "origin": state.serverName,
-    "origin_server_ts": nowMs(),
-    "pdus": pdus
-  })
+  var timeline: seq[server_backfill_api.BackfillEvent] = @[]
+  for ev in room.timeline:
+    timeline.add(server_backfill_api.backfillEvent(ev.eventId, ev.streamPos, ev.eventToJson()))
+  server_backfill_api.backfillPayload(state.serverName, nowMs(), timeline, fromEventIds, limit)
 
 proc federationMissingEventsPayload(
     state: ServerState;
@@ -7881,30 +7853,10 @@ proc federationMissingEventsPayload(
   if roomId notin state.rooms:
     return (false, newJObject())
   let room = state.rooms[roomId]
-  let limit = max(0, min(100, body{"limit"}.getInt(10)))
-  var earliestPos = 0'i64
-  if body{"earliest_events"}.kind == JArray:
-    for node in body["earliest_events"]:
-      let idx = roomEventIndex(room, node.getStr(""))
-      if idx >= 0:
-        earliestPos = max(earliestPos, room.timeline[idx].streamPos)
-
-  var latestPos = high(int64)
-  if body{"latest_events"}.kind == JArray:
-    for node in body["latest_events"]:
-      let idx = roomEventIndex(room, node.getStr(""))
-      if idx >= 0:
-        latestPos = min(latestPos, room.timeline[idx].streamPos)
-
-  var events = newJArray()
+  var timeline: seq[server_missing_api.MissingEvent] = @[]
   for ev in room.timeline:
-    if ev.streamPos <= earliestPos or ev.streamPos >= latestPos:
-      continue
-    events.add(ev.eventToJson())
-    if events.len >= limit:
-      break
-
-  (true, %*{"events": events})
+    timeline.add(server_missing_api.missingEvent(ev.eventId, ev.streamPos, ev.eventToJson()))
+  server_missing_api.missingEventsPayloadByPosition(timeline, body)
 
 proc federationEventAuthPayload(
     state: ServerState;
@@ -7919,7 +7871,8 @@ proc federationEventAuthPayload(
   for ev in room.roomStateEvents():
     if ev.eventId != eventId:
       authChain.add(ev.eventToJson())
-  (true, true, %*{"auth_chain": authChain})
+  let payload = server_event_auth_api.eventAuthPayload(authChain)
+  (payload.ok, true, payload.payload)
 
 proc federationDirectoryPayload(
     state: ServerState;
@@ -7959,17 +7912,15 @@ proc federationUserDevicesPayload(
     entry["device_display_name"] = %displayName
     entry["keys"] = keyPayload
     devices.add(entry)
-  result = (true, %*{
-    "user_id": userId,
-    "stream_id": state.streamPos,
-    "devices": devices
-  })
+  var masterKeyNode: JsonNode = nil
   let masterKey = crossSigningKey(userId, "master")
   if masterKey in state.crossSigningKeys:
-    result.payload["master_key"] = state.crossSigningKeys[masterKey].keyData
+    masterKeyNode = state.crossSigningKeys[masterKey].keyData
+  var selfSigningKeyNode: JsonNode = nil
   let selfSigningKey = crossSigningKey(userId, "self_signing")
   if selfSigningKey in state.crossSigningKeys:
-    result.payload["self_signing_key"] = state.crossSigningKeys[selfSigningKey].keyData
+    selfSigningKeyNode = state.crossSigningKeys[selfSigningKey].keyData
+  server_user_api.userDevicesPayload(userId, state.streamPos, devices, masterKeyNode, selfSigningKeyNode)
 
 proc roomVersion(room: RoomData): string =
   let createKey = stateKey("m.room.create", "")
@@ -8003,10 +7954,13 @@ proc membershipTemplateEvent(
     "auth_events": [],
     "prev_events": []
   }
-  (true, %*{
-    "room_version": room.roomVersion(),
-    "event": event
-  })
+  case membership
+  of "join":
+    server_make_join_api.makeJoinPayload(room.roomVersion(), event)
+  of "leave":
+    server_make_leave_api.makeLeavePayload(room.roomVersion(), event)
+  else:
+    server_make_knock_api.makeKnockPayload(room.roomVersion(), event)
 
 proc appendFederationPduLocked(
     state: ServerState;
@@ -8321,7 +8275,8 @@ proc federationSendTransactionLocked(
       else:
         discard
 
-  %*{"pdus": pduResults}
+  let payload = server_send_api.sendTransactionPayload(pduResults)
+  if payload.ok: payload.payload else: newJObject()
 
 proc federationAcceptMembershipLocked(
     state: ServerState;
@@ -8352,23 +8307,22 @@ proc federationAcceptMembershipLocked(
   case expectedMembership
   of "join":
     let room = state.rooms[roomId]
-    return (true, %*{
-      "state": roomStateArray(room),
-      "auth_chain": [],
-      "event": appended.event.eventToJson(),
-      "members_omitted": false,
-      "origin": state.serverName
-    }, "", "")
+    let payload = server_send_join_api.sendJoinPayload(
+      roomStateArray(room),
+      newJArray(),
+      appended.event.eventToJson(),
+      false,
+      state.serverName,
+    )
+    return (payload.ok, payload.payload, "", "")
   of "knock":
-    return (true, %*{
-      "knock_room_state": roomStateArray(state.rooms[roomId])
-    }, "", "")
+    let payload = server_send_knock_api.sendKnockPayload(roomStateArray(state.rooms[roomId]))
+    return (payload.ok, payload.payload, "", "")
   of "invite":
-    return (true, %*{
-      "event": appended.event.eventToJson()
-    }, "", "")
+    let payload = server_invite_api.invitePayload(appended.event.eventToJson())
+    return (payload.ok, payload.payload, "", "")
   else:
-    return (true, %*{}, "", "")
+    return (true, server_send_leave_api.sendLeavePayload(), "", "")
 
 {.push warning[Uninit]: off.}
 proc runNativeServer(cfg: LoadedConfig): int =

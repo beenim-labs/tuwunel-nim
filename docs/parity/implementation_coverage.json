@@ -1,8 +1,8 @@
 {
   "total_modules": 620,
-  "implemented_modules": 135,
+  "implemented_modules": 155,
   "present_modules": 620,
-  "generated_stub_files": 485,
+  "generated_stub_files": 465,
   "generated_inventory_modules": 0,
   "notes": [
     "present_modules tracks mapped Nim files existing on disk.",
