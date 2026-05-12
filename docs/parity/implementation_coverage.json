@@ -1,7 +1,7 @@
 {
   "total_modules": 620,
-  "implemented_modules": 590,
-  "generated_inventory_modules": 30,
+  "implemented_modules": 594,
+  "generated_inventory_modules": 26,
   "thresholds": {
     "all_modules_implemented": false,
     "database_modules_implemented": true

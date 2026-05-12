@@ -1,12 +1,31 @@
 {
   "summary": {
-    "total_routes": 207,
-    "registered_routes": 207,
-    "behavioral_routes": 207,
+    "total_routes": 209,
+    "registered_routes": 209,
+    "behavioral_routes": 209,
     "compatibility_shell_routes": 0,
     "fallback_routes": 0
   },
   "behavioral_slices": [
+    {
+      "description": "Client versions discovery route advertises the Rust-supported Matrix versions, unstable feature flags, and MSC4383 server metadata.",
+      "routes": [
+        "get_supported_versions_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: client versions response matches Rust advertised versions and unstable flags",
+        "manual HTTP smoke: live /_matrix/client/versions returned 17 versions, v1.15, 33 unstable flags, and server compiler nim"
+      ]
+    },
+    {
+      "description": "MatrixRTC transport discovery route and well-known RTC foci are backed by native Nim config helpers matching Rust api/client/rtc.rs shape.",
+      "routes": [
+        "get_transports_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: client compatibility payloads include MatrixRTC livekit foci and custom RTC transport payloads"
+      ]
+    },
     {
       "description": "Persisted client appstate routes backed by native Nim state and sync account_data events.",
       "routes": [
@@ -375,10 +394,12 @@
         "well_known_server",
         "/_matrix/key/v2/server",
         "/_matrix/key/v2/server/{key_id}",
+        "/_tuwunel/server_version",
         "/_tuwunel/local_user_count"
       ],
       "evidence": [
         "tests/test_entrypoint_compat.nim: client compatibility payloads return Matrix-shaped empty or local state",
+        "tests/test_entrypoint_compat.nim: tuwunel-specific version and local user count payloads match Rust shape",
         "manual HTTP smoke: real tuwunel binary served configured .well-known client, support, server discovery, key v2 server responses, deprecated key lookup, and local_user_count from native Nim state"
       ]
     },

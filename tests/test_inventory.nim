@@ -8,9 +8,9 @@ import core/generated_function_inventory
 
 suite "Baseline parity inventory":
   test "route counts are frozen":
-    check ClientRumaRoutes.len == 149
+    check ClientRumaRoutes.len == 150
     check ServerRumaRoutes.len == 29
-    check ManualRoutes.len == 29
+    check ManualRoutes.len == 30
 
   test "config and database inventories exist":
     check ConfigKeys.len > 0

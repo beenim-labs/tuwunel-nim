@@ -189,6 +189,7 @@ let RouteSpecs*: seq[RouteSpec] = @[
   RouteSpec(name: "get_relating_events_with_rel_type_and_event_type_route", kind: rkClient, requiresAuth: true, federationOnly: false),
   RouteSpec(name: "get_relating_events_with_rel_type_route", kind: rkClient, requiresAuth: true, federationOnly: false),
   RouteSpec(name: "get_relating_events_route", kind: rkClient, requiresAuth: true, federationOnly: false),
+  RouteSpec(name: "get_transports_route", kind: rkClient, requiresAuth: true, federationOnly: false),
   RouteSpec(name: "get_hierarchy_route", kind: rkClient, requiresAuth: true, federationOnly: false),
   RouteSpec(name: "get_mutual_rooms_route", kind: rkClient, requiresAuth: true, federationOnly: false),
   RouteSpec(name: "get_room_summary", kind: rkClient, requiresAuth: true, federationOnly: false),
@@ -240,6 +241,7 @@ let RouteSpecs*: seq[RouteSpec] = @[
   RouteSpec(name: "/_matrix/key/v2/server/{key_id}", kind: rkManual, requiresAuth: true, federationOnly: false),
   RouteSpec(name: "/_tuwunel/local_user_count", kind: rkManual, requiresAuth: true, federationOnly: false),
   RouteSpec(name: "/_matrix/federation/{*path}", kind: rkManual, requiresAuth: true, federationOnly: false),
+  RouteSpec(name: "/_matrix/federation/v1/query/edutypes", kind: rkManual, requiresAuth: true, federationOnly: true),
   RouteSpec(name: "/.well-known/matrix/server", kind: rkManual, requiresAuth: false, federationOnly: false),
   RouteSpec(name: "/_matrix/key/{*path}", kind: rkManual, requiresAuth: true, federationOnly: false),
   RouteSpec(name: "/_tuwunel/local_user_count", kind: rkManual, requiresAuth: true, federationOnly: false),
@@ -344,4 +346,4 @@ proc dispatchRoute*(
   )
 
 const
-  RegisteredRouteCount* = 207
+  RegisteredRouteCount* = 209

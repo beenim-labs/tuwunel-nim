@@ -63,6 +63,25 @@ proc newCompatState(statePath: string): ServerState =
   initLock(result.lock)
 
 suite "entrypoint compat helpers":
+  test "client versions response matches Rust advertised versions and unstable flags":
+    let payload = versionsResponse()
+    check payload["versions"].len == 17
+    check payload["versions"][0].getStr("") == "r0.0.1"
+    check payload["versions"][^1].getStr("") == "v1.15"
+    check payload["unstable_features"].len == 33
+    check payload["unstable_features"]["org.matrix.msc3575"].getBool(false)
+    check payload["unstable_features"]["org.matrix.msc4380.stable"].getBool(false)
+    check payload["unstable_features"]["net.zemos.msc4383"].getBool(false)
+    check payload["server"]["name"].getStr("") == "tuwunel"
+    check payload["server"]["version"].getStr("") == RustBaselineVersion
+    check payload["server"]["compiler"].getStr("") == "nim"
+
+  test "tuwunel-specific version and local user count payloads match Rust shape":
+    let versionPayload = tuwunel_api.tuwunelServerVersionPayload(RustBaselineVersion)
+    check versionPayload["name"].getStr("") == "Tuwunel"
+    check versionPayload["version"].getStr("") == RustBaselineVersion
+    check tuwunel_api.tuwunelLocalUserCountPayload(3)["count"].getInt() == 3
+
   test "federation auth origin parser accepts standard X-Matrix headers":
     check federationAuthOriginHeader("X-Matrix origin=remote.example,key=ed25519:1,sig=abc") == "remote.example"
     check federationAuthOriginHeader("X-Matrix origin=\"remote.example\",key=ed25519:1,sig=abc") == "remote.example"
@@ -1380,6 +1399,7 @@ suite "entrypoint compat helpers":
     check isJoinedRoomsPath("/_matrix/client/v3/joined_rooms")
     check isThirdPartyProtocolsPath("/_matrix/client/v3/thirdparty/protocols")
     check isTurnServerPath("/_matrix/client/v3/voip/turnServer")
+    check isRtcTransportsPath("/_matrix/client/unstable/org.matrix.msc4143/rtc/transports")
     check isNotificationsPath("/_matrix/client/v3/notifications")
     check isPushersPath("/_matrix/client/v3/pushers")
     check isPushersSetPath("/_matrix/client/v3/pushers/set")
@@ -1486,7 +1506,10 @@ suite "entrypoint compat helpers":
     wellKnownCfg["support_role"] = newStringValue("m.role.admin")
     wellKnownCfg["support_email"] = newStringValue("admin@example.test")
     wellKnownCfg["well_known.server"] = newStringValue("matrix.example:443")
+    wellKnownCfg["well_known.livekit_url"] = newStringValue("https://rtc.example")
     check wellKnownClientPayload(wellKnownCfg).payload["m.homeserver"]["base_url"].getStr("") == "https://client.example"
+    check wellKnownClientPayload(wellKnownCfg).payload["org.matrix.msc4143.rtc_foci"][0]["type"].getStr("") == "livekit"
+    check wellKnownClientPayload(wellKnownCfg).payload["org.matrix.msc4143.rtc_foci"][0]["livekit_service_url"].getStr("") == "https://rtc.example"
     check wellKnownSupportPayload(wellKnownCfg).payload["contacts"][0]["email_address"].getStr("") == "admin@example.test"
     check wellKnownServerPayload(wellKnownCfg).payload["m.server"].getStr("") == "matrix.example:443"
     check serverKeysPayload("localhost")["verify_keys"].len == 1
@@ -1508,6 +1531,12 @@ suite "entrypoint compat helpers":
     check secretTurn.ok
     check secretTurn.payload["username"].getStr("").endsWith(":@alice:localhost")
     check secretTurn.payload["password"].getStr("").len > 0
+
+    var rtcCfg = initFlatConfig()
+    rtcCfg["rtc_transports"] = newArrayValue(@[
+      newStringValue("{\"type\":\"livekit\",\"livekit_service_url\":\"https://custom.example\"}")
+    ])
+    check client_rtc.rtcTransportsPayload(rtcCfg)["rtc_transports"][0]["livekit_service_url"].getStr("") == "https://custom.example"
 
     let keyQuery = keysQueryPayload(state, %*{"device_keys": {"@alice:localhost": ["DEV1"]}})
     check keyQuery["device_keys"]["@alice:localhost"]["DEV1"]["user_id"].getStr("") == "@alice:localhost"

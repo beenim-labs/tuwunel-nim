@@ -3,6 +3,11 @@ import main/args
 import core/logging
 import core/config_loader
 import core/config_values
+import api/client/versions as client_versions
+import api/client/tuwunel as tuwunel_api
+import api/client/voip as client_voip
+import api/client/rtc as client_rtc
+import api/server/edu_types as server_edu_types
 
 proc boolEnv(name: string; defaultValue = false): bool =
   let raw = getEnv(name)
@@ -86,33 +91,7 @@ const
   ]
 
 proc versionsResponse(): JsonNode =
-  %*{
-    "versions": [
-      "r0.0.1",
-      "r0.1.0",
-      "r0.2.0",
-      "r0.3.0",
-      "r0.4.0",
-      "r0.5.0",
-      "r0.6.0",
-      "r0.6.1",
-      "v1.1",
-      "v1.2",
-      "v1.3",
-      "v1.4",
-      "v1.5",
-      "v1.10",
-      "v1.11"
-    ],
-    "unstable_features": {
-      "fi.mau.msc2659.stable": true,
-      "fi.mau.msc2815": true,
-      "org.matrix.e2e_cross_signing": true,
-      "org.matrix.msc2285.stable": true,
-      "org.matrix.msc2836": true,
-      "org.matrix.msc2946": true
-    }
-  }
+  client_versions.supportedVersionsResponse(RustBaselineVersion)
 
 proc normalizeAppservicePingPath(path: string): string =
   result = path.strip()
@@ -5326,11 +5305,15 @@ proc wellKnownClientPayload(cfg: FlatConfig): tuple[ok: bool, payload: JsonNode]
   ).strip()
   if baseUrl.len == 0:
     return (false, newJObject())
-  (true, %*{
+  let payload = %*{
     "m.homeserver": {
       "base_url": baseUrl
     }
-  })
+  }
+  let rtcFoci = client_rtc.rtcTransports(cfg)
+  if rtcFoci.len > 0:
+    payload["org.matrix.msc4143.rtc_foci"] = %rtcFoci
+  (true, payload)
 
 proc wellKnownSupportPayload(cfg: FlatConfig): tuple[ok: bool, payload: JsonNode] =
   let supportPage = getConfigString(
@@ -5392,22 +5375,6 @@ proc sha1DigestBytes(data: string): string =
   for idx, value in digest:
     result[idx] = char(value)
 
-proc hmacSha1Base64(key, message: string): string =
-  var keyBlock =
-    if key.len > 64:
-      sha1DigestBytes(key)
-    else:
-      key
-  keyBlock.setLen(64)
-
-  var inner = newString(64)
-  var outer = newString(64)
-  for idx in 0 ..< 64:
-    let value = ord(keyBlock[idx])
-    inner[idx] = char(value xor 0x36)
-    outer[idx] = char(value xor 0x5c)
-  encode(outer & sha1DigestBytes(inner & message))
-
 proc serverKeysPayload(serverName: string): JsonNode =
   let keyId = "ed25519:nim"
   let key = encode(sha1DigestBytes("tuwunel-nim:" & serverName)).strip(trailing = true, chars = {'='})
@@ -5431,38 +5398,7 @@ proc turnServerPayload(
     cfg: FlatConfig;
     serverName, userId: string
 ): tuple[ok: bool, payload: JsonNode] =
-  let uris = getConfigStringArray(cfg, ["turn_uris", "global.turn_uris"])
-  if uris.len == 0:
-    return (false, newJObject())
-
-  let ttl = max(0, getConfigInt(cfg, ["turn_ttl", "global.turn_ttl"], 86400))
-  var username = getConfigString(cfg, ["turn_username", "global.turn_username"], "")
-  var password = getConfigString(cfg, ["turn_password", "global.turn_password"], "")
-  var secret = getConfigString(cfg, ["turn_secret", "global.turn_secret"], "")
-  if secret.len == 0:
-    let secretFile = getConfigString(cfg, ["turn_secret_file", "global.turn_secret_file"], "")
-    if secretFile.len > 0 and fileExists(secretFile):
-      try:
-        secret = readFile(secretFile).strip()
-      except CatchableError:
-        secret = ""
-
-  if secret.len > 0:
-    let expiry = (nowMs() div 1000) + ttl.int64
-    let turnUser =
-      if userId.len > 0:
-        userId
-      else:
-        "@" & randomString("turn_", 10).toLowerAscii() & ":" & serverName
-    username = $expiry & ":" & turnUser
-    password = hmacSha1Base64(secret, username)
-
-  (true, %*{
-    "uris": uris,
-    "username": username,
-    "password": password,
-    "ttl": ttl
-  })
+  client_voip.turnServerPayload(cfg, serverName, userId)
 
 proc emptyPushRulesPayload(): JsonNode =
   %*{
@@ -6917,6 +6853,7 @@ proc isAuthGetPath(path: string): bool =
   case path
   of "/_matrix/client/v3/thirdparty/protocols",
       "/_matrix/client/r0/thirdparty/protocols",
+      "/_matrix/client/unstable/org.matrix.msc4143/rtc/transports",
       "/_matrix/client/v3/voip/turnServer",
       "/_matrix/client/r0/voip/turnServer",
       "/_matrix/client/v3/sync",
@@ -7325,6 +7262,9 @@ proc isThirdPartyProtocolsPath(path: string): bool =
 
 proc isTurnServerPath(path: string): bool =
   trimClientPath(path) == "voip/turnServer"
+
+proc isRtcTransportsPath(path: string): bool =
+  path == "/_matrix/client/unstable/org.matrix.msc4143/rtc/transports"
 
 proc isAccount3pidPath(path: string): bool =
   trimClientPath(path) == "account/3pid"
@@ -9477,6 +9417,19 @@ proc runNativeServer(cfg: LoadedConfig): int =
         await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Not Found"))
         return
       await respondJson(req, Http200, turn.payload)
+      return
+
+    if isRtcTransportsPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, client_rtc.rtcTransportsPayload(cfg.values))
       return
 
     if isAccount3pidPath(path):
@@ -11954,10 +11907,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if req.reqMethod != HttpGet:
         await methodNotAllowed(req)
         return
-      await respondJson(req, Http200, %*{
-        "name": "Tuwunel",
-        "version": RustBaselineVersion,
-      })
+      await respondJson(req, Http200, tuwunel_api.tuwunelServerVersionPayload(RustBaselineVersion))
       return
 
     if path == "/_tuwunel/local_user_count":
@@ -11970,7 +11920,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var count = 0
       withLock state.lock:
         count = state.users.len
-      await respondJson(req, Http200, %*{"count": count})
+      await respondJson(req, Http200, tuwunel_api.tuwunelLocalUserCountPayload(count))
       return
 
     if path == "/.well-known/matrix/client":
@@ -12107,6 +12057,13 @@ proc runNativeServer(cfg: LoadedConfig): int =
           await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Room alias not found."))
           return
         await respondJson(req, Http200, payloadResult.payload)
+        return
+
+      if fedParts.len == 2 and fedParts[0] == "query" and fedParts[1] == "edutypes":
+        if req.reqMethod != HttpGet:
+          await methodNotAllowed(req)
+          return
+        await respondJson(req, Http200, server_edu_types.eduTypesPayload(cfg.values))
         return
 
       if fedParts.len == 2 and fedParts[0] == "query" and fedParts[1] == "profile":

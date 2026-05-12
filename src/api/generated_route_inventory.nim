@@ -139,6 +139,7 @@ let ClientRumaRoutes*: seq[string] = @[
   "get_relating_events_with_rel_type_and_event_type_route",
   "get_relating_events_with_rel_type_route",
   "get_relating_events_route",
+  "get_transports_route",
   "get_hierarchy_route",
   "get_mutual_rooms_route",
   "get_room_summary",
@@ -196,6 +197,7 @@ let ManualRoutes*: seq[string] = @[
   "/_matrix/key/v2/server/{key_id}",
   "/_tuwunel/local_user_count",
   "/_matrix/federation/{*path}",
+  "/_matrix/federation/v1/query/edutypes",
   "/.well-known/matrix/server",
   "/_matrix/key/{*path}",
   "/_tuwunel/local_user_count",
@@ -217,7 +219,7 @@ let ManualRoutes*: seq[string] = @[
 ]
 
 const
-  ClientRumaRouteCount* = 149
+  ClientRumaRouteCount* = 150
   ServerRumaRouteCount* = 29
-  ManualRouteCount* = 29
-  TotalRouteCount* = 207
+  ManualRouteCount* = 30
+  TotalRouteCount* = 209
