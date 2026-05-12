@@ -10,10 +10,10 @@ jobs:
     env:
       TUWUNEL_NIM_DISABLE_RUST_DELEGATE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: jiro4989/setup-nim-action@v2
         with:
-          nim-version: '2.3.1'
+          nim-version: '2.2.10'
       - name: Sync parity artifacts
         run: nimble parity_sync
       - name: Ensure generated artifacts are committed
@@ -30,10 +30,10 @@ jobs:
     env:
       TUWUNEL_NIM_DISABLE_RUST_DELEGATE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: jiro4989/setup-nim-action@v2
         with:
-          nim-version: '2.3.1'
+          nim-version: '2.2.10'
       - name: Install RocksDB Nim package
         run: |
           cd /tmp
