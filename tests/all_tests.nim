@@ -19,3 +19,5 @@ import test_route_runtime
 import test_entrypoint_compat
 import test_native_runtime_policy
 import test_syntax_hygiene
+import test_storage_provider
+import test_storage_admin_query

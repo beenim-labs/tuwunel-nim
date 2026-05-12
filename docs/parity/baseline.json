@@ -12,6 +12,6 @@
     "database_column_family_total": 103,
     "rust_function_total": 2820,
     "rust_source_files": 620,
-    "nim_source_files": 573
+    "nim_source_files": 578
   }
 }
