@@ -46,6 +46,8 @@ import test_federation_misc_api
 import test_server_signing
 import test_service_account_data
 import test_service_auth_state
+import test_service_presence
+import test_service_pusher
 import test_math_utils
 import test_native_runtime_policy
 import test_rand_utils
