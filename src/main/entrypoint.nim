@@ -3,6 +3,7 @@ import main/args
 import core/logging
 import core/config_loader
 import core/config_values
+import core/utils/content_disposition as content_disposition
 import api/client/versions as client_versions
 import api/client/tuwunel as tuwunel_api
 import api/client/voip as client_voip
@@ -801,6 +802,7 @@ type
     asToken: string
     hsToken: string
     senderLocalpart: string
+    deviceManagement: bool
     userRegexes: seq[string]
     exclusiveUserRegexes: seq[string]
     aliasRegexes: seq[string]
@@ -1469,18 +1471,8 @@ proc loadStoredMediaMeta(
   except CatchableError:
     (false, "application/octet-stream", "")
 
-proc safeHeaderFileName(fileName: string): string =
-  result = ""
-  for ch in fileName:
-    if ch in {'\r', '\n', '"', '\\', ';'}:
-      result.add('_')
-    else:
-      result.add(ch)
-
-proc mediaContentDisposition(fileName: string): string =
-  if fileName.len == 0:
-    return "inline"
-  "inline; filename=\"" & safeHeaderFileName(fileName) & "\""
+proc mediaContentDisposition(contentType, fileName: string): string =
+  content_disposition.contentDispositionHeader(contentType, fileName)
 
 proc loadStoredMedia(
     state: ServerState,
@@ -1852,6 +1844,45 @@ proc listDevicesPayloadLocked(state: ServerState; userId: string): JsonNode =
   for device in devices:
     arr.add(device.deviceToJson())
   %*{"devices": arr}
+
+proc appserviceDeviceManagementEnabled(state: ServerState; appserviceId: string): bool =
+  if appserviceId.len == 0:
+    return false
+  for reg in state.appserviceRegs:
+    if reg.id == appserviceId:
+      return reg.deviceManagement
+  for _, reg in state.appserviceByAsToken:
+    if reg.id == appserviceId:
+      return reg.deviceManagement
+  false
+
+proc putDeviceMetadataForSessionLocked(
+    state: ServerState;
+    session: AccessSession;
+    deviceId: string;
+    displayName: string;
+    updateDisplayName: bool
+): tuple[ok: bool, created: bool, message: string] =
+  let key = deviceKey(session.userId, deviceId)
+  if key in state.devices:
+    var device = state.devices[key]
+    if updateDisplayName:
+      device.displayName = displayName
+    device.lastSeenTs = nowMs()
+    state.devices[key] = device
+    return (true, false, "")
+
+  if session.isAppservice and state.appserviceDeviceManagementEnabled(session.appserviceId):
+    state.devices[key] = DeviceRecord(
+      userId: session.userId,
+      deviceId: deviceId,
+      displayName: if updateDisplayName: displayName else: "",
+      lastSeenIp: "",
+      lastSeenTs: nowMs(),
+    )
+    return (true, true, "")
+
+  (false, false, "Device not found.")
 
 proc removeOidcTokensForDevice(state: ServerState; userId, deviceId: string) =
   var staleAccess: seq[string] = @[]
@@ -3006,6 +3037,7 @@ proc parseRegistrationYaml(content: string): Option[AppserviceRegistration] =
     asToken: "",
     hsToken: "",
     senderLocalpart: "",
+    deviceManagement: false,
     userRegexes: @[],
     exclusiveUserRegexes: @[],
     aliasRegexes: @[],
@@ -3032,6 +3064,8 @@ proc parseRegistrationYaml(content: string): Option[AppserviceRegistration] =
       reg.hsToken = trimQuotes(line.split(":", 1)[1])
     elif line.startsWith("sender_localpart:"):
       reg.senderLocalpart = trimQuotes(line.split(":", 1)[1])
+    elif line.startsWith("device_management:"):
+      reg.deviceManagement = trimQuotes(line.split(":", 1)[1]).toLowerAscii() == "true"
     elif line.startsWith("users:"):
       currentNamespace = "users"
     elif line.startsWith("aliases:"):
@@ -3179,11 +3213,86 @@ proc appserviceExclusiveUserMatches(reg: AppserviceRegistration; userId, serverN
       regexListMatches(reg.exclusiveUserRegexes, userId)
     )
 
+proc isMatrixAppserviceIrc(reg: AppserviceRegistration): bool =
+  reg.id == "irc" or
+    reg.id.contains("matrix-appservice-irc") or
+    reg.id.contains("matrix_appservice_irc")
+
+proc isValidMatrixLocalpart(localpart: string; relaxed = false): bool =
+  if localpart.len == 0:
+    return false
+  if relaxed:
+    return localpart.find(':') < 0
+  for ch in localpart:
+    if ch in {'a'..'z', '0'..'9', '.', '_', '=', '-', '/'}:
+      continue
+    return false
+  true
+
+proc registrationUserIdFromUsername(
+    rawUsername: string;
+    serverName: string;
+    preserveCase = false;
+    relaxed = false
+): tuple[ok: bool, userId: string, username: string, errcode: string, message: string] =
+  var username = rawUsername.strip()
+  if username.len == 0:
+    return (false, "", "", "M_INVALID_USERNAME", "Username is not valid.")
+  if not preserveCase:
+    username = username.toLowerAscii()
+
+  var localpart = username
+  if username.startsWith("@"):
+    if serverNameFromUserId(username) != serverName:
+      return (false, "", "", "M_INVALID_USERNAME", "Username is not valid.")
+    localpart = localpartFromUserId(username)
+  elif username.find(':') >= 0:
+    return (false, "", "", "M_INVALID_USERNAME", "Username is not valid.")
+
+  if not isValidMatrixLocalpart(localpart, relaxed):
+    return (false, "", "", "M_INVALID_USERNAME", "Username contains disallowed characters or spaces.")
+
+  (true, "@" & localpart & ":" & serverName, localpart, "", "")
+
 proc appserviceAliasMatches(reg: AppserviceRegistration; alias: string): bool =
   regexListMatches(reg.aliasRegexes, alias)
 
 proc appserviceRoomMatches(reg: AppserviceRegistration; roomId: string): bool =
   regexListMatches(reg.roomRegexes, roomId)
+
+proc matrixUserIdFromLoginValue(raw, serverName: string): string =
+  let value = raw.strip()
+  if value.len == 0:
+    return ""
+  if value.startsWith("@"):
+    return value
+  "@" & value & ":" & serverName
+
+proc appserviceLoginUserIdFromBody(
+    body: JsonNode;
+    fallbackUserId: string;
+    serverName: string
+): string =
+  var raw = ""
+  if body.kind == JObject:
+    raw = body{"identifier"}{"user"}.getStr("")
+    if raw.len == 0:
+      raw = body{"user"}.getStr("")
+  if raw.len == 0:
+    raw = fallbackUserId
+  matrixUserIdFromLoginValue(raw, serverName)
+
+proc appserviceRegistrationById(
+    state: ServerState;
+    appserviceId: string
+): Option[AppserviceRegistration] =
+  for reg in state.appserviceRegs:
+    if reg.id == appserviceId:
+      return some(reg)
+  for _, reg in state.appserviceByAsToken:
+    if reg.id == appserviceId:
+      return some(reg)
+  none(AppserviceRegistration)
 
 proc newServerState(cfg: FlatConfig; serverName: string): ServerState =
   let statePath = statePathFromConfig(cfg)
@@ -3621,13 +3730,11 @@ proc appendEventLocked(
   state.rooms[roomId] = room
   ev
 
-proc newUserId(state: ServerState; username: string): string =
-  "@" & username & ":" & state.serverName
-
 proc getSessionFromToken(
     state: ServerState;
     token: string;
-    impersonateUserId: string
+    impersonateUserId: string;
+    appserviceDeviceId = ""
 ): tuple[ok: bool, session: AccessSession, errcode: string, message: string] =
   if token.len == 0:
     return (false, AccessSession(), "M_MISSING_TOKEN", "Missing access token.")
@@ -3649,9 +3756,115 @@ proc getSessionFromToken(
         session.userId = impersonateUserId
       else:
         return (false, AccessSession(), "M_FORBIDDEN", "Appservice token cannot masquerade as " & impersonateUserId)
+    if appserviceDeviceId.len > 0:
+      if deviceKey(session.userId, appserviceDeviceId) notin state.devices:
+        return (false, AccessSession(), "M_INVALID_PARAM", "Unknown device for user.")
+      session.deviceId = appserviceDeviceId
     return (true, session, "", "")
 
   (false, AccessSession(), "M_UNKNOWN_TOKEN", "Unknown access token.")
+
+proc appserviceRegistrationByTokenLocked(
+    state: ServerState;
+    token: string;
+    appserviceDeviceId: string
+): tuple[present: bool, ok: bool, reg: AppserviceRegistration, errcode: string, message: string] =
+  if token.len == 0:
+    return (false, true, AppserviceRegistration(), "", "")
+  let auth = state.getSessionFromToken(token, "", appserviceDeviceId)
+  if not auth.ok:
+    return (true, false, AppserviceRegistration(), auth.errcode, auth.message)
+  if not auth.session.isAppservice:
+    return (true, true, AppserviceRegistration(), "", "")
+
+  let regOpt = state.appserviceRegistrationById(auth.session.appserviceId)
+  if regOpt.isNone:
+    return (true, false, AppserviceRegistration(), "M_UNKNOWN_TOKEN", "Unknown access token.")
+  (true, true, regOpt.get(), "", "")
+
+proc isExclusiveAppserviceUserLocked(
+    state: ServerState;
+    userId: string
+): bool =
+  for reg in state.appserviceRegs:
+    if reg.appserviceExclusiveUserMatches(userId, state.serverName):
+      return true
+  false
+
+proc registrationAvailabilityLocked(
+    state: ServerState;
+    rawUsername: string;
+    token: string;
+    appserviceDeviceId: string
+): tuple[ok: bool, userId: string, username: string, errcode: string, message: string] =
+  let asInfo = state.appserviceRegistrationByTokenLocked(token, appserviceDeviceId)
+  if not asInfo.ok:
+    return (false, "", "", asInfo.errcode, asInfo.message)
+
+  let ircCompat = asInfo.present and asInfo.reg.id.len > 0 and asInfo.reg.isMatrixAppserviceIrc()
+  let parsed = registrationUserIdFromUsername(
+    rawUsername,
+    state.serverName,
+    preserveCase = ircCompat,
+    relaxed = ircCompat
+  )
+  if not parsed.ok:
+    return parsed
+
+  if parsed.userId in state.users:
+    return (false, parsed.userId, parsed.username, "M_USER_IN_USE", "User ID is not available.")
+
+  if asInfo.present and asInfo.reg.id.len > 0:
+    if not asInfo.reg.appserviceUserMatches(parsed.userId, state.serverName):
+      return (false, parsed.userId, parsed.username, "M_EXCLUSIVE", "Username is not in an appservice namespace.")
+  elif state.isExclusiveAppserviceUserLocked(parsed.userId):
+    return (false, parsed.userId, parsed.username, "M_EXCLUSIVE", "Username is reserved by an appservice.")
+
+  (true, parsed.userId, parsed.username, "", "")
+
+proc appserviceRegistrationForRegisterLocked(
+    state: ServerState;
+    token: string;
+    appserviceDeviceId: string
+): tuple[ok: bool, reg: AppserviceRegistration, errcode: string, message: string] =
+  let asInfo = state.appserviceRegistrationByTokenLocked(token, appserviceDeviceId)
+  if not asInfo.present:
+    return (false, AppserviceRegistration(), "M_MISSING_TOKEN", "Missing appservice token.")
+  if not asInfo.ok:
+    return (false, AppserviceRegistration(), asInfo.errcode, asInfo.message)
+  if asInfo.reg.id.len == 0:
+    return (false, AppserviceRegistration(), "M_MISSING_TOKEN", "Missing appservice token.")
+  (true, asInfo.reg, "", "")
+
+proc resolveAppserviceLoginLocked(
+    state: ServerState;
+    token: string;
+    body: JsonNode;
+    fallbackUserId: string;
+    appserviceDeviceId: string
+): tuple[ok: bool, userId: string, errcode: string, message: string] =
+  let auth = state.getSessionFromToken(token, "", appserviceDeviceId)
+  if not auth.ok:
+    return (false, "", auth.errcode, auth.message)
+  if not auth.session.isAppservice:
+    return (false, "", "M_MISSING_TOKEN", "Missing appservice token.")
+
+  let regOpt = state.appserviceRegistrationById(auth.session.appserviceId)
+  if regOpt.isNone:
+    return (false, "", "M_UNKNOWN_TOKEN", "Unknown access token.")
+  let reg = regOpt.get()
+
+  let userId = appserviceLoginUserIdFromBody(body, fallbackUserId, state.serverName)
+  if userId.len == 0:
+    return (false, "", "M_UNKNOWN", "Valid identifier or username was not provided.")
+  if serverNameFromUserId(userId) != state.serverName:
+    return (false, "", "M_UNKNOWN", "User ID does not belong to this homeserver.")
+  if not reg.appserviceUserMatches(userId, state.serverName):
+    return (false, "", "M_EXCLUSIVE", "Username is not in an appservice namespace.")
+  if userId notin state.users:
+    return (false, "", "M_INVALID_PARAM", "User does not exist.")
+
+  (true, userId, "", "")
 
 proc buildWhoamiPayload(session: AccessSession): JsonNode =
   %*{
@@ -8161,6 +8374,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
     let fedAuth = hasFederationAuth(req)
     let accessToken = queryAccessToken(req)
     let impersonateUser = resolveImpersonationUser(req)
+    let appserviceDeviceId = queryParam(req, "device_id")
 
     if path == "/_beenim/gifs/trending" or path == "/_beenim/gifs/search":
       if req.reqMethod != HttpGet:
@@ -8649,12 +8863,17 @@ proc runNativeServer(cfg: LoadedConfig): int =
               refreshToken = state.createRefreshTokenLocked(userId, deviceId, refreshTokenTtlMs).refreshToken
             state.savePersistentState()
         elif loginType == "m.login.application_service":
-          let sessionRes = state.getSessionFromToken(accessToken, impersonateUser)
-          if not sessionRes.ok:
-            loginErrCode = sessionRes.errcode
-            loginErrMsg = sessionRes.message
+          let loginRes = state.resolveAppserviceLoginLocked(
+            accessToken,
+            body,
+            impersonateUser,
+            appserviceDeviceId
+          )
+          if not loginRes.ok:
+            loginErrCode = loginRes.errcode
+            loginErrMsg = loginRes.message
           else:
-            userId = sessionRes.session.userId
+            userId = loginRes.userId
             token = state.addTokenForUser(userId, deviceId, deviceDisplayName)
             if wantsRefreshToken:
               refreshToken = state.createRefreshTokenLocked(userId, deviceId, refreshTokenTtlMs).refreshToken
@@ -8664,7 +8883,13 @@ proc runNativeServer(cfg: LoadedConfig): int =
           loginErrMsg = "Unsupported login type."
 
       if loginErrCode.len > 0:
-        let status = if loginErrCode == "M_FORBIDDEN": Http403 elif loginErrCode == "M_UNRECOGNIZED": Http400 else: Http401
+        let status =
+          if loginErrCode in ["M_FORBIDDEN", "M_EXCLUSIVE"]:
+            Http403
+          elif loginErrCode in ["M_UNRECOGNIZED", "M_INVALID_PARAM", "M_UNKNOWN"]:
+            Http400
+          else:
+            Http401
         await respondJson(req, status, matrixError(loginErrCode, loginErrMsg))
         return
 
@@ -8689,6 +8914,16 @@ proc runNativeServer(cfg: LoadedConfig): int =
         await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
         return
       var body = parsed.value
+      let loginType = body{"auth"}{"type"}.getStr(body{"type"}.getStr(""))
+      let isAppserviceRegistration = loginType == "m.login.application_service"
+      let allowRegistration = getConfigBool(
+        cfg.values,
+        ["allow_registration", "global.allow_registration"],
+        true
+      )
+      if not allowRegistration and not isAppserviceRegistration:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Registration has been disabled."))
+        return
       var username = body{"username"}.getStr("")
       if username.len == 0:
         username = "user" & $nowMs()
@@ -8696,6 +8931,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if password.len == 0:
         password = randomString("pw_", 18)
       let wantsRefreshToken = body{"refresh_token"}.getBool(false)
+      let inhibitLogin = body{"inhibit_login"}.getBool(false)
       var deviceId = body{"device_id"}.getStr("")
       if deviceId.len == 0:
         deviceId = randomString("DEV", 12)
@@ -8704,12 +8940,34 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var userId = ""
       var token = ""
       var refreshToken = ""
-      var registerErr = false
+      var registerErrCode = ""
+      var registerErrMsg = ""
       withLock state.lock:
-        if username in state.usersByName:
-          registerErr = true
+        var appserviceReg = AppserviceRegistration()
+        if isAppserviceRegistration:
+          let asReg = state.appserviceRegistrationForRegisterLocked(accessToken, appserviceDeviceId)
+          if not asReg.ok:
+            registerErrCode = asReg.errcode
+            registerErrMsg = asReg.message
+          else:
+            appserviceReg = asReg.reg
+
+        if registerErrCode.len == 0:
+          let availability = state.registrationAvailabilityLocked(
+            username,
+            if isAppserviceRegistration: accessToken else: "",
+            appserviceDeviceId
+          )
+          if not availability.ok:
+            registerErrCode = availability.errcode
+            registerErrMsg = availability.message
+          else:
+            userId = availability.userId
+            username = availability.username
+
+        if registerErrCode.len > 0:
+          discard
         else:
-          userId = state.newUserId(username)
           state.usersByName[username] = userId
           state.users[userId] = UserProfile(
             userId: userId,
@@ -8721,21 +8979,30 @@ proc runNativeServer(cfg: LoadedConfig): int =
             timezone: "",
             profileFields: initTable[string, JsonNode]()
           )
-          token = state.addTokenForUser(userId, deviceId, deviceDisplayName)
-          if wantsRefreshToken:
-            refreshToken = state.createRefreshTokenLocked(userId, deviceId, refreshTokenTtlMs).refreshToken
+          if not inhibitLogin and not (isAppserviceRegistration and appserviceReg.deviceManagement):
+            token = state.addTokenForUser(userId, deviceId, deviceDisplayName)
+            if wantsRefreshToken:
+              refreshToken = state.createRefreshTokenLocked(userId, deviceId, refreshTokenTtlMs).refreshToken
           state.savePersistentState()
 
-      if registerErr:
-        await respondJson(req, Http400, matrixError("M_USER_IN_USE", "User already exists."))
+      if registerErrCode.len > 0:
+        let status =
+          if registerErrCode in ["M_FORBIDDEN", "M_EXCLUSIVE", "M_GUEST_ACCESS_FORBIDDEN"]:
+            Http403
+          elif registerErrCode in ["M_MISSING_TOKEN", "M_UNKNOWN_TOKEN"]:
+            Http401
+          else:
+            Http400
+        await respondJson(req, status, matrixError(registerErrCode, registerErrMsg))
         return
 
       var registerPayload = %*{
         "user_id": userId,
-        "access_token": token,
-        "device_id": deviceId,
         "home_server": serverName
       }
+      if token.len > 0:
+        registerPayload["access_token"] = %token
+        registerPayload["device_id"] = %deviceId
       if refreshToken.len > 0:
         registerPayload["refresh_token"] = %refreshToken
         registerPayload["expires_in_ms"] = %refreshTokenTtlMs
@@ -8748,7 +9015,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -8761,7 +9028,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and not resolved.session.isAppservice:
           state.removeToken(accessToken)
           state.savePersistentState()
@@ -8777,7 +9044,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and not resolved.session.isAppservice:
           state.removeAllTokensForUser(resolved.session.userId)
           state.savePersistentState()
@@ -8793,7 +9060,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -8815,7 +9082,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       let logoutDevices = parsed.value{"logout_devices"}.getBool(true)
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and resolved.session.userId in state.users:
           var user = state.users[resolved.session.userId]
           user.password = newPassword
@@ -8845,7 +9112,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and resolved.session.userId in state.users:
           var roomsToLeave: seq[string] = @[]
           for roomId, room in state.rooms:
@@ -8881,7 +9148,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
     if filterParts.ok:
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -8934,7 +9201,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9005,7 +9272,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var allowed = false
       var payload = %*{"tags": newJObject()}
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           allowed = resolved.session.isAppservice or resolved.session.userId == tagsParts.userId
           if allowed:
@@ -9040,7 +9307,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var allowed = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           allowed = resolved.session.isAppservice or resolved.session.userId == typingParts.userId
           if allowed:
@@ -9077,7 +9344,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var allowed = false
       var supportedReceipt = true
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           allowed = state.roomJoinedForUser(receiptParts.roomId, resolved.session.userId)
           if allowed:
@@ -9131,7 +9398,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var allowed = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           allowed = state.roomJoinedForUser(readMarkerParts.roomId, resolved.session.userId)
           if allowed:
@@ -9172,7 +9439,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
     if deviceParts.ok:
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9206,22 +9473,27 @@ proc runNativeServer(cfg: LoadedConfig): int =
         if not parsed.ok or parsed.value.kind != JObject:
           await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
           return
-        var found = false
+        var updateDisplayName = false
+        var displayName = ""
+        if parsed.value.hasKey("display_name"):
+          updateDisplayName = true
+          if parsed.value["display_name"].kind == JString:
+            displayName = parsed.value["display_name"].getStr("")
+          elif parsed.value["display_name"].kind != JNull:
+            await respondJson(req, Http400, matrixError("M_BAD_JSON", "display_name must be a string or null."))
+            return
+        var updated: tuple[ok: bool, created: bool, message: string]
         withLock state.lock:
-          let key = deviceKey(resolved.session.userId, deviceParts.deviceId)
-          if key in state.devices:
-            found = true
-            var device = state.devices[key]
-            if parsed.value.hasKey("display_name"):
-              if parsed.value["display_name"].kind == JString:
-                device.displayName = parsed.value["display_name"].getStr("")
-              elif parsed.value["display_name"].kind == JNull:
-                device.displayName = ""
-            device.lastSeenTs = nowMs()
-            state.devices[key] = device
+          updated = state.putDeviceMetadataForSessionLocked(
+            resolved.session,
+            deviceParts.deviceId,
+            displayName,
+            updateDisplayName
+          )
+          if updated.ok:
             state.savePersistentState()
-        if not found:
-          await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Device not found."))
+        if not updated.ok:
+          await respondJson(req, Http404, matrixError("M_NOT_FOUND", updated.message))
           return
         await respondJson(req, Http200, %*{})
         return
@@ -9246,7 +9518,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9271,7 +9543,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9284,7 +9556,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9307,7 +9579,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9342,7 +9614,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         media.body,
         contentType = media.contentType,
         cacheControl = "public, max-age=31536000, immutable",
-        contentDisposition = mediaContentDisposition(media.fileName)
+        contentDisposition = mediaContentDisposition(media.contentType, media.fileName)
       )
       return
 
@@ -9353,7 +9625,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var payload = %*{"joined_rooms": []}
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           var rooms = newJArray()
           for roomId in state.joinedRoomsForUser(resolved.session.userId):
@@ -9380,7 +9652,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var payload = newJObject()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           payload = publicRoomsPayload(state, parsed.value)
       if not resolved.ok:
@@ -9395,7 +9667,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9408,7 +9680,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9425,7 +9697,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9438,7 +9710,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9460,7 +9732,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
           await respondJson(req, Http400, matrixError("M_INVALID_PARAM", "Invalid `limit` parameter."))
           return
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           payload = state.notificationsPayload(
             resolved.session.userId,
@@ -9480,7 +9752,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9496,7 +9768,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9521,7 +9793,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -9617,7 +9889,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var uploadResult: tuple[ok: bool, errcode: string, message: string, payload: JsonNode]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           uploadResult = state.uploadE2eeKeysLocked(resolved.session.userId, resolved.session.deviceId, parsed.value)
           if uploadResult.ok:
@@ -9642,7 +9914,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var payload = newJObject()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           payload = keysQueryPayload(state, parsed.value)
       if not resolved.ok:
@@ -9662,7 +9934,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var payload = newJObject()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           payload = state.claimE2eeKeysLocked(parsed.value)
           state.savePersistentState()
@@ -9679,7 +9951,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var payload = newJObject()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           payload = state.keyChangesPayloadLocked(queryParam(req, "from"), queryParam(req, "to"))
       if not resolved.ok:
@@ -9700,7 +9972,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var uploadResult: tuple[ok: bool, errcode: string, message: string]
       var payload = newJObject()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           case signingKeyUploadKind(path)
           of "device_signing":
@@ -9733,7 +10005,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var payload = newJObject()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           payload = state.searchRoomEventsPayload(
             resolved.session.userId,
@@ -9757,7 +10029,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var payload = newJObject()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           payload = userDirectorySearchPayload(state, parsed.value)
       if not resolved.ok:
@@ -9774,7 +10046,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var forbidden = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and not resolved.session.isAppservice and resolved.session.userId != openIdParts.userId:
           forbidden = true
       if not resolved.ok:
@@ -9802,7 +10074,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var queueResult: tuple[ok: bool, errcode: string, message: string, queuedCount: int]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           queueResult = state.queueToDeviceMessagesLocked(
             resolved.session.userId,
@@ -9839,7 +10111,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
         return
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           case req.reqMethod
           of HttpGet:
@@ -9891,7 +10163,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var foundRoom = false
       var visibility = "private"
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and visibilityParts.roomId in state.rooms:
           foundRoom = true
           if req.reqMethod == HttpPut:
@@ -9953,7 +10225,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var reporterInRoom = true
       var reportStored = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and reportParts.roomId in state.rooms:
           foundRoom = true
           if reportParts.eventId.len > 0:
@@ -9995,7 +10267,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var forgetResult: tuple[ok: bool, changed: bool]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           forgetResult = state.forgetRoomLocked(resolved.session.userId, forgetRoom)
           if forgetResult.changed:
@@ -10027,7 +10299,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var foundRoom = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and actionRoom in state.rooms:
           foundRoom = true
           let membership = if actionName == "ban": "ban" else: "leave"
@@ -10051,7 +10323,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var foundRoom = ""
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           foundRoom = state.resolveRoomByJoinTarget(knockTarget)
           if foundRoom.len > 0:
@@ -10084,7 +10356,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var canView = false
       var payload = newJObject()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and initialSyncRoom in state.rooms:
           foundRoom = true
           canView = state.roomVisibleToUser(initialSyncRoom, resolved.session.userId)
@@ -10112,7 +10384,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var canView = false
       var payload = newJObject()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and summaryRoom in state.rooms:
           foundRoom = true
           canView = state.roomVisibleToUser(summaryRoom, resolved.session.userId)
@@ -10145,7 +10417,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         except ValueError:
           discard
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           payloadResult = state.relatedEventsPayload(
             resolved.session.userId,
@@ -10183,7 +10455,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         except ValueError:
           discard
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           payloadResult = state.threadEventsPayload(
             resolved.session.userId,
@@ -10211,7 +10483,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var hierarchyResult: tuple[ok: bool, forbidden: bool, payload: JsonNode]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           hierarchyResult = state.roomHierarchyPayload(hierarchyRoom, resolved.session.userId)
       if not resolved.ok:
@@ -10235,7 +10507,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var payload = newJObject()
       var selfRequest = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           selfRequest = resolved.session.userId == mutualUser
           if not selfRequest:
@@ -10262,7 +10534,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var upgradeResult: tuple[ok: bool, forbidden: bool, replacementRoom: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           upgradeResult = state.upgradeRoomLocked(upgradeRoom, resolved.session.userId, requestedVersion)
           if upgradeResult.ok and not upgradeResult.forbidden:
@@ -10286,7 +10558,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -10488,7 +10760,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
     if dehydratedParts.ok:
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -10542,7 +10814,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var streamResult: tuple[ok: bool, payload: JsonNode]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           streamResult = state.eventStreamPayload(
             resolved.session.userId,
@@ -10570,7 +10842,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var payload = newJObject()
       let sincePos = parseSlidingSyncPos(parsed.value{"pos"}.getStr(""))
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           payload = state.slidingSyncV5Payload(
             resolved.session.userId,
@@ -10591,7 +10863,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
 
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
@@ -10742,7 +11014,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var createdRoom = ""
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if not resolved.ok:
           discard
         else:
@@ -10864,7 +11136,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var resolvedRoom = ""
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           resolvedRoom = state.resolveRoomByJoinTarget(roomTarget)
           if resolvedRoom.len > 0:
@@ -10894,7 +11166,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var foundRoom = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and joinRoomById in state.rooms:
           foundRoom = true
           let ev = state.appendEventLocked(
@@ -10931,7 +11203,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var foundRoom = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and inviteRoom in state.rooms and state.roomJoinedForUser(inviteRoom, resolved.session.userId):
           foundRoom = true
           if inviteeId notin state.users:
@@ -10974,7 +11246,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var foundRoom = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and leaveRoom in state.rooms:
           foundRoom = true
           let ev = state.appendEventLocked(
@@ -11004,7 +11276,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var foundRoom = false
       var payload = %*{"joined": newJObject()}
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and joinedMembersRoom in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(joinedMembersRoom, resolved.session.userId):
             foundRoom = true
@@ -11029,7 +11301,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var foundRoom = false
       var payload = %*{"chunk": newJArray()}
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and membersRoom in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(membersRoom, resolved.session.userId):
             foundRoom = true
@@ -11052,7 +11324,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var foundRoom = false
       var payload = %*{"aliases": newJArray()}
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and aliasesRoom in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(aliasesRoom, resolved.session.userId):
             foundRoom = true
@@ -11076,7 +11348,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var foundEvent = false
       var payload = newJObject()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and eventParts.roomId in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(eventParts.roomId, resolved.session.userId):
             roomOk = true
@@ -11114,7 +11386,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var foundEvent = false
       var payload = newJObject()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and contextParts.roomId in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(contextParts.roomId, resolved.session.userId):
             roomOk = true
@@ -11160,7 +11432,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         "end": ""
       }
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and messagesRoom in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(messagesRoom, resolved.session.userId):
             foundRoom = true
@@ -11223,7 +11495,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var payload: JsonNode = newJArray()
       var foundRoom = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and roomId in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(roomId, resolved.session.userId):
             foundRoom = true
@@ -11250,7 +11522,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         var foundState = false
         var payload = newJObject()
         withLock state.lock:
-          resolved = state.getSessionFromToken(accessToken, impersonateUser)
+          resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
           if resolved.ok and stateParts.roomId in state.rooms:
             if resolved.session.isAppservice or state.roomJoinedForUser(stateParts.roomId, resolved.session.userId):
               roomOk = true
@@ -11281,7 +11553,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var roomOk = false
       var sentEventId = ""
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and stateParts.roomId in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(stateParts.roomId, resolved.session.userId):
             roomOk = true
@@ -11317,7 +11589,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var sentEventId = ""
       var roomOk = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and sendParts.roomId in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(sendParts.roomId, resolved.session.userId):
             roomOk = true
@@ -11360,7 +11632,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var sentEventId = ""
       var roomOk = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok and redactParts.roomId in state.rooms:
           if resolved.session.isAppservice or state.roomJoinedForUser(redactParts.roomId, resolved.session.userId):
             roomOk = true
@@ -11396,7 +11668,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
         var visible = false
         var payload = newJObject()
         withLock state.lock:
-          resolved = state.getSessionFromToken(accessToken, impersonateUser)
+          resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
           if resolved.ok:
             visible = resolved.session.isAppservice or
               state.usersShareJoinedRoom(resolved.session.userId, presenceParts.userId)
@@ -11433,7 +11705,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var forbidden = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           if not resolved.session.isAppservice and resolved.session.userId != presenceParts.userId:
             forbidden = true
@@ -11480,7 +11752,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var forbidden = false
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           if not resolved.session.isAppservice and resolved.session.userId != profileParts.userId:
             forbidden = true
@@ -11566,8 +11838,19 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if req.reqMethod != HttpGet:
         await methodNotAllowed(req)
         return
-      if tokenPresent:
-        await respondJson(req, Http401, matrixError("M_UNKNOWN_TOKEN", "Unknown access token."))
+      let username = queryParam(req, "username")
+      var availability: tuple[ok: bool, userId: string, username: string, errcode: string, message: string]
+      withLock state.lock:
+        availability = state.registrationAvailabilityLocked(username, accessToken, appserviceDeviceId)
+      if not availability.ok:
+        let status =
+          if availability.errcode in ["M_FORBIDDEN", "M_EXCLUSIVE"]:
+            Http403
+          elif availability.errcode in ["M_MISSING_TOKEN", "M_UNKNOWN_TOKEN"]:
+            Http401
+          else:
+            Http400
+        await respondJson(req, status, matrixError(availability.errcode, availability.message))
       else:
         await respondJson(req, Http200, %*{"available": true})
       return
@@ -11615,7 +11898,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       var issued = LoginTokenRecord()
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
         if resolved.ok:
           issued = state.createLoginTokenLocked(resolved.session.userId, loginTokenTtlMs)
       if not resolved.ok:
@@ -11984,7 +12267,8 @@ proc runNativeServer(cfg: LoadedConfig): int =
       let fedParts = federationPathParts(path)
       let federationNoAuth =
         (fedParts.len == 1 and fedParts[0] in ["version", "publicRooms"]) or
-        (fedParts.len == 2 and fedParts[0] == "openid" and fedParts[1] == "userinfo")
+        (fedParts.len == 2 and fedParts[0] == "openid" and fedParts[1] == "userinfo") or
+        (fedParts.len == 2 and fedParts[0] == "query" and fedParts[1] == "edutypes")
       if not federationNoAuth and not fedAuth:
         await respondJson(req, Http401, matrixError("M_UNAUTHORIZED", "Missing federation authentication."))
         return
@@ -12029,7 +12313,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
           media.body,
           contentType = media.contentType,
           cacheControl = "public, max-age=31536000, immutable",
-          contentDisposition = mediaContentDisposition(media.fileName)
+          contentDisposition = mediaContentDisposition(media.contentType, media.fileName)
         )
         return
 
@@ -12303,7 +12587,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
     if routeNeedsAccessToken(routeName) and tokenPresent:
       var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
       withLock state.lock:
-        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        resolved = state.getSessionFromToken(accessToken, impersonateUser, appserviceDeviceId)
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return

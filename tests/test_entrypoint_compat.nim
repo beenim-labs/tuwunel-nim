@@ -528,7 +528,7 @@ suite "entrypoint compat helpers":
     check loaded.ok
     check loaded.body == "hello"
     check loaded.contentType == "text/plain"
-    check mediaContentDisposition(loaded.fileName) == "inline; filename=\"hello.txt\""
+    check mediaContentDisposition(loaded.contentType, loaded.fileName) == "inline; filename=\"hello.txt\""
 
   test "media path helpers recognize upload and download aliases":
     check isMediaUploadPath("/_matrix/media/v3/upload")
@@ -1683,7 +1683,17 @@ suite "entrypoint compat helpers":
     let secondMessage = state.appendEventLocked("!fed:localhost", "@alice:localhost", "m.room.message", "", %*{"body": "second", "msgtype": "m.text"})
 
     check federationPathParts("/_matrix/federation/v1/state/%21fed%3Alocalhost") == @["state", "!fed:localhost"]
+    check federationPathParts("/_matrix/federation/v1/query/edutypes") == @["query", "edutypes"]
     check federationVersionPayload()["server"]["version"].getStr("") == RustBaselineVersion
+
+    var eduCfg = initFlatConfig()
+    eduCfg["allow_incoming_presence"] = newBoolValue(false)
+    eduCfg["allow_incoming_read_receipts"] = newBoolValue(true)
+    eduCfg["allow_incoming_typing"] = newBoolValue(false)
+    let eduTypes = server_edu_types.eduTypesPayload(eduCfg)
+    check eduTypes["m.presence"].getBool(true) == false
+    check eduTypes["m.receipt"].getBool(false) == true
+    check eduTypes["m.typing"].getBool(true) == false
 
     let eventPayload = state.federationEventPayload(secondMessage.eventId)
     check eventPayload.ok
@@ -2726,6 +2736,7 @@ url: http://127.0.0.1:29999
 as_token: as-secret
 hs_token: hs-secret
 sender_localpart: bridgebot
+device_management: true
 receive_ephemeral: true
 namespaces:
   users:
@@ -2741,6 +2752,7 @@ namespaces:
     let parsed = parseRegistrationYaml(yaml)
     check parsed.isSome
     let reg = parsed.get()
+    check reg.deviceManagement
     check reg.receiveEphemeral
     check reg.userRegexes == @["^@bridge_.*:localhost$"]
     check reg.exclusiveUserRegexes == @["^@bridge_.*:localhost$"]
@@ -2803,6 +2815,299 @@ namespaces:
       "localhost"
     )
 
+  test "appservice auth honors masqueraded device_id assertions":
+    let statePath = getTempDir() / "tuwunel-entrypoint-appservice-device.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+
+    let reg = AppserviceRegistration(
+      id: "bridge",
+      url: "http://127.0.0.1:29999",
+      asToken: "as-secret",
+      hsToken: "hs-secret",
+      senderLocalpart: "bridgebot",
+      deviceManagement: false,
+      userRegexes: @["^@bridge_.*:localhost$"],
+      exclusiveUserRegexes: @["^@bridge_.*:localhost$"],
+      aliasRegexes: @[],
+      exclusiveAliasRegexes: @[],
+      roomRegexes: @[],
+      exclusiveRoomRegexes: @[],
+      receiveEphemeral: false
+    )
+    state.appserviceByAsToken[reg.asToken] = reg
+
+    var missingDevice = state.getSessionFromToken(
+      "as-secret",
+      "@bridge_alice:localhost",
+      "BRIDGEDEV"
+    )
+    check not missingDevice.ok
+    check missingDevice.errcode == "M_INVALID_PARAM"
+    check missingDevice.message == "Unknown device for user."
+
+    state.devices[deviceKey("@bridge_alice:localhost", "BRIDGEDEV")] = DeviceRecord(
+      userId: "@bridge_alice:localhost",
+      deviceId: "BRIDGEDEV",
+      displayName: "Bridge device",
+      lastSeenIp: "",
+      lastSeenTs: 0
+    )
+
+    let masqueraded = state.getSessionFromToken(
+      "as-secret",
+      "@bridge_alice:localhost",
+      "BRIDGEDEV"
+    )
+    check masqueraded.ok
+    check masqueraded.session.isAppservice
+    check masqueraded.session.userId == "@bridge_alice:localhost"
+    check masqueraded.session.deviceId == "BRIDGEDEV"
+
+    let defaultSender = state.getSessionFromToken("as-secret", "", "")
+    check defaultSender.ok
+    check defaultSender.session.userId == "@bridgebot:localhost"
+    check defaultSender.session.deviceId == "appservice"
+
+    let forbidden = state.getSessionFromToken(
+      "as-secret",
+      "@not_bridge:localhost",
+      ""
+    )
+    check not forbidden.ok
+    check forbidden.errcode == "M_FORBIDDEN"
+
+  test "appservice login resolves body identifier user instead of sender bot":
+    let statePath = getTempDir() / "tuwunel-entrypoint-appservice-login.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+
+    let reg = AppserviceRegistration(
+      id: "bridge",
+      url: "http://127.0.0.1:29999",
+      asToken: "as-secret",
+      hsToken: "hs-secret",
+      senderLocalpart: "bridgebot",
+      deviceManagement: false,
+      userRegexes: @["^@bridge_.*:localhost$"],
+      exclusiveUserRegexes: @["^@bridge_.*:localhost$"],
+      aliasRegexes: @[],
+      exclusiveAliasRegexes: @[],
+      roomRegexes: @[],
+      exclusiveRoomRegexes: @[],
+      receiveEphemeral: false
+    )
+    state.appserviceRegs = @[reg]
+    state.appserviceByAsToken[reg.asToken] = reg
+    state.users["@bridge_alice:localhost"] = UserProfile(
+      userId: "@bridge_alice:localhost",
+      username: "bridge_alice",
+      password: "",
+      displayName: "Bridge Alice",
+      avatarUrl: "",
+      blurhash: "",
+      timezone: "",
+      profileFields: initTable[string, JsonNode]()
+    )
+
+    let bodyIdentifier = %*{
+      "type": "m.login.application_service",
+      "identifier": {
+        "type": "m.id.user",
+        "user": "@bridge_alice:localhost"
+      },
+      "device_id": "APPDEV"
+    }
+    let resolved = state.resolveAppserviceLoginLocked(
+      "as-secret",
+      bodyIdentifier,
+      "",
+      ""
+    )
+    check resolved.ok
+    check resolved.userId == "@bridge_alice:localhost"
+
+    let bodyLegacyUser = %*{
+      "type": "m.login.application_service",
+      "user": "bridge_alice"
+    }
+    check appserviceLoginUserIdFromBody(bodyLegacyUser, "", "localhost") ==
+      "@bridge_alice:localhost"
+
+    let fallbackQuery = state.resolveAppserviceLoginLocked(
+      "as-secret",
+      %*{"type": "m.login.application_service"},
+      "@bridge_alice:localhost",
+      ""
+    )
+    check fallbackQuery.ok
+    check fallbackQuery.userId == "@bridge_alice:localhost"
+
+    let outsideNamespace = state.resolveAppserviceLoginLocked(
+      "as-secret",
+      %*{"type": "m.login.application_service", "user": "@alice:localhost"},
+      "",
+      ""
+    )
+    check not outsideNamespace.ok
+    check outsideNamespace.errcode == "M_EXCLUSIVE"
+
+    let missingUser = state.resolveAppserviceLoginLocked(
+      "as-secret",
+      %*{"type": "m.login.application_service", "user": "@bridge_missing:localhost"},
+      "",
+      ""
+    )
+    check not missingUser.ok
+    check missingUser.errcode == "M_INVALID_PARAM"
+
+  test "registration availability enforces appservice namespace ownership":
+    let statePath = getTempDir() / "tuwunel-entrypoint-register-availability.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+
+    let reg = AppserviceRegistration(
+      id: "bridge",
+      url: "http://127.0.0.1:29999",
+      asToken: "as-secret",
+      hsToken: "hs-secret",
+      senderLocalpart: "bridgebot",
+      deviceManagement: false,
+      userRegexes: @["^@bridge_.*:localhost$"],
+      exclusiveUserRegexes: @["^@bridge_.*:localhost$"],
+      aliasRegexes: @[],
+      exclusiveAliasRegexes: @[],
+      roomRegexes: @[],
+      exclusiveRoomRegexes: @[],
+      receiveEphemeral: false
+    )
+    state.appserviceRegs = @[reg]
+    state.appserviceByAsToken[reg.asToken] = reg
+    state.users["@taken:localhost"] = UserProfile(
+      userId: "@taken:localhost",
+      username: "taken",
+      password: "",
+      displayName: "Taken",
+      avatarUrl: "",
+      blurhash: "",
+      timezone: "",
+      profileFields: initTable[string, JsonNode]()
+    )
+
+    let normalized = state.registrationAvailabilityLocked("Alice", "", "")
+    check normalized.ok
+    check normalized.userId == "@alice:localhost"
+    check normalized.username == "alice"
+
+    let invalid = state.registrationAvailabilityLocked("bad name", "", "")
+    check not invalid.ok
+    check invalid.errcode == "M_INVALID_USERNAME"
+
+    let taken = state.registrationAvailabilityLocked("taken", "", "")
+    check not taken.ok
+    check taken.errcode == "M_USER_IN_USE"
+
+    let reserved = state.registrationAvailabilityLocked("bridge_alice", "", "")
+    check not reserved.ok
+    check reserved.errcode == "M_EXCLUSIVE"
+
+    let appserviceOwned = state.registrationAvailabilityLocked("bridge_alice", "as-secret", "")
+    check appserviceOwned.ok
+    check appserviceOwned.userId == "@bridge_alice:localhost"
+
+    let outsideNamespace = state.registrationAvailabilityLocked("alice", "as-secret", "")
+    check not outsideNamespace.ok
+    check outsideNamespace.errcode == "M_EXCLUSIVE"
+
+    let unknownToken = state.registrationAvailabilityLocked("bridge_bob", "bad-secret", "")
+    check not unknownToken.ok
+    check unknownToken.errcode == "M_UNKNOWN_TOKEN"
+
+  test "appservice device management can create masqueraded devices when enabled":
+    let statePath = getTempDir() / "tuwunel-entrypoint-appservice-device-mgmt.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+
+    let disabledReg = AppserviceRegistration(
+      id: "disabled-bridge",
+      url: "http://127.0.0.1:29998",
+      asToken: "as-disabled",
+      hsToken: "hs-disabled",
+      senderLocalpart: "disabledbot",
+      deviceManagement: false,
+      userRegexes: @["^@bridge_.*:localhost$"],
+      exclusiveUserRegexes: @["^@bridge_.*:localhost$"],
+      aliasRegexes: @[],
+      exclusiveAliasRegexes: @[],
+      roomRegexes: @[],
+      exclusiveRoomRegexes: @[],
+      receiveEphemeral: false
+    )
+    state.appserviceByAsToken[disabledReg.asToken] = disabledReg
+    let disabledSession = state.getSessionFromToken(
+      "as-disabled",
+      "@bridge_alice:localhost",
+      ""
+    )
+    check disabledSession.ok
+    let denied = state.putDeviceMetadataForSessionLocked(
+      disabledSession.session,
+      "BRIDGEDEV",
+      "Bridge device",
+      true
+    )
+    check not denied.ok
+    check denied.message == "Device not found."
+    check deviceKey("@bridge_alice:localhost", "BRIDGEDEV") notin state.devices
+
+    let enabledReg = AppserviceRegistration(
+      id: "enabled-bridge",
+      url: "http://127.0.0.1:29999",
+      asToken: "as-enabled",
+      hsToken: "hs-enabled",
+      senderLocalpart: "enabledbot",
+      deviceManagement: true,
+      userRegexes: @["^@bridge_.*:localhost$"],
+      exclusiveUserRegexes: @["^@bridge_.*:localhost$"],
+      aliasRegexes: @[],
+      exclusiveAliasRegexes: @[],
+      roomRegexes: @[],
+      exclusiveRoomRegexes: @[],
+      receiveEphemeral: false
+    )
+    state.appserviceByAsToken[enabledReg.asToken] = enabledReg
+    let enabledSession = state.getSessionFromToken(
+      "as-enabled",
+      "@bridge_alice:localhost",
+      ""
+    )
+    check enabledSession.ok
+    let created = state.putDeviceMetadataForSessionLocked(
+      enabledSession.session,
+      "BRIDGEDEV",
+      "Bridge device",
+      true
+    )
+    let key = deviceKey("@bridge_alice:localhost", "BRIDGEDEV")
+    check created.ok
+    check created.created
+    check key in state.devices
+    check state.devices[key].userId == "@bridge_alice:localhost"
+    check state.devices[key].deviceId == "BRIDGEDEV"
+    check state.devices[key].displayName == "Bridge device"
+
+    let asserted = state.getSessionFromToken(
+      "as-enabled",
+      "@bridge_alice:localhost",
+      "BRIDGEDEV"
+    )
+    check asserted.ok
+    check asserted.session.deviceId == "BRIDGEDEV"
+
   test "appservice ephemeral delivery honors receive_ephemeral and room interest":
     let statePath = getTempDir() / "tuwunel-entrypoint-appservice-edus.json"
     var state = newCompatState(statePath)
@@ -2848,6 +3153,7 @@ namespaces:
         asToken: "as-user",
         hsToken: "hs-user",
         senderLocalpart: "userbridgebot",
+        deviceManagement: false,
         userRegexes: @["^@bridge_.*:localhost$"],
         exclusiveUserRegexes: @[],
         aliasRegexes: @[],
@@ -2862,6 +3168,7 @@ namespaces:
         asToken: "as-no-edu",
         hsToken: "hs-no-edu",
         senderLocalpart: "noedubot",
+        deviceManagement: false,
         userRegexes: @["^@bridge_.*:localhost$"],
         exclusiveUserRegexes: @[],
         aliasRegexes: @[],
@@ -2876,6 +3183,7 @@ namespaces:
         asToken: "as-alias",
         hsToken: "hs-alias",
         senderLocalpart: "aliasbridgebot",
+        deviceManagement: false,
         userRegexes: @[],
         exclusiveUserRegexes: @[],
         aliasRegexes: @["^#bridge_.*:localhost$"],
@@ -2890,6 +3198,7 @@ namespaces:
         asToken: "as-unrelated",
         hsToken: "hs-unrelated",
         senderLocalpart: "unrelatedbot",
+        deviceManagement: false,
         userRegexes: @["^@other_.*:localhost$"],
         exclusiveUserRegexes: @[],
         aliasRegexes: @[],
@@ -2943,6 +3252,7 @@ namespaces:
         asToken: "as-secret",
         hsToken: "hs-secret",
         senderLocalpart: "whatsappbot",
+        deviceManagement: false,
         userRegexes: @["^@whatsapp_.*:localhost$"],
         exclusiveUserRegexes: @[],
         aliasRegexes: @[],

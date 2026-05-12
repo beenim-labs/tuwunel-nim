@@ -27,6 +27,15 @@
       ]
     },
     {
+      "description": "MSC4373 federation EDU type discovery advertises incoming presence, receipt, and typing preferences from native Nim config.",
+      "routes": [
+        "/_matrix/federation/v1/query/edutypes"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: federation read helpers expose EDU type discovery config"
+      ]
+    },
+    {
       "description": "Persisted client appstate routes backed by native Nim state and sync account_data events.",
       "routes": [
         "get_filter_route",
@@ -48,7 +57,7 @@
       ]
     },
     {
-      "description": "Persisted client device-management routes backed by native Nim device metadata and token removal.",
+      "description": "Persisted client device-management routes backed by native Nim device metadata and token removal, including MSC4190 appservice-created device metadata when device_management is enabled.",
       "routes": [
         "get_devices_route",
         "get_device_route",
@@ -58,7 +67,8 @@
       ],
       "evidence": [
         "tests/test_entrypoint_compat.nim: device path parsers cover collection, detail, and bulk delete",
-        "tests/test_entrypoint_compat.nim: device metadata follows token lifecycle and persists"
+        "tests/test_entrypoint_compat.nim: device metadata follows token lifecycle and persists",
+        "tests/test_entrypoint_compat.nim: appservice device management can create masqueraded devices when enabled"
       ]
     },
     {
@@ -348,7 +358,7 @@
       ]
     },
     {
-      "description": "Federation transaction and membership ingress routes backed by native Nim room timeline, state, membership, configurable federation typing expiry, read receipts, direct-to-device queues, signing-key updates, device-list-update key-change markers, presence activity metadata, and appservice delivery queues, including receive_ephemeral appservice EDU transactions.",
+      "description": "Federation transaction and membership ingress routes backed by native Nim room timeline, state, membership, configurable federation typing expiry, read receipts, direct-to-device queues, signing-key updates, device-list-update key-change markers, presence activity metadata, MSC4326 appservice device assertions, MSC4190 appservice device management, and appservice delivery queues, including receive_ephemeral appservice EDU transactions.",
       "routes": [
         "send_transaction_message_route",
         "create_join_event_template_route",
@@ -365,14 +375,19 @@
         "tests/test_entrypoint_compat.nim: federation auth origin parser accepts standard X-Matrix headers",
         "tests/test_entrypoint_compat.nim: federation transaction and membership helpers mutate native room state including incoming configurable typing expiry, read-receipt, presence activity metadata, direct-to-device, signing-key-update, and device-list-update EDUs",
         "tests/test_entrypoint_compat.nim: appservice namespace matching covers sender state-key alias and room rules",
+        "tests/test_entrypoint_compat.nim: appservice auth honors masqueraded device_id assertions",
+        "tests/test_entrypoint_compat.nim: appservice device management can create masqueraded devices when enabled",
         "tests/test_entrypoint_compat.nim: appservice ephemeral delivery honors receive_ephemeral and room interest",
         "manual HTTP smoke: real tuwunel binary accepted X-Matrix authenticated make_join, send_join, send transaction, make_knock, send_knock, make_leave, and invite, then exposed the federated event and invite through client APIs",
         "manual HTTP smoke: real tuwunel binary delivered an alias-namespace appservice transaction with bearer hs_token auth and m.room.canonical_alias payload"
       ]
     },
     {
-      "description": "Client session and account mutation routes backed by native Nim user, device, access-token, login-token, refresh-token, and registration-token state.",
+      "description": "Client session and account mutation routes backed by native Nim user, device, access-token, login-token, refresh-token, registration-token state, appservice login body identifier semantics, and appservice-aware registration availability/namespace checks.",
       "routes": [
+        "login_route",
+        "register_route",
+        "get_register_available_route",
         "login_token_route",
         "refresh_token_route",
         "change_password_route",
@@ -383,6 +398,9 @@
       ],
       "evidence": [
         "tests/test_entrypoint_compat.nim: session token helpers issue consume and rotate native tokens",
+        "tests/test_entrypoint_compat.nim: appservice login resolves body identifier user instead of sender bot",
+        "tests/test_entrypoint_compat.nim: registration availability enforces appservice namespace ownership",
+        "manual HTTP smoke: live Nim server created an appservice-owned test user and m.login.application_service returned an access token for that exact target user",
         "manual HTTP smoke: real tuwunel binary validated registration tokens, rotated refresh tokens, issued and consumed login tokens, changed passwords, denied unsupported 3PID management tokens, invalidated logout/logout-all tokens, and deactivated a user"
       ]
     },
@@ -404,7 +422,7 @@
       ]
     },
     {
-      "description": "Client media upload, config, preview, download, filename download, thumbnail, and legacy media routes backed by native Nim media files and metadata.",
+      "description": "Client media upload, config, preview, download, filename download, thumbnail, and legacy media routes backed by native Nim media files and metadata, including MSC2702 Content-Disposition inline/attachment policy.",
       "routes": [
         "create_content_route",
         "get_media_config_route",
@@ -419,18 +437,20 @@
         "get_content_thumbnail_legacy_route"
       ],
       "evidence": [
+        "tests/test_content_disposition.nim: MSC2702 inline content types are detected without parameters",
         "tests/test_entrypoint_compat.nim: media upload helpers persist data and metadata",
         "tests/test_entrypoint_compat.nim: media path helpers recognize upload and download aliases",
         "manual HTTP smoke: real tuwunel binary served media v3, v1, and client-v1 config, upload, download, thumbnail, and preview_url from native Nim storage"
       ]
     },
     {
-      "description": "Federation authenticated media download and thumbnail routes backed by the same native Nim media file store as client media.",
+      "description": "Federation authenticated media download and thumbnail routes backed by the same native Nim media file store and MSC2702 Content-Disposition policy as client media.",
       "routes": [
         "get_content_route",
         "get_content_thumbnail_route"
       ],
       "evidence": [
+        "tests/test_content_disposition.nim: headers include sanitized filenames and requested filename precedence",
         "tests/test_entrypoint_compat.nim: media upload helpers persist data and metadata",
         "tests/test_entrypoint_compat.nim: media path helpers recognize upload and download aliases",
         "manual HTTP smoke: real tuwunel binary served authenticated federation media download and thumbnail responses from native Nim storage"

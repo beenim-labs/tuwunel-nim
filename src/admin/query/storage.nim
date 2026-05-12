@@ -28,7 +28,16 @@ proc `$`*(config: StorageProviderConfig): string =
   "StorageProviderConfig(kind: " & kind &
     ", name: \"" & config.name &
     "\", basePath: \"" & config.basePath &
-    "\", createIfMissing: " & $config.createIfMissing &
+    "\", bucket: \"" & config.bucket &
+    "\", endpoint: \"" & config.endpoint &
+    "\", region: \"" & config.region &
+    "\", key: \"" & (if config.key.len > 0: "<redacted>" else: "") &
+    "\", token: \"" & (if config.token.len > 0: "<redacted>" else: "") &
+    "\", useHttps: " & $config.useHttps &
+    ", useSignatures: " & $config.useSignatures &
+    ", usePayloadSignatures: " & $config.usePayloadSignatures &
+    ", useVhostRequest: " & $config.useVhostRequest &
+    ", createIfMissing: " & $config.createIfMissing &
     ", deleteEmptyDirectories: " & $config.deleteEmptyDirectories &
     ", startupCheck: " & $config.startupCheck &
     ", multipartThreshold: " & $config.multipartThreshold &
