@@ -2,7 +2,7 @@ const
   RustPath* = "api/client/sync/v5/extensions/to_device.rs"
   RustCrate* = "api"
 
-import std/json
+import std/[json, strutils]
 
 proc toDeviceSince*(requestSince: string; globalSince, nextBatch: uint64): uint64 =
   var parsed = globalSince

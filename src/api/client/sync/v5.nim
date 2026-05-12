@@ -2,11 +2,11 @@ const
   RustPath* = "api/client/sync/v5.rs"
   RustCrate* = "api"
 
-import std/[json, strutils]
+import std/[json, strutils, tables]
 
-import api/client/sync/v5/[extensions, rooms, selector]
+import api/client/sync/v5/[extensions, filter, rooms, selector]
 
-export extensions, rooms, selector
+export extensions, filter, rooms, selector
 
 proc parseSlidingSyncPos*(pos: string): uint64 =
   if pos.len == 0:
@@ -48,4 +48,14 @@ proc syncV5Response*(
 proc isEmptyResponse*(response: JsonNode): bool =
   if response.isNil or response.kind != JObject:
     return true
-  response{"rooms"}.len == 0 and response{"extensions"}.len == 0
+  let rooms =
+    if response.hasKey("rooms") and response["rooms"].kind == JObject:
+      response["rooms"].len
+    else:
+      0
+  let extensions =
+    if response.hasKey("extensions") and response["extensions"].kind == JObject:
+      response["extensions"].len
+    else:
+      0
+  rooms == 0 and extensions == 0

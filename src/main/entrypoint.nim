@@ -5,9 +5,12 @@ import core/config_loader
 import core/config_values
 import core/utils/content_disposition as content_disposition
 import api/client/versions as client_versions
+import api/client/capabilities as client_capabilities_api
 import api/client/tuwunel as tuwunel_api
 import api/client/voip as client_voip
 import api/client/rtc as client_rtc
+import api/client/thirdparty as client_thirdparty_api
+import api/client/well_known as client_well_known_api
 import api/server/backfill as server_backfill_api
 import api/server/edu_types as server_edu_types
 import api/server/event as server_event_api
@@ -3915,19 +3918,8 @@ proc buildWhoamiPayload(session: AccessSession): JsonNode =
     "is_guest": false
   }
 
-proc buildCapabilitiesPayload(): JsonNode =
-  %*{
-    "capabilities": {
-      "m.change_password": {"enabled": true},
-      "m.room_versions": {
-        "default": "11",
-        "available": {
-          "11": "stable",
-          "10": "stable"
-        }
-      }
-    }
-  }
+proc buildCapabilitiesPayload(cfg: FlatConfig; isAdmin = false): JsonNode =
+  client_capabilities_api.capabilitiesPayload(cfg, isAdmin)
 
 proc userProfilePayload(user: UserProfile): JsonNode =
   var payload = newJObject()
@@ -5548,72 +5540,16 @@ proc completeAccountCallbackLocked(
   (false, "", "M_INVALID_PARAM", "Unsupported account management action", false)
 
 proc thirdPartyProtocolsPayload(): JsonNode =
-  newJObject()
+  client_thirdparty_api.thirdPartyProtocolsPayload()
 
 proc accountThreepidsPayload(): JsonNode =
   %*{"threepids": []}
 
 proc wellKnownClientPayload(cfg: FlatConfig): tuple[ok: bool, payload: JsonNode] =
-  let baseUrl = getConfigString(
-    cfg,
-    ["well_known.client", "global.well_known.client", "well_known_client"],
-    "",
-  ).strip()
-  if baseUrl.len == 0:
-    return (false, newJObject())
-  let payload = %*{
-    "m.homeserver": {
-      "base_url": baseUrl
-    }
-  }
-  let rtcFoci = client_rtc.rtcTransports(cfg)
-  if rtcFoci.len > 0:
-    payload["org.matrix.msc4143.rtc_foci"] = %rtcFoci
-  (true, payload)
+  client_well_known_api.wellKnownClientPayload(cfg)
 
 proc wellKnownSupportPayload(cfg: FlatConfig): tuple[ok: bool, payload: JsonNode] =
-  let supportPage = getConfigString(
-    cfg,
-    ["well_known.support_page", "global.well_known.support_page", "support_page", "global.support_page"],
-    "",
-  ).strip()
-  let role = getConfigString(
-    cfg,
-    ["well_known.support_role", "global.well_known.support_role", "support_role", "global.support_role"],
-    "",
-  ).strip()
-  let email = getConfigString(
-    cfg,
-    ["well_known.support_email", "global.well_known.support_email", "support_email", "global.support_email"],
-    "",
-  ).strip()
-  let mxid = getConfigString(
-    cfg,
-    ["well_known.support_mxid", "global.well_known.support_mxid", "support_mxid", "global.support_mxid"],
-    "",
-  ).strip()
-
-  if supportPage.len == 0 and role.len == 0:
-    return (false, newJObject())
-  if role.len > 0 and email.len == 0 and mxid.len == 0:
-    return (false, newJObject())
-
-  var contacts = newJArray()
-  if role.len > 0:
-    var contact = %*{"role": role}
-    if email.len > 0:
-      contact["email_address"] = %email
-    if mxid.len > 0:
-      contact["matrix_id"] = %mxid
-    contacts.add(contact)
-
-  if contacts.len == 0 and supportPage.len == 0:
-    return (false, newJObject())
-
-  var payload = %*{"contacts": contacts}
-  if supportPage.len > 0:
-    payload["support_page"] = %supportPage
-  (true, payload)
+  client_well_known_api.wellKnownSupportPayload(cfg)
 
 proc wellKnownServerPayload(cfg: FlatConfig): tuple[ok: bool, payload: JsonNode] =
   let server = getConfigString(
@@ -9057,7 +8993,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
-      await respondJson(req, Http200, buildCapabilitiesPayload())
+      await respondJson(req, Http200, buildCapabilitiesPayload(cfg.values))
       return
 
     if isChangePasswordPath(path):

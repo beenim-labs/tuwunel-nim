@@ -69,7 +69,8 @@ proc filterRoom*(filter: ListFilters; room: RoomFilterMeta): bool =
       return false
 
   if filter.isDm.isSome:
-    if room.directAccountData != filter.isDm.get() and room.directMember != filter.isDm.get():
+    let isDm = room.directAccountData or room.directMember
+    if isDm != filter.isDm.get():
       return false
 
   if filter.isEncrypted.isSome and room.encrypted != filter.isEncrypted.get():
