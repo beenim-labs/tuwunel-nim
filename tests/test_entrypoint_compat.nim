@@ -2132,9 +2132,16 @@ suite "entrypoint compat helpers":
     check state.rooms["!room:localhost"].members["@carol:localhost"] == "knock"
     check "!room:localhost" notin state.joinedRoomsForUser("@carol:localhost")
 
+    let activeForget = state.forgetRoomLocked("@alice:localhost", "!room:localhost")
+    check not activeForget.ok
+    check activeForget.errcode == "M_UNKNOWN"
+    check state.rooms["!room:localhost"].members["@alice:localhost"] == "join"
+
+    let leaveBeforeForget = state.setRoomMembershipLocked("!room:localhost", "@alice:localhost", "@alice:localhost", "leave")
+    check leaveBeforeForget.ok
+
     let forgotten = state.forgetRoomLocked("@alice:localhost", "!room:localhost")
     check forgotten.ok
-    check forgotten.changed
     check state.rooms["!room:localhost"].members["@alice:localhost"] == "leave"
     check "!room:localhost" notin state.joinedRoomsForUser("@alice:localhost")
     check not state.forgetRoomLocked("@alice:localhost", "!missing:localhost").ok
