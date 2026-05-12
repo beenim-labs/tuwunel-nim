@@ -191,6 +191,27 @@ proc respondJson(req: Request; code: HttpCode; payload: JsonNode): Future[void] 
   })
   req.respond(code, $payload, headers)
 
+proc respondOAuthJson(req: Request; code: HttpCode; payload: JsonNode): Future[void] =
+  let headers = newHttpHeaders({
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+    "Pragma": "no-cache",
+  })
+  req.respond(code, $payload, headers)
+
+proc respondOAuthEmpty(req: Request; code: HttpCode): Future[void] =
+  let headers = newHttpHeaders({
+    "Cache-Control": "no-store",
+    "Pragma": "no-cache",
+  })
+  req.respond(code, "", headers)
+
+proc oauthErrorPayload(error, description: string): JsonNode =
+  %*{
+    "error": error,
+    "error_description": description,
+  }
+
 proc respondRedirect(req: Request; location: string; cookie = ""): Future[void] =
   let headers = newHttpHeaders({
     "Location": location,
@@ -214,6 +235,15 @@ proc respondRaw(
   })
   if contentDisposition.len > 0:
     headers["Content-Disposition"] = contentDisposition
+  req.respond(code, body, headers)
+
+proc respondAccountHtml(req: Request; code: HttpCode; body: string): Future[void] =
+  let headers = newHttpHeaders({
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store",
+    "Content-Security-Policy": "default-src 'none'; style-src 'self'; script-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+    "Referrer-Policy": "no-referrer",
+  })
   req.respond(code, body, headers)
 
 proc hasAccessToken(req: Request): bool =
@@ -372,6 +402,37 @@ proc queryParamValues(req: Request; key: string): seq[string] =
       result.add(decodeUrl(rawVal, decodePlus = true))
     except CatchableError:
       result.add(rawVal)
+
+proc parseUrlEncodedParams(raw: string): Table[string, seq[string]] =
+  result = initTable[string, seq[string]]()
+  if raw.len == 0:
+    return
+  for rawPair in raw.split('&'):
+    if rawPair.len == 0:
+      continue
+    let sep = rawPair.find('=')
+    let rawKey = if sep >= 0: rawPair[0 ..< sep] else: rawPair
+    let rawVal = if sep >= 0 and sep + 1 < rawPair.len: rawPair[(sep + 1) .. ^1] else: ""
+    var key = rawKey
+    var value = rawVal
+    try:
+      key = decodeUrl(rawKey, decodePlus = true)
+    except CatchableError:
+      discard
+    try:
+      value = decodeUrl(rawVal, decodePlus = true)
+    except CatchableError:
+      discard
+    if key.len == 0:
+      continue
+    if key notin result:
+      result[key] = @[]
+    result[key].add(value)
+
+proc firstParam(params: Table[string, seq[string]]; key: string): string =
+  if key notin params or params[key].len == 0:
+    return ""
+  params[key][0]
 
 proc nextSyncBatchToken(sinceToken: string): string =
   if sinceToken.len > 1 and sinceToken[0] == 's':
@@ -672,6 +733,64 @@ type
     userId: string
     expiresAtMs: int64
 
+  OidcClientRecord = object
+    clientId: string
+    redirectUris: seq[string]
+    clientName: string
+    clientUri: string
+    logoUri: string
+    contacts: seq[string]
+    tokenEndpointAuthMethod: string
+    grantTypes: seq[string]
+    responseTypes: seq[string]
+    applicationType: string
+    policyUri: string
+    tosUri: string
+    softwareId: string
+    softwareVersion: string
+    issuedAtMs: int64
+
+  OidcAuthRequestRecord = object
+    requestId: string
+    clientId: string
+    redirectUri: string
+    scope: string
+    state: string
+    nonce: string
+    codeChallenge: string
+    codeChallengeMethod: string
+    responseMode: string
+    idpId: string
+    expiresAtMs: int64
+
+  OidcAuthCodeRecord = object
+    code: string
+    clientId: string
+    redirectUri: string
+    userId: string
+    scope: string
+    nonce: string
+    codeChallenge: string
+    codeChallengeMethod: string
+    idpId: string
+    expiresAtMs: int64
+
+  OidcAccessTokenRecord = object
+    accessToken: string
+    userId: string
+    deviceId: string
+    clientId: string
+    scope: string
+    expiresAtMs: int64
+
+  OidcRefreshTokenRecord = object
+    refreshToken: string
+    userId: string
+    deviceId: string
+    clientId: string
+    scope: string
+    expiresAtMs: int64
+
   SsoProvider = object
     id: string
     brand: string
@@ -739,6 +858,11 @@ type
     loginTokens: Table[string, LoginTokenRecord]
     refreshTokens: Table[string, RefreshTokenRecord]
     ssoSessions: Table[string, SsoSessionRecord]
+    oidcClients: Table[string, OidcClientRecord]
+    oidcAuthRequests: Table[string, OidcAuthRequestRecord]
+    oidcAuthCodes: Table[string, OidcAuthCodeRecord]
+    oidcAccessTokens: Table[string, OidcAccessTokenRecord]
+    oidcRefreshTokens: Table[string, OidcRefreshTokenRecord]
     devices: Table[string, DeviceRecord]
     rooms: Table[string, RoomData]
     accountData: Table[string, AccountDataRecord]
@@ -1750,6 +1874,21 @@ proc listDevicesPayloadLocked(state: ServerState; userId: string): JsonNode =
     arr.add(device.deviceToJson())
   %*{"devices": arr}
 
+proc removeOidcTokensForDevice(state: ServerState; userId, deviceId: string) =
+  var staleAccess: seq[string] = @[]
+  for token, record in state.oidcAccessTokens:
+    if record.userId == userId and record.deviceId == deviceId:
+      staleAccess.add(token)
+  for token in staleAccess:
+    state.oidcAccessTokens.del(token)
+
+  var staleRefresh: seq[string] = @[]
+  for token, record in state.oidcRefreshTokens:
+    if record.userId == userId and record.deviceId == deviceId:
+      staleRefresh.add(token)
+  for token in staleRefresh:
+    state.oidcRefreshTokens.del(token)
+
 proc removeDeviceLocked(state: ServerState; userId, deviceId: string) =
   state.devices.del(deviceKey(userId, deviceId))
   var keptTokens: seq[string] = @[]
@@ -1769,6 +1908,7 @@ proc removeDeviceLocked(state: ServerState; userId, deviceId: string) =
       staleRefresh.add(token)
   for token in staleRefresh:
     state.refreshTokens.del(token)
+  state.removeOidcTokensForDevice(userId, deviceId)
 
 proc toPersistentJson(state: ServerState): JsonNode =
   var root = newJObject()
@@ -1831,6 +1971,104 @@ proc toPersistentJson(state: ServerState): JsonNode =
       "expires_at_ms": record.expiresAtMs,
     })
   root["sso_sessions"] = ssoSessions
+
+  var oidcClients = newJArray()
+  for _, record in state.oidcClients:
+    var redirectUris = newJArray()
+    for value in record.redirectUris:
+      redirectUris.add(%value)
+    var contacts = newJArray()
+    for value in record.contacts:
+      contacts.add(%value)
+    var grantTypes = newJArray()
+    for value in record.grantTypes:
+      grantTypes.add(%value)
+    var responseTypes = newJArray()
+    for value in record.responseTypes:
+      responseTypes.add(%value)
+    oidcClients.add(%*{
+      "client_id": record.clientId,
+      "redirect_uris": redirectUris,
+      "client_name": record.clientName,
+      "client_uri": record.clientUri,
+      "logo_uri": record.logoUri,
+      "contacts": contacts,
+      "token_endpoint_auth_method": record.tokenEndpointAuthMethod,
+      "grant_types": grantTypes,
+      "response_types": responseTypes,
+      "application_type": record.applicationType,
+      "policy_uri": record.policyUri,
+      "tos_uri": record.tosUri,
+      "software_id": record.softwareId,
+      "software_version": record.softwareVersion,
+      "issued_at_ms": record.issuedAtMs,
+    })
+  root["oidc_clients"] = oidcClients
+
+  var oidcAuthRequests = newJArray()
+  for _, record in state.oidcAuthRequests:
+    if record.expiresAtMs <= nowMs():
+      continue
+    oidcAuthRequests.add(%*{
+      "request_id": record.requestId,
+      "client_id": record.clientId,
+      "redirect_uri": record.redirectUri,
+      "scope": record.scope,
+      "state": record.state,
+      "nonce": record.nonce,
+      "code_challenge": record.codeChallenge,
+      "code_challenge_method": record.codeChallengeMethod,
+      "response_mode": record.responseMode,
+      "idp_id": record.idpId,
+      "expires_at_ms": record.expiresAtMs,
+    })
+  root["oidc_auth_requests"] = oidcAuthRequests
+
+  var oidcAuthCodes = newJArray()
+  for _, record in state.oidcAuthCodes:
+    if record.expiresAtMs <= nowMs():
+      continue
+    oidcAuthCodes.add(%*{
+      "code": record.code,
+      "client_id": record.clientId,
+      "redirect_uri": record.redirectUri,
+      "user_id": record.userId,
+      "scope": record.scope,
+      "nonce": record.nonce,
+      "code_challenge": record.codeChallenge,
+      "code_challenge_method": record.codeChallengeMethod,
+      "idp_id": record.idpId,
+      "expires_at_ms": record.expiresAtMs,
+    })
+  root["oidc_auth_codes"] = oidcAuthCodes
+
+  var oidcAccessTokens = newJArray()
+  for _, record in state.oidcAccessTokens:
+    if record.expiresAtMs <= nowMs():
+      continue
+    oidcAccessTokens.add(%*{
+      "access_token": record.accessToken,
+      "user_id": record.userId,
+      "device_id": record.deviceId,
+      "client_id": record.clientId,
+      "scope": record.scope,
+      "expires_at_ms": record.expiresAtMs,
+    })
+  root["oidc_access_tokens"] = oidcAccessTokens
+
+  var oidcRefreshTokens = newJArray()
+  for _, record in state.oidcRefreshTokens:
+    if record.expiresAtMs <= nowMs():
+      continue
+    oidcRefreshTokens.add(%*{
+      "refresh_token": record.refreshToken,
+      "user_id": record.userId,
+      "device_id": record.deviceId,
+      "client_id": record.clientId,
+      "scope": record.scope,
+      "expires_at_ms": record.expiresAtMs,
+    })
+  root["oidc_refresh_tokens"] = oidcRefreshTokens
 
   var openIdTokens = newJArray()
   for _, record in state.openIdTokens:
@@ -2090,6 +2328,14 @@ proc rebuildJoinedRooms(state: ServerState) =
         state.userJoinedRooms[userId] = initHashSet[string]()
       state.userJoinedRooms[userId].incl(room.roomId)
 
+proc jsonStringArray(node: JsonNode; key: string): seq[string] =
+  result = @[]
+  if node.kind != JObject or not node.hasKey(key) or node[key].kind != JArray:
+    return
+  for value in node[key]:
+    if value.kind == JString:
+      result.add(value.getStr(""))
+
 proc loadPersistentState(path: string): tuple[
     usersByName: Table[string, string],
     users: Table[string, UserProfile],
@@ -2097,6 +2343,11 @@ proc loadPersistentState(path: string): tuple[
     userTokens: Table[string, seq[string]],
     refreshTokens: Table[string, RefreshTokenRecord],
     ssoSessions: Table[string, SsoSessionRecord],
+    oidcClients: Table[string, OidcClientRecord],
+    oidcAuthRequests: Table[string, OidcAuthRequestRecord],
+    oidcAuthCodes: Table[string, OidcAuthCodeRecord],
+    oidcAccessTokens: Table[string, OidcAccessTokenRecord],
+    oidcRefreshTokens: Table[string, OidcRefreshTokenRecord],
     devices: Table[string, DeviceRecord],
     rooms: Table[string, RoomData],
     accountData: Table[string, AccountDataRecord],
@@ -2129,6 +2380,11 @@ proc loadPersistentState(path: string): tuple[
     userTokens: initTable[string, seq[string]](),
     refreshTokens: initTable[string, RefreshTokenRecord](),
     ssoSessions: initTable[string, SsoSessionRecord](),
+    oidcClients: initTable[string, OidcClientRecord](),
+    oidcAuthRequests: initTable[string, OidcAuthRequestRecord](),
+    oidcAuthCodes: initTable[string, OidcAuthCodeRecord](),
+    oidcAccessTokens: initTable[string, OidcAccessTokenRecord](),
+    oidcRefreshTokens: initTable[string, OidcRefreshTokenRecord](),
     devices: initTable[string, DeviceRecord](),
     rooms: initTable[string, RoomData](),
     accountData: initTable[string, AccountDataRecord](),
@@ -2245,6 +2501,113 @@ proc loadPersistentState(path: string): tuple[
           codeVerifier: node{"code_verifier"}.getStr(""),
           nonce: node{"nonce"}.getStr(""),
           userId: node{"user_id"}.getStr(""),
+          expiresAtMs: expiresAtMs,
+        )
+
+    if root.hasKey("oidc_clients") and root["oidc_clients"].kind == JArray:
+      for node in root["oidc_clients"]:
+        if node.kind != JObject:
+          continue
+        let clientId = node{"client_id"}.getStr("")
+        let redirectUris = jsonStringArray(node, "redirect_uris")
+        if clientId.len == 0 or redirectUris.len == 0:
+          continue
+        result.oidcClients[clientId] = OidcClientRecord(
+          clientId: clientId,
+          redirectUris: redirectUris,
+          clientName: node{"client_name"}.getStr(""),
+          clientUri: node{"client_uri"}.getStr(""),
+          logoUri: node{"logo_uri"}.getStr(""),
+          contacts: jsonStringArray(node, "contacts"),
+          tokenEndpointAuthMethod: node{"token_endpoint_auth_method"}.getStr("none"),
+          grantTypes: jsonStringArray(node, "grant_types"),
+          responseTypes: jsonStringArray(node, "response_types"),
+          applicationType: node{"application_type"}.getStr("native"),
+          policyUri: node{"policy_uri"}.getStr(""),
+          tosUri: node{"tos_uri"}.getStr(""),
+          softwareId: node{"software_id"}.getStr(""),
+          softwareVersion: node{"software_version"}.getStr(""),
+          issuedAtMs: node{"issued_at_ms"}.getInt(0).int64,
+        )
+
+    if root.hasKey("oidc_auth_requests") and root["oidc_auth_requests"].kind == JArray:
+      for node in root["oidc_auth_requests"]:
+        if node.kind != JObject:
+          continue
+        let requestId = node{"request_id"}.getStr("")
+        let clientId = node{"client_id"}.getStr("")
+        let expiresAtMs = node{"expires_at_ms"}.getInt(0).int64
+        if requestId.len == 0 or clientId.len == 0 or expiresAtMs <= nowMs():
+          continue
+        result.oidcAuthRequests[requestId] = OidcAuthRequestRecord(
+          requestId: requestId,
+          clientId: clientId,
+          redirectUri: node{"redirect_uri"}.getStr(""),
+          scope: node{"scope"}.getStr(""),
+          state: node{"state"}.getStr(""),
+          nonce: node{"nonce"}.getStr(""),
+          codeChallenge: node{"code_challenge"}.getStr(""),
+          codeChallengeMethod: node{"code_challenge_method"}.getStr(""),
+          responseMode: node{"response_mode"}.getStr("query"),
+          idpId: node{"idp_id"}.getStr(""),
+          expiresAtMs: expiresAtMs,
+        )
+
+    if root.hasKey("oidc_auth_codes") and root["oidc_auth_codes"].kind == JArray:
+      for node in root["oidc_auth_codes"]:
+        if node.kind != JObject:
+          continue
+        let code = node{"code"}.getStr("")
+        let clientId = node{"client_id"}.getStr("")
+        let expiresAtMs = node{"expires_at_ms"}.getInt(0).int64
+        if code.len == 0 or clientId.len == 0 or expiresAtMs <= nowMs():
+          continue
+        result.oidcAuthCodes[code] = OidcAuthCodeRecord(
+          code: code,
+          clientId: clientId,
+          redirectUri: node{"redirect_uri"}.getStr(""),
+          userId: node{"user_id"}.getStr(""),
+          scope: node{"scope"}.getStr(""),
+          nonce: node{"nonce"}.getStr(""),
+          codeChallenge: node{"code_challenge"}.getStr(""),
+          codeChallengeMethod: node{"code_challenge_method"}.getStr(""),
+          idpId: node{"idp_id"}.getStr(""),
+          expiresAtMs: expiresAtMs,
+        )
+
+    if root.hasKey("oidc_access_tokens") and root["oidc_access_tokens"].kind == JArray:
+      for node in root["oidc_access_tokens"]:
+        if node.kind != JObject:
+          continue
+        let token = node{"access_token"}.getStr("")
+        let userId = node{"user_id"}.getStr("")
+        let expiresAtMs = node{"expires_at_ms"}.getInt(0).int64
+        if token.len == 0 or userId.len == 0 or expiresAtMs <= nowMs():
+          continue
+        result.oidcAccessTokens[token] = OidcAccessTokenRecord(
+          accessToken: token,
+          userId: userId,
+          deviceId: node{"device_id"}.getStr(""),
+          clientId: node{"client_id"}.getStr(""),
+          scope: node{"scope"}.getStr(""),
+          expiresAtMs: expiresAtMs,
+        )
+
+    if root.hasKey("oidc_refresh_tokens") and root["oidc_refresh_tokens"].kind == JArray:
+      for node in root["oidc_refresh_tokens"]:
+        if node.kind != JObject:
+          continue
+        let token = node{"refresh_token"}.getStr("")
+        let userId = node{"user_id"}.getStr("")
+        let expiresAtMs = node{"expires_at_ms"}.getInt(0).int64
+        if token.len == 0 or userId.len == 0 or expiresAtMs <= nowMs():
+          continue
+        result.oidcRefreshTokens[token] = OidcRefreshTokenRecord(
+          refreshToken: token,
+          userId: userId,
+          deviceId: node{"device_id"}.getStr(""),
+          clientId: node{"client_id"}.getStr(""),
+          scope: node{"scope"}.getStr(""),
           expiresAtMs: expiresAtMs,
         )
 
@@ -2859,6 +3222,11 @@ proc newServerState(cfg: FlatConfig; serverName: string): ServerState =
     loginTokens: initTable[string, LoginTokenRecord](),
     refreshTokens: loaded.refreshTokens,
     ssoSessions: loaded.ssoSessions,
+    oidcClients: loaded.oidcClients,
+    oidcAuthRequests: loaded.oidcAuthRequests,
+    oidcAuthCodes: loaded.oidcAuthCodes,
+    oidcAccessTokens: loaded.oidcAccessTokens,
+    oidcRefreshTokens: loaded.oidcRefreshTokens,
     devices: loaded.devices,
     rooms: loaded.rooms,
     accountData: loaded.accountData,
@@ -2942,6 +3310,7 @@ proc removeTokensForDevice(state: ServerState; userId, deviceId: string; keepTok
       staleRefresh.add(token)
   for token in staleRefresh:
     state.refreshTokens.del(token)
+  state.removeOidcTokensForDevice(userId, deviceId)
 
 proc removeToken(state: ServerState; token: string) =
   if token notin state.tokens:
@@ -2963,6 +3332,7 @@ proc removeToken(state: ServerState; token: string) =
       staleRefresh.add(refreshToken)
   for refreshToken in staleRefresh:
     state.refreshTokens.del(refreshToken)
+  state.removeOidcTokensForDevice(session.userId, session.deviceId)
 
 proc removeAllTokensForUser(state: ServerState; userId: string) =
   if userId notin state.userTokens:
@@ -2978,6 +3348,18 @@ proc removeAllTokensForUser(state: ServerState; userId: string) =
       staleRefresh.add(refreshToken)
   for refreshToken in staleRefresh:
     state.refreshTokens.del(refreshToken)
+  var staleOidcAccess: seq[string] = @[]
+  for token, record in state.oidcAccessTokens:
+    if record.userId == userId:
+      staleOidcAccess.add(token)
+  for token in staleOidcAccess:
+    state.oidcAccessTokens.del(token)
+  var staleOidcRefresh: seq[string] = @[]
+  for token, record in state.oidcRefreshTokens:
+    if record.userId == userId:
+      staleOidcRefresh.add(token)
+  for token in staleOidcRefresh:
+    state.oidcRefreshTokens.del(token)
 
 proc createLoginTokenLocked(state: ServerState; userId: string; ttlMs: int64): LoginTokenRecord =
   let token = randomString("login_", 48)
@@ -2998,6 +3380,21 @@ proc consumeLoginTokenLocked(
     return (false, "", "M_FORBIDDEN", "Login token is unrecognized.")
   let record = state.loginTokens[token]
   state.loginTokens.del(token)
+  if record.expiresAtMs <= nowMs():
+    return (false, "", "M_FORBIDDEN", "Login token has expired.")
+  if record.userId notin state.users:
+    return (false, "", "M_FORBIDDEN", "Login token user does not exist.")
+  (true, record.userId, "", "")
+
+proc peekLoginTokenLocked(
+    state: ServerState;
+    token: string
+): tuple[ok: bool, userId: string, errcode: string, message: string] =
+  if token.len == 0:
+    return (false, "", "M_MISSING_PARAM", "Missing login token.")
+  if token notin state.loginTokens:
+    return (false, "", "M_FORBIDDEN", "Login token is unrecognized.")
+  let record = state.loginTokens[token]
   if record.expiresAtMs <= nowMs():
     return (false, "", "M_FORBIDDEN", "Login token has expired.")
   if record.userId notin state.users:
@@ -4242,6 +4639,678 @@ proc createOpenIdTokenPayload(
     "matrix_server_name": serverName,
     "expires_in": ttlSeconds
   }
+
+proc stringBytes(value: string): seq[byte] =
+  result = newSeq[byte](value.len)
+  for i, ch in value:
+    result[i] = byte(ord(ch))
+
+proc base64UrlNoPad(value: string): string =
+  base64UrlNoPad(stringBytes(value))
+
+proc jsonStringOrNull(value: string): JsonNode =
+  if value.len > 0:
+    %value
+  else:
+    newJNull()
+
+proc oidcIssuerUrl(cfg: FlatConfig; fallbackBase: string): string =
+  result = getConfigString(
+    cfg,
+    ["well_known.client", "global.well_known.client", "oidc.issuer", "global.oidc.issuer", "oidc_issuer"],
+    fallbackBase,
+  ).strip()
+  if result.len == 0:
+    result = fallbackBase
+  result = result.strip(trailing = true, chars = {'/'}) & "/"
+
+proc oidcBaseUrl(issuer: string): string =
+  issuer.strip(trailing = true, chars = {'/'})
+
+proc oidcAccountActionsPayload(): JsonNode =
+  %*[
+    "org.matrix.profile",
+    "org.matrix.sessions_list",
+    "org.matrix.session_view",
+    "org.matrix.session_end",
+  ]
+
+proc oidcProviderMetadataPayload(issuer: string): JsonNode =
+  let base = oidcBaseUrl(issuer)
+  %*{
+    "issuer": issuer,
+    "authorization_endpoint": base & "/_tuwunel/oidc/authorize",
+    "registration_endpoint": base & "/_tuwunel/oidc/registration",
+    "userinfo_endpoint": base & "/_tuwunel/oidc/userinfo",
+    "token_endpoint": base & "/_tuwunel/oidc/token",
+    "jwks_uri": base & "/_tuwunel/oidc/jwks",
+    "account_management_uri": base & "/_tuwunel/oidc/account",
+    "revocation_endpoint": base & "/_tuwunel/oidc/revoke",
+    "response_modes_supported": ["query", "fragment"],
+    "response_types_supported": ["code"],
+    "code_challenge_methods_supported": ["S256"],
+    "id_token_signing_alg_values_supported": ["ES256"],
+    "prompt_values_supported": [],
+    "subject_types_supported": ["public"],
+    "claim_types_supported": ["normal"],
+    "grant_types_supported": ["authorization_code", "refresh_token"],
+    "token_endpoint_auth_methods_supported": ["none", "client_secret_basic", "client_secret_post"],
+    "scopes_supported": [
+      "openid",
+      "urn:matrix:org.matrix.msc2967.client:api:*",
+      "urn:matrix:org.matrix.msc2967.client:device:*"
+    ],
+    "account_management_actions_supported": oidcAccountActionsPayload(),
+    "claims_supported": ["iss", "sub", "aud", "exp", "iat", "nonce"],
+  }
+
+proc oidcJwksPayload(): JsonNode =
+  %*{"keys": []}
+
+proc oidcClientPayload(record: OidcClientRecord): JsonNode =
+  var redirectUris = newJArray()
+  for value in record.redirectUris:
+    redirectUris.add(%value)
+  var contacts = newJArray()
+  for value in record.contacts:
+    contacts.add(%value)
+  var grantTypes = newJArray()
+  for value in record.grantTypes:
+    grantTypes.add(%value)
+  var responseTypes = newJArray()
+  for value in record.responseTypes:
+    responseTypes.add(%value)
+  %*{
+    "client_id": record.clientId,
+    "client_id_issued_at": record.issuedAtMs div 1000,
+    "redirect_uris": redirectUris,
+    "client_name": jsonStringOrNull(record.clientName),
+    "client_uri": jsonStringOrNull(record.clientUri),
+    "logo_uri": jsonStringOrNull(record.logoUri),
+    "contacts": contacts,
+    "token_endpoint_auth_method": record.tokenEndpointAuthMethod,
+    "grant_types": grantTypes,
+    "response_types": responseTypes,
+    "application_type": record.applicationType,
+    "policy_uri": jsonStringOrNull(record.policyUri),
+    "tos_uri": jsonStringOrNull(record.tosUri),
+    "software_id": jsonStringOrNull(record.softwareId),
+    "software_version": jsonStringOrNull(record.softwareVersion),
+  }
+
+proc nonEmptyOrDefault(values: seq[string]; fallback: seq[string]): seq[string] =
+  if values.len > 0:
+    values
+  else:
+    fallback
+
+proc registerOidcClientLocked(
+    state: ServerState;
+    body: JsonNode
+): tuple[ok: bool, payload: JsonNode, errcode: string, message: string] =
+  if body.kind != JObject:
+    return (false, newJObject(), "M_BAD_JSON", "OIDC client registration body must be an object.")
+  let redirectUris = jsonStringArray(body, "redirect_uris")
+  if redirectUris.len == 0:
+    return (false, newJObject(), "M_INVALID_PARAM", "redirect_uris must not be empty")
+
+  var clientId = body{"client_id"}.getStr("")
+  if clientId.len == 0:
+    clientId = randomString("client_", 24)
+  let record = OidcClientRecord(
+    clientId: clientId,
+    redirectUris: redirectUris,
+    clientName: body{"client_name"}.getStr(""),
+    clientUri: body{"client_uri"}.getStr(""),
+    logoUri: body{"logo_uri"}.getStr(""),
+    contacts: jsonStringArray(body, "contacts"),
+    tokenEndpointAuthMethod: body{"token_endpoint_auth_method"}.getStr("none"),
+    grantTypes: nonEmptyOrDefault(jsonStringArray(body, "grant_types"), @["authorization_code", "refresh_token"]),
+    responseTypes: nonEmptyOrDefault(jsonStringArray(body, "response_types"), @["code"]),
+    applicationType: body{"application_type"}.getStr("native"),
+    policyUri: body{"policy_uri"}.getStr(""),
+    tosUri: body{"tos_uri"}.getStr(""),
+    softwareId: body{"software_id"}.getStr(""),
+    softwareVersion: body{"software_version"}.getStr(""),
+    issuedAtMs: nowMs(),
+  )
+  state.oidcClients[clientId] = record
+  (true, oidcClientPayload(record), "", "")
+
+proc isLoopbackHost(host: string): bool =
+  host == "127.0.0.1" or host == "::1" or host == "[::1]" or host == "localhost" or
+    host.startsWith("127.")
+
+proc redirectUriMatches(registered, requested: string): bool =
+  if registered == requested:
+    return true
+  try:
+    let reg = parseUri(registered)
+    let req = parseUri(requested)
+    if reg.scheme != "http" or req.scheme != "http":
+      return false
+    if not (isLoopbackHost(reg.hostname) and isLoopbackHost(req.hostname)):
+      return false
+    reg.scheme == req.scheme and reg.hostname == req.hostname and reg.path == req.path and
+      reg.query == req.query and reg.anchor == req.anchor
+  except CatchableError:
+    false
+
+proc registeredRedirectUri(state: ServerState; clientId, redirectUri: string): bool =
+  if clientId notin state.oidcClients:
+    return false
+  for candidate in state.oidcClients[clientId].redirectUris:
+    if redirectUriMatches(candidate, redirectUri):
+      return true
+  false
+
+proc createOidcAuthorizeRedirectLocked(
+    state: ServerState;
+    params: Table[string, seq[string]];
+    idpId, issuer: string
+): tuple[ok: bool, location: string, errcode: string, message: string] =
+  let clientId = firstParam(params, "client_id")
+  let redirectUri = firstParam(params, "redirect_uri")
+  let responseType = firstParam(params, "response_type")
+  let responseMode = firstParam(params, "response_mode")
+  let scope = firstParam(params, "scope")
+  let mode = if responseMode.len > 0: responseMode else: "query"
+
+  if clientId.len == 0:
+    return (false, "", "M_MISSING_PARAM", "client_id is required")
+  if redirectUri.len == 0:
+    return (false, "", "M_MISSING_PARAM", "redirect_uri is required")
+  if responseType != "code":
+    return (false, "", "M_INVALID_PARAM", "Only response_type=code is supported")
+  if mode != "query" and mode != "fragment":
+    return (false, "", "M_INVALID_PARAM", "Only response_mode=query or response_mode=fragment is supported")
+  if not state.registeredRedirectUri(clientId, redirectUri):
+    return (false, "", "M_INVALID_PARAM", "redirect_uri not registered for this client")
+
+  let requestId = randomString("oidcreq_", 32)
+  let base = oidcBaseUrl(issuer)
+  let completeUrl = appendQueryParam(base & "/_tuwunel/oidc/_complete", "oidc_req_id", requestId)
+  state.oidcAuthRequests[requestId] = OidcAuthRequestRecord(
+    requestId: requestId,
+    clientId: clientId,
+    redirectUri: redirectUri,
+    scope: scope,
+    state: firstParam(params, "state"),
+    nonce: firstParam(params, "nonce"),
+    codeChallenge: firstParam(params, "code_challenge"),
+    codeChallengeMethod: firstParam(params, "code_challenge_method"),
+    responseMode: mode,
+    idpId: idpId,
+    expiresAtMs: nowMs() + 600000'i64,
+  )
+  let ssoUrl = appendQueryParam(
+    base & "/_matrix/client/v3/login/sso/redirect/" & encodeUrl(idpId),
+    "redirectUrl",
+    completeUrl,
+  )
+  (true, ssoUrl, "", "")
+
+proc redirectWithOidcCode(record: OidcAuthRequestRecord; code: string): string =
+  if record.responseMode == "fragment":
+    result = record.redirectUri
+    let fragment = "code=" & encodeUrl(code) &
+      (if record.state.len > 0: "&state=" & encodeUrl(record.state) else: "")
+    let hash = result.find('#')
+    if hash >= 0:
+      result = result[0 ..< hash]
+    result &= "#" & fragment
+  else:
+    result = appendQueryParam(record.redirectUri, "code", code)
+    if record.state.len > 0:
+      result = appendQueryParam(result, "state", record.state)
+
+proc completeOidcAuthRequestLocked(
+    state: ServerState;
+    requestId, loginToken: string
+): tuple[ok: bool, location: string, errcode: string, message: string] =
+  if requestId.len == 0:
+    return (false, "", "M_MISSING_PARAM", "oidc_req_id is required")
+  if requestId notin state.oidcAuthRequests:
+    return (false, "", "M_INVALID_PARAM", "OIDC auth request was not found")
+  let requestRecord = state.oidcAuthRequests[requestId]
+  state.oidcAuthRequests.del(requestId)
+  if requestRecord.expiresAtMs <= nowMs():
+    return (false, "", "M_FORBIDDEN", "OIDC auth request has expired")
+  let consumed = state.consumeLoginTokenLocked(loginToken)
+  if not consumed.ok:
+    return (false, "", consumed.errcode, consumed.message)
+
+  let code = randomString("oidccode_", 48)
+  state.oidcAuthCodes[code] = OidcAuthCodeRecord(
+    code: code,
+    clientId: requestRecord.clientId,
+    redirectUri: requestRecord.redirectUri,
+    userId: consumed.userId,
+    scope: requestRecord.scope,
+    nonce: requestRecord.nonce,
+    codeChallenge: requestRecord.codeChallenge,
+    codeChallengeMethod: requestRecord.codeChallengeMethod,
+    idpId: requestRecord.idpId,
+    expiresAtMs: nowMs() + 600000'i64,
+  )
+  (true, redirectWithOidcCode(requestRecord, code), "", "")
+
+proc oidcDeviceIdFromScope(scope: string): string =
+  const Prefix = "urn:matrix:org.matrix.msc2967.client:device:"
+  for part in scope.splitWhitespace():
+    if part.startsWith(Prefix) and part.len > Prefix.len:
+      return part[Prefix.len .. ^1]
+  randomString("OIDC", 8)
+
+proc accessTokenHash(accessToken: string): string =
+  let digest = sha256Digest(accessToken)
+  var half = default(array[16, byte])
+  for i in 0 ..< 16:
+    half[i] = digest[i]
+  base64UrlNoPad(half)
+
+proc unsignedIdToken(
+    issuer, userId, clientId, nonce, accessToken: string;
+    ttlSeconds = 3600
+): string =
+  var header = %*{
+    "typ": "JWT",
+    "alg": "none",
+  }
+  let nowSeconds = nowMs() div 1000
+  var claims = %*{
+    "iss": issuer,
+    "sub": userId,
+    "aud": clientId,
+    "exp": nowSeconds + ttlSeconds,
+    "iat": nowSeconds,
+    "at_hash": accessTokenHash(accessToken),
+  }
+  if nonce.len > 0:
+    claims["nonce"] = %nonce
+  base64UrlNoPad($header) & "." & base64UrlNoPad($claims) & "."
+
+proc storeOidcIssuedTokensLocked(
+    state: ServerState;
+    userId, deviceId, clientId, scope, accessToken, refreshToken: string;
+    accessTtlMs, refreshTtlMs: int64
+) =
+  state.oidcAccessTokens[accessToken] = OidcAccessTokenRecord(
+    accessToken: accessToken,
+    userId: userId,
+    deviceId: deviceId,
+    clientId: clientId,
+    scope: scope,
+    expiresAtMs: nowMs() + accessTtlMs,
+  )
+  state.oidcRefreshTokens[refreshToken] = OidcRefreshTokenRecord(
+    refreshToken: refreshToken,
+    userId: userId,
+    deviceId: deviceId,
+    clientId: clientId,
+    scope: scope,
+    expiresAtMs: nowMs() + refreshTtlMs,
+  )
+
+proc exchangeOidcAuthCodeLocked(
+    state: ServerState;
+    params: Table[string, seq[string]];
+    issuer: string;
+    refreshTtlMs: int64
+): tuple[ok: bool, payload: JsonNode, error: string, message: string] =
+  let code = firstParam(params, "code")
+  let redirectUri = firstParam(params, "redirect_uri")
+  let clientId = firstParam(params, "client_id")
+  if code.len == 0:
+    return (false, newJObject(), "invalid_grant", "code is required")
+  if redirectUri.len == 0:
+    return (false, newJObject(), "invalid_grant", "redirect_uri is required")
+  if clientId.len == 0:
+    return (false, newJObject(), "invalid_grant", "client_id is required")
+  if code notin state.oidcAuthCodes:
+    return (false, newJObject(), "invalid_grant", "authorization code is invalid")
+
+  let record = state.oidcAuthCodes[code]
+  if record.expiresAtMs <= nowMs():
+    state.oidcAuthCodes.del(code)
+    return (false, newJObject(), "invalid_grant", "authorization code has expired")
+  if record.clientId != clientId or record.redirectUri != redirectUri:
+    return (false, newJObject(), "invalid_grant", "authorization code does not match client or redirect_uri")
+  if record.codeChallenge.len > 0:
+    let verifier = firstParam(params, "code_verifier")
+    if verifier.len == 0:
+      return (false, newJObject(), "invalid_grant", "code_verifier is required")
+    if record.codeChallengeMethod.len > 0 and record.codeChallengeMethod != "S256":
+      return (false, newJObject(), "invalid_grant", "Only S256 PKCE is supported")
+    if pkceS256CodeChallenge(verifier) != record.codeChallenge:
+      return (false, newJObject(), "invalid_grant", "code_verifier does not match code_challenge")
+  if record.userId notin state.users:
+    state.oidcAuthCodes.del(code)
+    return (false, newJObject(), "invalid_grant", "authorization user does not exist")
+
+  state.oidcAuthCodes.del(code)
+  let deviceId = oidcDeviceIdFromScope(record.scope)
+  let displayName =
+    if clientId in state.oidcClients and state.oidcClients[clientId].clientName.len > 0:
+      state.oidcClients[clientId].clientName
+    else:
+      "OIDC Client"
+  let accessToken = state.addTokenForUser(record.userId, deviceId, displayName)
+  let refreshRecord = state.createRefreshTokenLocked(record.userId, deviceId, refreshTtlMs)
+  state.storeOidcIssuedTokensLocked(
+    record.userId,
+    deviceId,
+    clientId,
+    record.scope,
+    accessToken,
+    refreshRecord.refreshToken,
+    3600'i64 * 1000'i64,
+    refreshTtlMs,
+  )
+
+  var payload = %*{
+    "access_token": accessToken,
+    "refresh_token": refreshRecord.refreshToken,
+    "scope": record.scope,
+    "token_type": "Bearer",
+    "expires_in": 3600,
+  }
+  if "openid" in record.scope.splitWhitespace():
+    payload["id_token"] = %unsignedIdToken(issuer, record.userId, clientId, record.nonce, accessToken)
+  (true, payload, "", "")
+
+proc refreshOidcTokenLocked(
+    state: ServerState;
+    params: Table[string, seq[string]];
+    refreshTtlMs: int64
+): tuple[ok: bool, payload: JsonNode, error: string, message: string] =
+  let refreshToken = firstParam(params, "refresh_token")
+  if refreshToken.len == 0:
+    return (false, newJObject(), "invalid_grant", "refresh_token is required")
+  if refreshToken notin state.oidcRefreshTokens or refreshToken notin state.refreshTokens:
+    return (false, newJObject(), "invalid_grant", "Invalid refresh token")
+  let oidcRecord = state.oidcRefreshTokens[refreshToken]
+  let refreshRecord = state.refreshTokens[refreshToken]
+  if oidcRecord.expiresAtMs <= nowMs() or refreshRecord.expiresAtMs <= nowMs():
+    state.oidcRefreshTokens.del(refreshToken)
+    state.refreshTokens.del(refreshToken)
+    return (false, newJObject(), "invalid_grant", "Refresh token has expired")
+  if oidcRecord.userId notin state.users:
+    state.oidcRefreshTokens.del(refreshToken)
+    state.refreshTokens.del(refreshToken)
+    return (false, newJObject(), "invalid_grant", "Refresh token user does not exist")
+
+  state.removeTokensForDevice(oidcRecord.userId, oidcRecord.deviceId)
+  let accessToken = state.addTokenForUser(oidcRecord.userId, oidcRecord.deviceId, "OIDC Client")
+  let newRefresh = state.createRefreshTokenLocked(oidcRecord.userId, oidcRecord.deviceId, refreshTtlMs)
+  state.storeOidcIssuedTokensLocked(
+    oidcRecord.userId,
+    oidcRecord.deviceId,
+    oidcRecord.clientId,
+    oidcRecord.scope,
+    accessToken,
+    newRefresh.refreshToken,
+    3600'i64 * 1000'i64,
+    refreshTtlMs,
+  )
+  (true, %*{
+    "access_token": accessToken,
+    "refresh_token": newRefresh.refreshToken,
+    "token_type": "Bearer",
+    "expires_in": 3600,
+  }, "", "")
+
+proc oidcUserInfoPayloadLocked(
+    state: ServerState;
+    accessToken: string
+): tuple[ok: bool, payload: JsonNode, errcode: string, message: string] =
+  if accessToken.len == 0:
+    return (false, newJObject(), "M_MISSING_TOKEN", "No access token provided")
+  if accessToken notin state.oidcAccessTokens or accessToken notin state.tokens:
+    return (false, newJObject(), "M_UNKNOWN_TOKEN", "Invalid access token")
+  let record = state.oidcAccessTokens[accessToken]
+  if record.expiresAtMs <= nowMs():
+    state.oidcAccessTokens.del(accessToken)
+    state.removeToken(accessToken)
+    return (false, newJObject(), "M_UNKNOWN_TOKEN", "Invalid access token")
+  if record.userId notin state.users:
+    return (false, newJObject(), "M_UNKNOWN_TOKEN", "Invalid access token")
+  let user = state.users[record.userId]
+  result = (true, newJObject(), "", "")
+  result.payload["sub"] = %record.userId
+  result.payload["name"] = jsonStringOrNull(user.displayName)
+  result.payload["picture"] = jsonStringOrNull(user.avatarUrl)
+
+proc revokeOidcTokenLocked(
+    state: ServerState;
+    token, tokenTypeHint: string
+): tuple[ok: bool, error: string, message: string] =
+  if token.len == 0:
+    return (false, "invalid_request", "token parameter is required")
+  if tokenTypeHint.len > 0 and tokenTypeHint != "access_token" and tokenTypeHint != "refresh_token":
+    return (false, "unsupported_token_type", "token_type_hint must be access_token or refresh_token")
+  if token in state.tokens:
+    let session = state.tokens[token]
+    if session.deviceId.len > 0:
+      state.removeDeviceLocked(session.userId, session.deviceId)
+    else:
+      state.removeToken(token)
+  elif token in state.refreshTokens:
+    let record = state.refreshTokens[token]
+    state.removeDeviceLocked(record.userId, record.deviceId)
+  (true, "", "")
+
+proc htmlEscape(value: string): string =
+  result = newStringOfCap(value.len)
+  for ch in value:
+    case ch
+    of '&':
+      result.add("&amp;")
+    of '<':
+      result.add("&lt;")
+    of '>':
+      result.add("&gt;")
+    of '"':
+      result.add("&quot;")
+    of '\'':
+      result.add("&#39;")
+    else:
+      result.add(ch)
+
+proc accountErrorHtml(message: string): string =
+  "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Error</title>" &
+    "<link rel=\"stylesheet\" href=\"/_tuwunel/oidc/account.css\"></head><body>" &
+    "<h1>Error</h1><p>" & htmlEscape(message) & "</p>" &
+    "<p><a href=\"/_tuwunel/oidc/account\">Return to account management</a></p>" &
+    "</body></html>"
+
+proc accountShell(title, body: string; wide = false): string =
+  "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>" &
+    htmlEscape(title) & "</title><link rel=\"stylesheet\" href=\"/_tuwunel/oidc/account.css\">" &
+    "</head><body" & (if wide: " class=\"wide\"" else: "") & "><h1>" &
+    htmlEscape(title) & "</h1>" & body &
+    "<script src=\"/_tuwunel/oidc/account.js\"></script></body></html>"
+
+proc accountCss(): string =
+  "body{font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;margin:2rem;line-height:1.4;color:#171717}" &
+    "body.wide{max-width:72rem}table{border-collapse:collapse;width:100%;margin:1rem 0}" &
+    "th,td{border-bottom:1px solid #ddd;padding:.5rem;text-align:left}code{background:#f4f4f4;padding:.1rem .25rem}" &
+    ".nav,.actions{display:flex;gap:1rem;margin-top:1rem}.err,.danger{color:#b00020}.ok{color:#0a6b2b}.warn{color:#8a5a00}" &
+    "label{display:block;margin:.75rem 0 .25rem}input[type=text]{width:24rem;max-width:100%;padding:.45rem}"
+
+proc accountJs(): string =
+  "document.querySelectorAll('time[data-ts]').forEach(function(el){var s=Number(el.getAttribute('data-ts'));if(s>0)el.textContent=new Date(s*1000).toLocaleString();});"
+
+proc validateAccountAction(action: string): bool =
+  action in ["org.matrix.profile", "org.matrix.sessions_list", "org.matrix.session_view", "org.matrix.session_end"]
+
+proc sanitizeDisplayName(value: string): string =
+  result = ""
+  for ch in value.strip():
+    if result.len >= 255:
+      break
+    if ord(ch) >= 32 and ord(ch) != 127:
+      result.add(ch)
+
+proc accountSsoRedirectLocation(provider: SsoProvider; issuer, action, deviceId: string): string =
+  let base = oidcBaseUrl(issuer)
+  var callbackUrl = appendQueryParam(base & "/_tuwunel/oidc/account_callback", "action", action)
+  if deviceId.len > 0:
+    callbackUrl = appendQueryParam(callbackUrl, "device_id", deviceId)
+  appendQueryParam(
+    base & "/_matrix/client/v3/login/sso/redirect/" & encodeUrl(provider.id),
+    "redirectUrl",
+    callbackUrl,
+  )
+
+proc accountSessionsListHtmlLocked(state: ServerState; userId: string): string =
+  var devices: seq[DeviceRecord] = @[]
+  for _, device in state.devices:
+    if device.userId == userId:
+      devices.add(device)
+  devices.sort(proc(a, b: DeviceRecord): int = cmp(b.lastSeenTs, a.lastSeenTs))
+
+  var rows = ""
+  for device in devices:
+    let idEnc = encodeUrl(device.deviceId)
+    let tsCell =
+      if device.lastSeenTs > 0:
+        "<time data-ts=\"" & $(device.lastSeenTs div 1000) & "\">-</time>"
+      else:
+        "-"
+    rows.add("<tr><td>" & htmlEscape(if device.displayName.len > 0: device.displayName else: "Unknown device") &
+      "</td><td><code>" & htmlEscape(device.deviceId) & "</code></td><td>" &
+      htmlEscape(if device.lastSeenIp.len > 0: device.lastSeenIp else: "-") & "</td><td>" &
+      tsCell & "</td><td><a href=\"/_tuwunel/oidc/account?action=org.matrix.session_view&device_id=" &
+      idEnc & "\">View</a> <a class=\"err\" href=\"/_tuwunel/oidc/account?action=org.matrix.session_end&device_id=" &
+      idEnc & "\">Sign out</a></td></tr>")
+
+  accountShell(
+    "Active Sessions",
+    "<p>Signed in as <strong>" & htmlEscape(userId) & "</strong>. " & $devices.len &
+      " active session(s).</p><table><tr><th>Name</th><th>Device ID</th><th>Last seen IP</th><th>Last seen</th><th>Actions</th></tr>" &
+      rows & "</table><p class=\"nav\"><a href=\"/_tuwunel/oidc/account?action=org.matrix.profile\">View Profile</a></p>",
+    wide = true,
+  )
+
+proc accountProfileHtmlLocked(state: ServerState; userId, loginToken: string): string =
+  let user = state.users[userId]
+  let avatarField =
+    if user.avatarUrl.len > 0:
+      "<p>Avatar: <code>" & htmlEscape(user.avatarUrl) & "</code> (use your Matrix client to change)</p>"
+    else:
+      ""
+  accountShell(
+    "Profile",
+    "<p>Signed in as <strong>" & htmlEscape(userId) & "</strong> on <strong>" &
+      htmlEscape(state.serverName) & "</strong>.</p><form method=\"POST\" action=\"/_tuwunel/oidc/account_callback\">" &
+      "<input type=\"hidden\" name=\"action\" value=\"org.matrix.profile\">" &
+      "<input type=\"hidden\" name=\"loginToken\" value=\"" & htmlEscape(loginToken) & "\">" &
+      "<label for=\"dn\">Display name</label><input type=\"text\" id=\"dn\" name=\"displayname\" value=\"" &
+      htmlEscape(user.displayName) & "\" maxlength=\"255\" autocomplete=\"name\">" & avatarField &
+      "<p><button type=\"submit\">Save</button></p></form>" &
+      "<p class=\"nav\"><a href=\"/_tuwunel/oidc/account?action=org.matrix.sessions_list\">Back to sessions</a></p>",
+  )
+
+proc accountSessionViewHtmlLocked(state: ServerState; userId, deviceId, loginToken: string): tuple[ok: bool, html: string, message: string] =
+  let key = deviceKey(userId, deviceId)
+  if deviceId.len == 0:
+    return (false, "", "device_id is required")
+  if key notin state.devices:
+    return (false, "", "Session not found")
+  let device = state.devices[key]
+  let tsCell =
+    if device.lastSeenTs > 0:
+      "<time data-ts=\"" & $(device.lastSeenTs div 1000) & "\">-</time>"
+    else:
+      "-"
+  let idEnc = encodeUrl(deviceId)
+  (true, accountShell(
+    "Session Details",
+    "<p>Signed in as <strong>" & htmlEscape(userId) & "</strong>.</p><dl><dt>Name</dt><dd>" &
+      htmlEscape(if device.displayName.len > 0: device.displayName else: "Unknown device") &
+      "</dd><dt>Device ID</dt><dd><code>" & htmlEscape(deviceId) & "</code></dd><dt>Last seen IP</dt><dd>" &
+      htmlEscape(if device.lastSeenIp.len > 0: device.lastSeenIp else: "-") & "</dd><dt>Last seen</dt><dd>" &
+      tsCell & "</dd></dl><p class=\"actions\"><a href=\"/_tuwunel/oidc/account?action=org.matrix.sessions_list\">Back to sessions</a>" &
+      "<a class=\"err\" href=\"/_tuwunel/oidc/account_callback?action=org.matrix.session_end&device_id=" &
+      idEnc & "&loginToken=" & encodeUrl(loginToken) & "\">Sign out this session</a></p>",
+  ), "")
+
+proc accountSessionEndConfirmHtml(userId, deviceId, loginToken: string): string =
+  accountShell(
+    "Sign Out Session",
+    "<p>Signed in as <strong>" & htmlEscape(userId) & "</strong>.</p><p class=\"warn\">Sign out session <code>" &
+      htmlEscape(deviceId) & "</code>? This will immediately invalidate its access token.</p>" &
+      "<form method=\"POST\" action=\"/_tuwunel/oidc/account_callback\">" &
+      "<input type=\"hidden\" name=\"action\" value=\"org.matrix.session_end\">" &
+      "<input type=\"hidden\" name=\"device_id\" value=\"" & htmlEscape(deviceId) & "\">" &
+      "<input type=\"hidden\" name=\"loginToken\" value=\"" & htmlEscape(loginToken) & "\">" &
+      "<button type=\"submit\" class=\"danger\">Sign out</button> " &
+      "<a href=\"/_tuwunel/oidc/account_callback?action=org.matrix.session_view&device_id=" &
+      encodeUrl(deviceId) & "&loginToken=" & encodeUrl(loginToken) & "\">Cancel</a></form>",
+  )
+
+proc completeAccountCallbackLocked(
+    state: ServerState;
+    httpMethod, action, deviceId, loginToken, displayName: string
+): tuple[ok: bool, html: string, errcode: string, message: string, changed: bool] =
+  let effectiveAction =
+    if action.len > 0: action else: "org.matrix.sessions_list"
+  if not validateAccountAction(effectiveAction):
+    return (false, "", "M_INVALID_PARAM", "Unsupported account management action", false)
+
+  let auth =
+    if effectiveAction == "org.matrix.sessions_list" or httpMethod == "POST":
+      state.consumeLoginTokenLocked(loginToken)
+    else:
+      state.peekLoginTokenLocked(loginToken)
+  if not auth.ok:
+    return (false, "", auth.errcode, auth.message, false)
+
+  case effectiveAction
+  of "org.matrix.sessions_list":
+    if httpMethod != "GET":
+      return (false, "", "M_UNRECOGNIZED", "Unsupported account management method", false)
+    return (true, state.accountSessionsListHtmlLocked(auth.userId), "", "", false)
+  of "org.matrix.profile":
+    if httpMethod == "GET":
+      return (true, state.accountProfileHtmlLocked(auth.userId, loginToken), "", "", false)
+    if httpMethod == "POST":
+      var user = state.users[auth.userId]
+      user.displayName = sanitizeDisplayName(displayName)
+      state.users[auth.userId] = user
+      return (true, accountShell(
+        "Profile Saved",
+        "<p>Display name for <strong>" & htmlEscape(auth.userId) & "</strong> updated to: <strong>" &
+          htmlEscape(if user.displayName.len > 0: user.displayName else: "(none)") &
+          "</strong>.</p><p class=\"nav\"><a href=\"/_tuwunel/oidc/account?action=org.matrix.profile\">Edit profile</a>" &
+          "<a href=\"/_tuwunel/oidc/account?action=org.matrix.sessions_list\">Back to sessions</a></p>",
+      ), "", "", true)
+  of "org.matrix.session_view":
+    if httpMethod != "GET":
+      return (false, "", "M_UNRECOGNIZED", "Unsupported account management method", false)
+    let page = state.accountSessionViewHtmlLocked(auth.userId, deviceId, loginToken)
+    if not page.ok:
+      return (false, "", "M_NOT_FOUND", page.message, false)
+    return (true, page.html, "", "", false)
+  of "org.matrix.session_end":
+    if deviceId.len == 0:
+      return (false, "", "M_INVALID_PARAM", "device_id is required", false)
+    if deviceKey(auth.userId, deviceId) notin state.devices:
+      return (false, "", "M_NOT_FOUND", "Session not found", false)
+    if httpMethod == "GET":
+      return (true, accountSessionEndConfirmHtml(auth.userId, deviceId, loginToken), "", "", false)
+    if httpMethod == "POST":
+      state.removeDeviceLocked(auth.userId, deviceId)
+      return (true, accountShell(
+        "Session Signed Out",
+        "<p>Session <code>" & htmlEscape(deviceId) & "</code> for <strong>" &
+          htmlEscape(auth.userId) & "</strong> has been signed out.</p>" &
+          "<p class=\"nav\"><a href=\"/_tuwunel/oidc/account?action=org.matrix.sessions_list\">Back to sessions</a></p>",
+      ), "", "", true)
+  else:
+    discard
+  (false, "", "M_INVALID_PARAM", "Unsupported account management action", false)
 
 proc thirdPartyProtocolsPayload(): JsonNode =
   newJObject()
@@ -7268,6 +8337,211 @@ proc runNativeServer(cfg: LoadedConfig): int =
         "X-Content-Type-Options": "nosniff"
       })
       await req.respond(Http200, body, headers)
+      return
+
+    if path == "/.well-known/openid-configuration":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let issuer = oidcIssuerUrl(cfg.values, requestBaseUrl(req, bindAddress, bindPort))
+      await respondJson(req, Http200, oidcProviderMetadataPayload(issuer))
+      return
+
+    if path == "/_matrix/client/v1/auth_issuer" or
+        path == "/_matrix/client/unstable/org.matrix.msc2965/auth_issuer":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let issuer = oidcIssuerUrl(cfg.values, requestBaseUrl(req, bindAddress, bindPort))
+      await respondJson(req, Http200, %*{"issuer": issuer})
+      return
+
+    if path == "/_tuwunel/oidc/jwks":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      await respondJson(req, Http200, oidcJwksPayload())
+      return
+
+    if path == "/_tuwunel/oidc/registration":
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var registered: tuple[ok: bool, payload: JsonNode, errcode: string, message: string]
+      withLock state.lock:
+        registered = state.registerOidcClientLocked(parsed.value)
+        if registered.ok:
+          state.savePersistentState()
+      if not registered.ok:
+        await respondJson(req, Http400, matrixError(registered.errcode, registered.message))
+        return
+      await respondJson(req, Http201, registered.payload)
+      return
+
+    if path == "/_tuwunel/oidc/authorize":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let providerOpt = ssoProviderFromConfig(cfg.values)
+      if providerOpt.isNone:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "No SSO identity providers are configured."))
+        return
+      let issuer = oidcIssuerUrl(cfg.values, requestBaseUrl(req, bindAddress, bindPort))
+      let params = parseUrlEncodedParams(req.url.query)
+      var redirectResult: tuple[ok: bool, location: string, errcode: string, message: string]
+      withLock state.lock:
+        redirectResult = state.createOidcAuthorizeRedirectLocked(params, providerOpt.get().id, issuer)
+        if redirectResult.ok:
+          state.savePersistentState()
+      if not redirectResult.ok:
+        await respondJson(req, Http400, matrixError(redirectResult.errcode, redirectResult.message))
+        return
+      await respondRedirect(req, redirectResult.location)
+      return
+
+    if path == "/_tuwunel/oidc/_complete":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var complete: tuple[ok: bool, location: string, errcode: string, message: string]
+      withLock state.lock:
+        complete = state.completeOidcAuthRequestLocked(
+          queryParam(req, "oidc_req_id"),
+          queryParam(req, "loginToken"),
+        )
+        if complete.ok:
+          state.savePersistentState()
+      if not complete.ok:
+        await respondJson(req, Http403, matrixError(complete.errcode, complete.message))
+        return
+      await respondRedirect(req, complete.location)
+      return
+
+    if path == "/_tuwunel/oidc/token":
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let form = parseUrlEncodedParams(req.body)
+      let grantType = firstParam(form, "grant_type")
+      let issuer = oidcIssuerUrl(cfg.values, requestBaseUrl(req, bindAddress, bindPort))
+      var tokenResult: tuple[ok: bool, payload: JsonNode, error: string, message: string]
+      withLock state.lock:
+        case grantType
+        of "authorization_code":
+          tokenResult = state.exchangeOidcAuthCodeLocked(form, issuer, refreshTokenTtlMs)
+        of "refresh_token":
+          tokenResult = state.refreshOidcTokenLocked(form, refreshTokenTtlMs)
+        else:
+          tokenResult = (false, newJObject(), "unsupported_grant_type", "Unsupported grant_type")
+        if tokenResult.ok:
+          state.savePersistentState()
+      if not tokenResult.ok:
+        await respondOAuthJson(req, Http400, oauthErrorPayload(tokenResult.error, tokenResult.message))
+        return
+      await respondOAuthJson(req, Http200, tokenResult.payload)
+      return
+
+    if path == "/_tuwunel/oidc/revoke":
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let form = parseUrlEncodedParams(req.body)
+      var revoked: tuple[ok: bool, error: string, message: string]
+      withLock state.lock:
+        revoked = state.revokeOidcTokenLocked(firstParam(form, "token"), firstParam(form, "token_type_hint"))
+        if revoked.ok:
+          state.savePersistentState()
+      if not revoked.ok:
+        await respondOAuthJson(req, Http400, oauthErrorPayload(revoked.error, revoked.message))
+        return
+      await respondOAuthEmpty(req, Http200)
+      return
+
+    if path == "/_tuwunel/oidc/userinfo":
+      if req.reqMethod != HttpGet and req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var bearer = queryAccessToken(req)
+      if bearer.len == 0 and req.reqMethod == HttpPost:
+        bearer = firstParam(parseUrlEncodedParams(req.body), "access_token")
+      var userInfo: tuple[ok: bool, payload: JsonNode, errcode: string, message: string]
+      withLock state.lock:
+        userInfo = state.oidcUserInfoPayloadLocked(bearer)
+        if not userInfo.ok:
+          state.savePersistentState()
+      if not userInfo.ok:
+        await respondOAuthJson(req, Http401, oauthErrorPayload("invalid_token", userInfo.message))
+        return
+      await respondJson(req, Http200, userInfo.payload)
+      return
+
+    if path == "/_tuwunel/oidc/account.js":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      await respondRaw(req, Http200, accountJs(), "application/javascript; charset=utf-8", cacheControl = "no-cache")
+      return
+
+    if path == "/_tuwunel/oidc/account.css":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      await respondRaw(req, Http200, accountCss(), "text/css; charset=utf-8", cacheControl = "no-cache")
+      return
+
+    if path == "/_tuwunel/oidc/account":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let action = queryParam(req, "action")
+      let effectiveAction = if action.len > 0: action else: "org.matrix.sessions_list"
+      if not validateAccountAction(effectiveAction):
+        await respondAccountHtml(req, Http400, accountErrorHtml("Unsupported account management action"))
+        return
+      let providerOpt = ssoProviderFromConfig(cfg.values)
+      if providerOpt.isNone:
+        await respondAccountHtml(req, Http404, accountErrorHtml("No SSO identity providers are configured."))
+        return
+      let issuer = oidcIssuerUrl(cfg.values, requestBaseUrl(req, bindAddress, bindPort))
+      await respondRedirect(
+        req,
+        accountSsoRedirectLocation(providerOpt.get(), issuer, effectiveAction, queryParam(req, "device_id")),
+      )
+      return
+
+    if path == "/_tuwunel/oidc/account_callback":
+      if req.reqMethod != HttpGet and req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let params =
+        if req.reqMethod == HttpPost:
+          parseUrlEncodedParams(req.body)
+        else:
+          parseUrlEncodedParams(req.url.query)
+      var page: tuple[ok: bool, html: string, errcode: string, message: string, changed: bool]
+      withLock state.lock:
+        page = state.completeAccountCallbackLocked(
+          if req.reqMethod == HttpPost: "POST" else: "GET",
+          firstParam(params, "action"),
+          firstParam(params, "device_id"),
+          firstParam(params, "loginToken"),
+          firstParam(params, "displayname"),
+        )
+        if page.changed:
+          state.savePersistentState()
+      if not page.ok:
+        let status =
+          if page.errcode == "M_NOT_FOUND": Http404
+          elif page.errcode == "M_UNRECOGNIZED": Http405
+          elif page.errcode == "M_FORBIDDEN" or page.errcode == "M_MISSING_PARAM": Http403
+          else: Http400
+        await respondAccountHtml(req, status, accountErrorHtml(page.message))
+        return
+      await respondAccountHtml(req, Http200, page.html)
       return
 
     let ssoLoginParts = ssoLoginPathParts(path)

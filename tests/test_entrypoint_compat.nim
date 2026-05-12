@@ -18,6 +18,11 @@ proc newCompatState(statePath: string): ServerState =
     loginTokens: initTable[string, LoginTokenRecord](),
     refreshTokens: initTable[string, RefreshTokenRecord](),
     ssoSessions: initTable[string, SsoSessionRecord](),
+    oidcClients: initTable[string, OidcClientRecord](),
+    oidcAuthRequests: initTable[string, OidcAuthRequestRecord](),
+    oidcAuthCodes: initTable[string, OidcAuthCodeRecord](),
+    oidcAccessTokens: initTable[string, OidcAccessTokenRecord](),
+    oidcRefreshTokens: initTable[string, OidcRefreshTokenRecord](),
     devices: initTable[string, DeviceRecord](),
     rooms: initTable[string, RoomData](),
     accountData: initTable[string, AccountDataRecord](),
@@ -161,6 +166,123 @@ suite "entrypoint compat helpers":
     check completed.userId == "@alice:localhost"
     let callbackToken = state.createLoginTokenLocked(completed.userId, 120000)
     check callbackToken.loginToken in state.loginTokens
+
+  test "OIDC server helpers register clients complete grants and revoke issued devices":
+    let statePath = getTempDir() / "tuwunel-entrypoint-oidc.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.users["@alice:localhost"] = UserProfile(
+      userId: "@alice:localhost",
+      username: "alice",
+      password: "pw",
+      displayName: "Alice",
+      avatarUrl: "mxc://localhost/alice",
+      blurhash: "",
+      timezone: "",
+      profileFields: initTable[string, JsonNode]()
+    )
+
+    let metadata = oidcProviderMetadataPayload("https://matrix.example/")
+    check metadata["issuer"].getStr("") == "https://matrix.example/"
+    check metadata["authorization_endpoint"].getStr("") == "https://matrix.example/_tuwunel/oidc/authorize"
+    check metadata["grant_types_supported"].len == 2
+    check oidcJwksPayload().hasKey("keys")
+
+    let registered = state.registerOidcClientLocked(%*{
+      "redirect_uris": ["https://client.example/callback"],
+      "client_name": "Beenim Desktop",
+    })
+    check registered.ok
+    let clientId = registered.payload["client_id"].getStr("")
+    check clientId.len > 0
+    check clientId in state.oidcClients
+
+    let verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+    let authParams = parseUrlEncodedParams(
+      "client_id=" & encodeUrl(clientId) &
+      "&redirect_uri=" & encodeUrl("https://client.example/callback") &
+      "&response_type=code" &
+      "&response_mode=query" &
+      "&scope=" & encodeUrl("openid urn:matrix:org.matrix.msc2967.client:device:OIDCDEV") &
+      "&state=state123" &
+      "&nonce=nonce123" &
+      "&code_challenge_method=S256" &
+      "&code_challenge=" & encodeUrl(pkceS256CodeChallenge(verifier))
+    )
+    let authorize = state.createOidcAuthorizeRedirectLocked(authParams, "test-idp", "https://matrix.example/")
+    check authorize.ok
+    check authorize.location.startsWith("https://matrix.example/_matrix/client/v3/login/sso/redirect/test-idp?")
+    check authorize.location.contains(encodeUrl("https://matrix.example/_tuwunel/oidc/_complete?oidc_req_id="))
+    check state.oidcAuthRequests.len == 1
+
+    var requestId = ""
+    for key in state.oidcAuthRequests.keys:
+      requestId = key
+    let loginToken = state.createLoginTokenLocked("@alice:localhost", 120000)
+    let completed = state.completeOidcAuthRequestLocked(requestId, loginToken.loginToken)
+    check completed.ok
+    check completed.location.startsWith("https://client.example/callback?")
+    check completed.location.contains("state=state123")
+    check loginToken.loginToken notin state.loginTokens
+
+    let callbackParams = parseUrlEncodedParams(parseUri(completed.location).query)
+    let code = firstParam(callbackParams, "code")
+    check code.len > 0
+    check code in state.oidcAuthCodes
+
+    let tokenParams = parseUrlEncodedParams(
+      "grant_type=authorization_code" &
+      "&code=" & encodeUrl(code) &
+      "&redirect_uri=" & encodeUrl("https://client.example/callback") &
+      "&client_id=" & encodeUrl(clientId) &
+      "&code_verifier=" & encodeUrl(verifier)
+    )
+    let token = state.exchangeOidcAuthCodeLocked(tokenParams, "https://matrix.example/", 604800000)
+    check token.ok
+    let accessToken = token.payload["access_token"].getStr("")
+    let refreshToken = token.payload["refresh_token"].getStr("")
+    check accessToken in state.tokens
+    check accessToken in state.oidcAccessTokens
+    check refreshToken in state.refreshTokens
+    check refreshToken in state.oidcRefreshTokens
+    check token.payload["id_token"].getStr("").split('.').len == 3
+    check code notin state.oidcAuthCodes
+
+    let userInfo = state.oidcUserInfoPayloadLocked(accessToken)
+    check userInfo.ok
+    check userInfo.payload["sub"].getStr("") == "@alice:localhost"
+    check userInfo.payload["name"].getStr("") == "Alice"
+    let plainAccess = state.addTokenForUser("@alice:localhost", "PLAIN")
+    check not state.oidcUserInfoPayloadLocked(plainAccess).ok
+
+    state.savePersistentState()
+    let loaded = loadPersistentState(statePath)
+    check clientId in loaded.oidcClients
+    check accessToken in loaded.oidcAccessTokens
+
+    let refreshed = state.refreshOidcTokenLocked(
+      parseUrlEncodedParams("grant_type=refresh_token&refresh_token=" & encodeUrl(refreshToken)),
+      604800000,
+    )
+    check refreshed.ok
+    check accessToken notin state.tokens
+    check refreshToken notin state.refreshTokens
+    let refreshedAccess = refreshed.payload["access_token"].getStr("")
+    check refreshedAccess in state.oidcAccessTokens
+
+    let badHint = state.revokeOidcTokenLocked(refreshedAccess, "device")
+    check not badHint.ok
+    check badHint.error == "unsupported_token_type"
+    let revoked = state.revokeOidcTokenLocked(refreshedAccess, "access_token")
+    check revoked.ok
+    check refreshedAccess notin state.tokens
+    check state.revokeOidcTokenLocked("missing", "").ok
 
   test "joinedMembersPayload includes only joined users with profile data":
     let statePath = getTempDir() / "tuwunel-entrypoint-compat-state.json"
