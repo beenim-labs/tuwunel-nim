@@ -5,6 +5,7 @@ const
 
 import std/[algorithm, strutils]
 
+import core/utils/set as set_utils
 import "service/storage/mod"
 
 type
@@ -89,30 +90,18 @@ proc sortedLocations(provider: Provider): seq[string] =
   result.sort()
 
 proc intersectionSorted(a, b: seq[string]): seq[string] =
-  result = @[]
-  var bIndex = 0
   var aSorted = a
   var bSorted = b
   aSorted.sort()
   bSorted.sort()
-  for item in aSorted:
-    while bIndex < bSorted.len and bSorted[bIndex] < item:
-      inc bIndex
-    if bIndex < bSorted.len and bSorted[bIndex] == item:
-      result.add(item)
+  set_utils.intersectionSorted2(aSorted, bSorted)
 
 proc differenceSorted(a, b: seq[string]): seq[string] =
-  result = @[]
-  var bIndex = 0
   var aSorted = a
   var bSorted = b
   aSorted.sort()
   bSorted.sort()
-  for item in aSorted:
-    while bIndex < bSorted.len and bSorted[bIndex] < item:
-      inc bIndex
-    if bIndex >= bSorted.len or bSorted[bIndex] != item:
-      result.add(item)
+  set_utils.differenceSorted2(aSorted, bSorted)
 
 proc queryStorageDuplicates*(service: StorageService; providerA, providerB: string): string =
   result = ""

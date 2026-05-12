@@ -3,6 +3,7 @@ import std/unittest
 import core/utils/bytes as bytes_utils
 
 proc bytes8(values: openArray[int]): array[8, byte] =
+  result = default(array[8, byte])
   doAssert values.len == 8
   for idx, value in values:
     result[idx] = byte(value)
