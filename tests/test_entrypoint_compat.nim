@@ -32,6 +32,7 @@ proc newCompatState(statePath: string): ServerState =
     fallbackKeys: initTable[string, FallbackKeyRecord](),
     dehydratedDevices: initTable[string, DehydratedDeviceRecord](),
     crossSigningKeys: initTable[string, CrossSigningKeyRecord](),
+    deviceListUpdates: initTable[string, DeviceListUpdateRecord](),
     toDeviceEvents: initTable[string, ToDeviceEventRecord](),
     toDeviceTxnIds: initHashSet[string](),
     openIdTokens: initTable[string, OpenIdTokenRecord](),
@@ -51,7 +52,8 @@ proc newCompatState(statePath: string): ServerState =
     deliveryMaxInflight: 1,
     deliverySent: 0,
     deliveryFailed: 0,
-    deliveryDeadLetters: 0
+    deliveryDeadLetters: 0,
+    typingFederationTimeoutMs: 30000
   )
   initLock(result.lock)
 
@@ -125,6 +127,8 @@ suite "entrypoint compat helpers":
     check providerPath.ok
     check providerPath.providerId == "test-idp"
     check ssoCallbackProviderId("/_matrix/client/unstable/login/sso/callback/test-idp") == "test-idp"
+    check pkceS256CodeChallenge("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk") ==
+      "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
 
     let statePath = getTempDir() / "tuwunel-entrypoint-sso.json"
     var state = newCompatState(statePath)
@@ -148,6 +152,8 @@ suite "entrypoint compat helpers":
     check location.startsWith("https://idp.example/authorize?")
     check location.contains("client_id=test-idp")
     check location.contains("state=" & encodeUrl(session.sessionId))
+    check location.contains("code_challenge_method=S256")
+    check location.contains("code_challenge=" & encodeUrl(pkceS256CodeChallenge(session.codeVerifier)))
     check ssoCookie(session, provider).contains("tuwunel_grant_session=")
 
     let completed = state.ensureSsoUserLocked(provider, session, newJObject())
@@ -1456,6 +1462,9 @@ suite "entrypoint compat helpers":
     discard state.appendEventLocked("!fedjoin:localhost", "@alice:localhost", "m.room.create", "", %*{"room_version": "11"})
     discard state.appendEventLocked("!fedjoin:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
     discard state.appendEventLocked("!fedjoin:localhost", "@alice:localhost", "m.room.join_rules", "", %*{"join_rule": "public"})
+    discard state.upsertDeviceLocked("@alice:localhost", "ALICE1", "Alice laptop")
+    discard state.upsertDeviceLocked("@alice:localhost", "ALICE2", "Alice phone")
+    state.typingFederationTimeoutMs = 45000
 
     let joinTemplate = state.membershipTemplateEvent("!fedjoin:localhost", "@remote:remote.example", "join", "remote.example")
     check joinTemplate.ok
@@ -1483,6 +1492,7 @@ suite "entrypoint compat helpers":
     check joinResult.payload["event"]["event_id"].getStr("") == "$remote_join"
     check state.rooms["!fedjoin:localhost"].members["@remote:remote.example"] == "join"
 
+    let beforeTxnMs = nowMs()
     let txn = state.federationSendTransactionLocked(
       "remote.example",
       "txn1",
@@ -1506,6 +1516,99 @@ suite "entrypoint compat helpers":
               "user_id": "@remote:remote.example",
               "typing": true
             }
+          },
+          {
+            "edu_type": "m.receipt",
+            "content": {
+              "receipts": {
+                "!fedjoin:localhost": {
+                  "m.read": {
+                    "@remote:remote.example": {
+                      "event_ids": ["$remote_msg"],
+                      "data": {"ts": 123456, "thread_id": "$thread"}
+                    },
+                    "@evil:evil.example": {
+                      "event_ids": ["$remote_msg"],
+                      "data": {"ts": 7}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "edu_type": "m.presence",
+            "content": {
+              "push": [
+                {
+                  "user_id": "@remote:remote.example",
+                  "presence": "online",
+                  "currently_active": false,
+                  "last_active_ago": 5000,
+                  "status_msg": "available"
+                },
+                {
+                  "user_id": "@evil:evil.example",
+                  "presence": "online",
+                  "status_msg": "wrong origin"
+                }
+              ]
+            }
+          },
+          {
+            "edu_type": "m.direct_to_device",
+            "content": {
+              "sender": "@remote:remote.example",
+              "type": "m.room.encrypted",
+              "message_id": "remote-msg-1",
+              "messages": {
+                "@alice:localhost": {
+                  "ALICE1": {"ciphertext": "direct"},
+                  "*": {"ciphertext": "wildcard"}
+                }
+              }
+            }
+          },
+          {
+            "edu_type": "m.direct_to_device",
+            "content": {
+              "sender": "@evil:evil.example",
+              "type": "m.room.encrypted",
+              "message_id": "evil-msg-1",
+              "messages": {
+                "@alice:localhost": {
+                  "ALICE1": {"ciphertext": "ignored"}
+                }
+              }
+            }
+          },
+          {
+            "edu_type": "m.signing_key_update",
+            "content": {
+              "user_id": "@remote:remote.example",
+              "master_key": {
+                "user_id": "@remote:remote.example",
+                "usage": ["master"],
+                "keys": {"ed25519:REMOTE_MASTER": "remote-master-key"}
+              },
+              "self_signing_key": {
+                "user_id": "@remote:remote.example",
+                "usage": ["self_signing"],
+                "keys": {"ed25519:REMOTE_SELF": "remote-self-key"}
+              }
+            }
+          },
+          {
+            "edu_type": "m.device_list_update",
+            "content": {
+              "user_id": "@remote:remote.example"
+            }
+          },
+          {
+            "edu_type": "m.device_list_update",
+            "content": {
+              "user_id": "@evil:evil.example"
+            }
           }
         ]
       }
@@ -1513,6 +1616,68 @@ suite "entrypoint compat helpers":
     check txn["pdus"]["$remote_msg"].kind == JObject
     check state.rooms["!fedjoin:localhost"].timeline[^1].eventId == "$remote_msg"
     check state.typing.hasKey(typingKey("!fedjoin:localhost", "@remote:remote.example"))
+    let remoteTyping = state.typing[typingKey("!fedjoin:localhost", "@remote:remote.example")]
+    check remoteTyping.expiresAtMs >= beforeTxnMs + 45000
+    check remoteTyping.expiresAtMs <= nowMs() + 45000
+    let receiptKeyValue = receiptKey("!fedjoin:localhost", "$remote_msg", "m.read", "@remote:remote.example", "$thread")
+    check state.receipts.hasKey(receiptKeyValue)
+    check state.receipts[receiptKeyValue].ts == 123456
+    check not state.receipts.hasKey(receiptKey("!fedjoin:localhost", "$remote_msg", "m.read", "@evil:evil.example", ""))
+    let receiptSync = state.receiptEventsForSync("!fedjoin:localhost", 0, true)
+    check receiptSync[0]["content"]["$remote_msg"]["m.read"]["@remote:remote.example"]["thread_id"].getStr("") == "$thread"
+    check state.presence["@remote:remote.example"].statusMsg == "available"
+    check not state.presence["@remote:remote.example"].currentlyActive
+    check nowMs() - state.presence["@remote:remote.example"].lastActiveTs >= 5000
+    let remotePresenceEvent = state.presenceEventJson(state.presence["@remote:remote.example"])
+    check not remotePresenceEvent["content"]["currently_active"].getBool(true)
+    check remotePresenceEvent["content"]["last_active_ago"].getInt(0) >= 5000
+    check not state.presence.hasKey("@evil:evil.example")
+    let remoteToDeviceLimit = state.streamPos
+    let aliceOneToDevice = state.toDeviceEventsForSync("@alice:localhost", "ALICE1", 0, remoteToDeviceLimit)
+    check aliceOneToDevice.len == 2
+    check aliceOneToDevice[0]["sender"].getStr("") == "@remote:remote.example"
+    check aliceOneToDevice[0]["type"].getStr("") == "m.room.encrypted"
+    check aliceOneToDevice[0]["content"]["ciphertext"].getStr("") == "direct"
+    check aliceOneToDevice[1]["content"]["ciphertext"].getStr("") == "wildcard"
+    let aliceTwoToDevice = state.toDeviceEventsForSync("@alice:localhost", "ALICE2", 0, remoteToDeviceLimit)
+    check aliceTwoToDevice.len == 1
+    check aliceTwoToDevice[0]["content"]["ciphertext"].getStr("") == "wildcard"
+    check toDeviceTxnKey("@remote:remote.example", "", "remote-msg-1") in state.toDeviceTxnIds
+    check toDeviceTxnKey("@evil:evil.example", "", "evil-msg-1") notin state.toDeviceTxnIds
+    check state.crossSigningKeys[crossSigningKey("@remote:remote.example", "master")].keyData["keys"]["ed25519:REMOTE_MASTER"].getStr("") == "remote-master-key"
+    check state.crossSigningKeys[crossSigningKey("@remote:remote.example", "self_signing")].keyData["keys"]["ed25519:REMOTE_SELF"].getStr("") == "remote-self-key"
+    check state.deviceListUpdates.hasKey("@remote:remote.example")
+    check not state.deviceListUpdates.hasKey("@evil:evil.example")
+    let fedKeyChanges = state.keyChangesPayloadLocked("s0", encodeSinceToken(state.streamPos))
+    check fedKeyChanges["changed"].len == 1
+    check fedKeyChanges["changed"][0].getStr("") == "@remote:remote.example"
+    state.savePersistentState()
+    let loadedFederationState = loadPersistentState(statePath)
+    check loadedFederationState.deviceListUpdates.hasKey("@remote:remote.example")
+
+    let queuedBeforeDuplicate = state.toDeviceEvents.len
+    discard state.federationSendTransactionLocked(
+      "remote.example",
+      "txn1-duplicate",
+      %*{
+        "edus": [
+          {
+            "edu_type": "m.direct_to_device",
+            "content": {
+              "sender": "@remote:remote.example",
+              "type": "m.room.encrypted",
+              "message_id": "remote-msg-1",
+              "messages": {
+                "@alice:localhost": {
+                  "ALICE1": {"ciphertext": "duplicate"}
+                }
+              }
+            }
+          }
+        ]
+      }
+    )
+    check state.toDeviceEvents.len == queuedBeforeDuplicate
 
     let leaveResult = state.federationAcceptMembershipLocked(
       "!fedjoin:localhost",
@@ -2254,6 +2419,205 @@ suite "entrypoint compat helpers":
     check headers["Authorization"] == "Bearer hs-secret"
     check headers["Content-Type"] == "application/json"
 
+  test "appservice namespace matching covers sender state-key alias and room rules":
+    let yaml = """id: bridge
+url: http://127.0.0.1:29999
+as_token: as-secret
+hs_token: hs-secret
+sender_localpart: bridgebot
+receive_ephemeral: true
+namespaces:
+  users:
+    - regex: ^@bridge_.*:localhost$
+      exclusive: true
+  aliases:
+    - regex: ^#bridge_.*:localhost$
+      exclusive: true
+  rooms:
+    - regex: ^!special:localhost$
+      exclusive: false
+"""
+    let parsed = parseRegistrationYaml(yaml)
+    check parsed.isSome
+    let reg = parsed.get()
+    check reg.receiveEphemeral
+    check reg.userRegexes == @["^@bridge_.*:localhost$"]
+    check reg.exclusiveUserRegexes == @["^@bridge_.*:localhost$"]
+    check reg.aliasRegexes == @["^#bridge_.*:localhost$"]
+    check reg.exclusiveAliasRegexes == @["^#bridge_.*:localhost$"]
+    check reg.roomRegexes == @["^!special:localhost$"]
+    check reg.appserviceUserMatches("@bridge_alice:localhost", "localhost")
+    check reg.appserviceUserMatches(resolveAppserviceSender(reg, "localhost"), "localhost")
+    check reg.appserviceExclusiveUserMatches("@bridge_alice:localhost", "localhost")
+    check not reg.appserviceUserMatches("@bridge_alice:remote", "localhost")
+
+    proc compatEvent(roomId, sender, eventType, stateKeyValue: string; content: JsonNode): MatrixEventRecord =
+      MatrixEventRecord(
+        streamPos: 1,
+        eventId: "$event",
+        roomId: roomId,
+        sender: sender,
+        eventType: eventType,
+        stateKey: stateKeyValue,
+        redacts: "",
+        originServerTs: 1,
+        content: content
+      )
+
+    var room = RoomData(
+      roomId: "!room:localhost",
+      creator: "@creator:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    check reg.matchesAppserviceInterest(
+      compatEvent("!room:localhost", "@bridge_alice:localhost", "m.room.message", "", %*{}),
+      room,
+      "localhost"
+    )
+    check not reg.matchesAppserviceInterest(
+      compatEvent("!room:localhost", "@bridge_alice:remote", "m.room.message", "", %*{}),
+      room,
+      "localhost"
+    )
+    check reg.matchesAppserviceInterest(
+      compatEvent("!room:localhost", "@creator:localhost", "m.room.member", "@bridge_bob:localhost", %*{"membership": "invite"}),
+      room,
+      "localhost"
+    )
+    room.stateByKey[stateKey("m.room.canonical_alias", "")] =
+      compatEvent("!room:localhost", "@creator:localhost", "m.room.canonical_alias", "", %*{"alias": "#bridge_room:localhost"})
+    check reg.matchesAppserviceInterest(
+      compatEvent("!room:localhost", "@creator:localhost", "m.room.message", "", %*{}),
+      room,
+      "localhost"
+    )
+    room.roomId = "!special:localhost"
+    room.stateByKey.clear()
+    check reg.matchesAppserviceInterest(
+      compatEvent("!special:localhost", "@creator:localhost", "m.room.message", "", %*{}),
+      room,
+      "localhost"
+    )
+
+  test "appservice ephemeral delivery honors receive_ephemeral and room interest":
+    let statePath = getTempDir() / "tuwunel-entrypoint-appservice-edus.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+
+    proc compatEvent(roomId, sender, eventType, stateKeyValue: string; content: JsonNode): MatrixEventRecord =
+      MatrixEventRecord(
+        streamPos: 1,
+        eventId: "$alias",
+        roomId: roomId,
+        sender: sender,
+        eventType: eventType,
+        stateKey: stateKeyValue,
+        redacts: "",
+        originServerTs: 1,
+        content: content
+      )
+
+    state.rooms["!room:localhost"] = RoomData(
+      roomId: "!room:localhost",
+      creator: "@creator:localhost",
+      isDirect: false,
+      members: {
+        "@creator:localhost": "join",
+        "@bridge_alice:localhost": "join"
+      }.toTable,
+      timeline: @[],
+      stateByKey: {
+        stateKey("m.room.canonical_alias", ""): compatEvent(
+          "!room:localhost",
+          "@creator:localhost",
+          "m.room.canonical_alias",
+          "",
+          %*{"alias": "#bridge_room:localhost"}
+        )
+      }.toTable
+    )
+    state.appserviceRegs = @[
+      AppserviceRegistration(
+        id: "user-bridge",
+        url: "http://127.0.0.1:29340",
+        asToken: "as-user",
+        hsToken: "hs-user",
+        senderLocalpart: "userbridgebot",
+        userRegexes: @["^@bridge_.*:localhost$"],
+        exclusiveUserRegexes: @[],
+        aliasRegexes: @[],
+        exclusiveAliasRegexes: @[],
+        roomRegexes: @[],
+        exclusiveRoomRegexes: @[],
+        receiveEphemeral: true
+      ),
+      AppserviceRegistration(
+        id: "no-edu",
+        url: "http://127.0.0.1:29341",
+        asToken: "as-no-edu",
+        hsToken: "hs-no-edu",
+        senderLocalpart: "noedubot",
+        userRegexes: @["^@bridge_.*:localhost$"],
+        exclusiveUserRegexes: @[],
+        aliasRegexes: @[],
+        exclusiveAliasRegexes: @[],
+        roomRegexes: @[],
+        exclusiveRoomRegexes: @[],
+        receiveEphemeral: false
+      ),
+      AppserviceRegistration(
+        id: "alias-bridge",
+        url: "http://127.0.0.1:29342",
+        asToken: "as-alias",
+        hsToken: "hs-alias",
+        senderLocalpart: "aliasbridgebot",
+        userRegexes: @[],
+        exclusiveUserRegexes: @[],
+        aliasRegexes: @["^#bridge_.*:localhost$"],
+        exclusiveAliasRegexes: @[],
+        roomRegexes: @[],
+        exclusiveRoomRegexes: @[],
+        receiveEphemeral: true
+      ),
+      AppserviceRegistration(
+        id: "unrelated",
+        url: "http://127.0.0.1:29343",
+        asToken: "as-unrelated",
+        hsToken: "hs-unrelated",
+        senderLocalpart: "unrelatedbot",
+        userRegexes: @["^@other_.*:localhost$"],
+        exclusiveUserRegexes: @[],
+        aliasRegexes: @[],
+        exclusiveAliasRegexes: @[],
+        roomRegexes: @[],
+        exclusiveRoomRegexes: @[],
+        receiveEphemeral: true
+      )
+    ]
+
+    state.setTypingLocked("!room:localhost", "@creator:localhost", true, 30000)
+    check state.pendingDeliveries.len == 2
+    check state.pendingDeliveries[0].registrationId == "user-bridge"
+    check state.pendingDeliveries[1].registrationId == "alias-bridge"
+    let typingPayload = state.pendingDeliveries[0].payload
+    check typingPayload["events"].len == 0
+    check typingPayload["to_device"].len == 0
+    check typingPayload["ephemeral"][0]["type"].getStr("") == "m.typing"
+    check typingPayload["ephemeral"][0]["room_id"].getStr("") == "!room:localhost"
+    check typingPayload["ephemeral"][0]["content"]["user_ids"][0].getStr("") == "@creator:localhost"
+
+    discard state.setReceiptLocked("!room:localhost", "$event", "m.read", "@creator:localhost", "$thread")
+    check state.pendingDeliveries.len == 4
+    let receiptPayload = state.pendingDeliveries[2].payload
+    let receiptEvent = receiptPayload["ephemeral"][0]
+    check receiptEvent["type"].getStr("") == "m.receipt"
+    check receiptEvent["room_id"].getStr("") == "!room:localhost"
+    check receiptEvent["content"]["$event"]["m.read"]["@creator:localhost"]["thread_id"].getStr("") == "$thread"
+
   test "appservice delivery payload includes top-level redacts":
     let statePath = getTempDir() / "tuwunel-entrypoint-redact-delivery.json"
     var state = newCompatState(statePath)
@@ -2279,7 +2643,12 @@ suite "entrypoint compat helpers":
         hsToken: "hs-secret",
         senderLocalpart: "whatsappbot",
         userRegexes: @["^@whatsapp_.*:localhost$"],
-        aliasRegexes: @[]
+        exclusiveUserRegexes: @[],
+        aliasRegexes: @[],
+        exclusiveAliasRegexes: @[],
+        roomRegexes: @[],
+        exclusiveRoomRegexes: @[],
+        receiveEphemeral: false
       )
     ]
 

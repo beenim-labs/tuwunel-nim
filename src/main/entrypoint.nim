@@ -633,6 +633,10 @@ type
     keyData: JsonNode
     streamPos: int64
 
+  DeviceListUpdateRecord = object
+    userId: string
+    streamPos: int64
+
   ToDeviceEventRecord = object
     targetUserId: string
     targetDeviceId: string
@@ -700,7 +704,12 @@ type
     hsToken: string
     senderLocalpart: string
     userRegexes: seq[string]
+    exclusiveUserRegexes: seq[string]
     aliasRegexes: seq[string]
+    exclusiveAliasRegexes: seq[string]
+    roomRegexes: seq[string]
+    exclusiveRoomRegexes: seq[string]
+    receiveEphemeral: bool
 
   AppserviceDelivery = object
     registrationId: string
@@ -744,6 +753,7 @@ type
     fallbackKeys: Table[string, FallbackKeyRecord]
     dehydratedDevices: Table[string, DehydratedDeviceRecord]
     crossSigningKeys: Table[string, CrossSigningKeyRecord]
+    deviceListUpdates: Table[string, DeviceListUpdateRecord]
     toDeviceEvents: Table[string, ToDeviceEventRecord]
     toDeviceTxnIds: HashSet[string]
     openIdTokens: Table[string, OpenIdTokenRecord]
@@ -764,6 +774,13 @@ type
     deliverySent: int64
     deliveryFailed: int64
     deliveryDeadLetters: int64
+    typingFederationTimeoutMs: int64
+
+proc enqueueEphemeralDeliveries(
+    state: ServerState;
+    roomId: string;
+    ephemeralEvent: JsonNode
+) {.gcsafe.}
 
 proc nowMs(): int64 =
   getTime().toUnix().int64 * 1000
@@ -781,6 +798,125 @@ proc randomString(prefix: string; n = 32): string =
   result = prefix
   for _ in 0 ..< n:
     result.add(chars[rand(chars.high)])
+
+proc rotr32(x: uint32; n: int): uint32 =
+  (x shr n) or (x shl (32 - n))
+
+proc add32(a, b: uint32): uint32 =
+  uint32((uint64(a) + uint64(b)) and 0xffffffff'u64)
+
+proc sha256Digest(data: string): array[32, byte] =
+  const k = [
+    0x428a2f98'u32, 0x71374491'u32, 0xb5c0fbcf'u32, 0xe9b5dba5'u32,
+    0x3956c25b'u32, 0x59f111f1'u32, 0x923f82a4'u32, 0xab1c5ed5'u32,
+    0xd807aa98'u32, 0x12835b01'u32, 0x243185be'u32, 0x550c7dc3'u32,
+    0x72be5d74'u32, 0x80deb1fe'u32, 0x9bdc06a7'u32, 0xc19bf174'u32,
+    0xe49b69c1'u32, 0xefbe4786'u32, 0x0fc19dc6'u32, 0x240ca1cc'u32,
+    0x2de92c6f'u32, 0x4a7484aa'u32, 0x5cb0a9dc'u32, 0x76f988da'u32,
+    0x983e5152'u32, 0xa831c66d'u32, 0xb00327c8'u32, 0xbf597fc7'u32,
+    0xc6e00bf3'u32, 0xd5a79147'u32, 0x06ca6351'u32, 0x14292967'u32,
+    0x27b70a85'u32, 0x2e1b2138'u32, 0x4d2c6dfc'u32, 0x53380d13'u32,
+    0x650a7354'u32, 0x766a0abb'u32, 0x81c2c92e'u32, 0x92722c85'u32,
+    0xa2bfe8a1'u32, 0xa81a664b'u32, 0xc24b8b70'u32, 0xc76c51a3'u32,
+    0xd192e819'u32, 0xd6990624'u32, 0xf40e3585'u32, 0x106aa070'u32,
+    0x19a4c116'u32, 0x1e376c08'u32, 0x2748774c'u32, 0x34b0bcb5'u32,
+    0x391c0cb3'u32, 0x4ed8aa4a'u32, 0x5b9cca4f'u32, 0x682e6ff3'u32,
+    0x748f82ee'u32, 0x78a5636f'u32, 0x84c87814'u32, 0x8cc70208'u32,
+    0x90befffa'u32, 0xa4506ceb'u32, 0xbef9a3f7'u32, 0xc67178f2'u32
+  ]
+
+  var h = [
+    0x6a09e667'u32, 0xbb67ae85'u32, 0x3c6ef372'u32, 0xa54ff53a'u32,
+    0x510e527f'u32, 0x9b05688c'u32, 0x1f83d9ab'u32, 0x5be0cd19'u32
+  ]
+  result = default(array[32, byte])
+  var msg = newSeq[byte](data.len)
+  for i, ch in data:
+    msg[i] = byte(ord(ch))
+  let bitLen = uint64(data.len) * 8'u64
+  msg.add(0x80'u8)
+  while (msg.len mod 64) != 56:
+    msg.add(0'u8)
+  for shift in countdown(56, 0, 8):
+    msg.add(byte((bitLen shr shift) and 0xff'u64))
+
+  var w: array[64, uint32] = default(array[64, uint32])
+  var offset = 0
+  while offset < msg.len:
+    for i in 0 ..< 16:
+      let j = offset + i * 4
+      w[i] = (uint32(msg[j]) shl 24) or (uint32(msg[j + 1]) shl 16) or
+        (uint32(msg[j + 2]) shl 8) or uint32(msg[j + 3])
+    for i in 16 ..< 64:
+      let s0 = rotr32(w[i - 15], 7) xor rotr32(w[i - 15], 18) xor (w[i - 15] shr 3)
+      let s1 = rotr32(w[i - 2], 17) xor rotr32(w[i - 2], 19) xor (w[i - 2] shr 10)
+      w[i] = add32(add32(add32(w[i - 16], s0), w[i - 7]), s1)
+
+    var a = h[0]
+    var b = h[1]
+    var c = h[2]
+    var d = h[3]
+    var e = h[4]
+    var f = h[5]
+    var g = h[6]
+    var hh = h[7]
+    for i in 0 ..< 64:
+      let s1 = rotr32(e, 6) xor rotr32(e, 11) xor rotr32(e, 25)
+      let ch = (e and f) xor ((not e) and g)
+      let temp1 = add32(add32(add32(add32(hh, s1), ch), k[i]), w[i])
+      let s0 = rotr32(a, 2) xor rotr32(a, 13) xor rotr32(a, 22)
+      let maj = (a and b) xor (a and c) xor (b and c)
+      let temp2 = add32(s0, maj)
+      hh = g
+      g = f
+      f = e
+      e = add32(d, temp1)
+      d = c
+      c = b
+      b = a
+      a = add32(temp1, temp2)
+
+    h[0] = add32(h[0], a)
+    h[1] = add32(h[1], b)
+    h[2] = add32(h[2], c)
+    h[3] = add32(h[3], d)
+    h[4] = add32(h[4], e)
+    h[5] = add32(h[5], f)
+    h[6] = add32(h[6], g)
+    h[7] = add32(h[7], hh)
+    inc offset, 64
+
+  for i, value in h:
+    result[i * 4] = byte((value shr 24) and 0xff'u32)
+    result[i * 4 + 1] = byte((value shr 16) and 0xff'u32)
+    result[i * 4 + 2] = byte((value shr 8) and 0xff'u32)
+    result[i * 4 + 3] = byte(value and 0xff'u32)
+
+proc base64UrlNoPad(bytes: openArray[byte]): string =
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+  result = ""
+  var i = 0
+  while i + 2 < bytes.len:
+    let n = (uint32(bytes[i]) shl 16) or (uint32(bytes[i + 1]) shl 8) or uint32(bytes[i + 2])
+    result.add(alphabet[int((n shr 18) and 0x3f'u32)])
+    result.add(alphabet[int((n shr 12) and 0x3f'u32)])
+    result.add(alphabet[int((n shr 6) and 0x3f'u32)])
+    result.add(alphabet[int(n and 0x3f'u32)])
+    inc i, 3
+  let remaining = bytes.len - i
+  if remaining == 1:
+    let n = uint32(bytes[i]) shl 16
+    result.add(alphabet[int((n shr 18) and 0x3f'u32)])
+    result.add(alphabet[int((n shr 12) and 0x3f'u32)])
+  elif remaining == 2:
+    let n = (uint32(bytes[i]) shl 16) or (uint32(bytes[i + 1]) shl 8)
+    result.add(alphabet[int((n shr 18) and 0x3f'u32)])
+    result.add(alphabet[int((n shr 12) and 0x3f'u32)])
+    result.add(alphabet[int((n shr 6) and 0x3f'u32)])
+
+proc pkceS256CodeChallenge(verifier: string): string =
+  let digest = sha256Digest(verifier)
+  base64UrlNoPad(digest)
 
 proc stateKey(eventType, stateKey: string): string =
   eventType & "\x1f" & stateKey
@@ -839,6 +975,12 @@ proc localpartFromUserId(userId: string): string =
     return ""
   userId[1 ..< sep]
 
+proc serverNameFromUserId(userId: string): string =
+  let sep = userId.find(':')
+  if sep < 0 or sep >= userId.high:
+    return ""
+  userId[(sep + 1) .. ^1]
+
 proc parseSinceToken(sinceToken: string): int64 =
   if sinceToken.len <= 1 or sinceToken[0] != 's':
     return 0
@@ -878,30 +1020,57 @@ proc accountDataEventsForSync(
   for record in records:
     result.add(record.accountDataEventJson())
 
+proc setTypingExpiryLocked(
+    state: ServerState;
+    roomId, userId: string;
+    typing: bool;
+    expiresAtMs: int64
+) =
+  inc state.streamPos
+  if typing:
+    state.typing[typingKey(roomId, userId)] = TypingRecord(
+      roomId: roomId,
+      userId: userId,
+      expiresAtMs: expiresAtMs,
+      streamPos: state.streamPos,
+    )
+  else:
+    state.typing.del(typingKey(roomId, userId))
+  state.typingUpdates[roomId] = state.streamPos
+
+  var userIds = newJArray()
+  var active: seq[string] = @[]
+  for _, record in state.typing:
+    if record.roomId == roomId:
+      active.add(record.userId)
+  active.sort(system.cmp[string])
+  for activeUser in active:
+    userIds.add(%activeUser)
+  state.enqueueEphemeralDeliveries(
+    roomId,
+    %*{
+      "type": "m.typing",
+      "room_id": roomId,
+      "content": {
+        "user_ids": userIds
+      }
+    }
+  )
+
 proc setTypingLocked(
     state: ServerState;
     roomId, userId: string;
     typing: bool;
     timeoutMs: int64
 ) =
-  inc state.streamPos
-  if typing:
-    let clampedTimeout =
-      if timeoutMs < 1000'i64:
-        1000'i64
-      elif timeoutMs > 300000'i64:
-        300000'i64
-      else:
-        timeoutMs
-    state.typing[typingKey(roomId, userId)] = TypingRecord(
-      roomId: roomId,
-      userId: userId,
-      expiresAtMs: nowMs() + clampedTimeout,
-      streamPos: state.streamPos,
-    )
-  else:
-    state.typing.del(typingKey(roomId, userId))
-  state.typingUpdates[roomId] = state.streamPos
+  let clampedTimeout =
+    if timeoutMs < 1000'i64:
+      1000'i64
+    elif timeoutMs > 300000'i64:
+      300000'i64
+    else:
+      timeoutMs
+  state.setTypingExpiryLocked(roomId, userId, typing, nowMs() + clampedTimeout)
 
 proc pruneExpiredTypingLocked(state: ServerState; nowValue = nowMs()) =
   var expired: seq[TypingRecord] = @[]
@@ -945,7 +1114,8 @@ proc typingEventsForSync(
 
 proc setReceiptLocked(
     state: ServerState;
-    roomId, eventId, receiptType, userId, threadId: string
+    roomId, eventId, receiptType, userId, threadId: string;
+    tsOverride: int64 = 0
 ): ReceiptRecord =
   inc state.streamPos
   result = ReceiptRecord(
@@ -954,10 +1124,28 @@ proc setReceiptLocked(
     receiptType: receiptType,
     userId: userId,
     threadId: threadId,
-    ts: nowMs(),
+    ts: (if tsOverride > 0: tsOverride else: nowMs()),
     streamPos: state.streamPos,
   )
   state.receipts[receiptKey(roomId, eventId, receiptType, userId, threadId)] = result
+
+  var userEntry = %*{"ts": result.ts}
+  if threadId.len > 0:
+    userEntry["thread_id"] = %threadId
+  var receiptUsers = newJObject()
+  receiptUsers[userId] = userEntry
+  var receiptTypes = newJObject()
+  receiptTypes[receiptType] = receiptUsers
+  var content = newJObject()
+  content[eventId] = receiptTypes
+  state.enqueueEphemeralDeliveries(
+    roomId,
+    %*{
+      "type": "m.receipt",
+      "room_id": roomId,
+      "content": content
+    }
+  )
 
 proc receiptEventsForSync(
     state: ServerState;
@@ -1024,15 +1212,28 @@ proc presenceResponseJson(record: PresenceRecord): JsonNode =
 
 proc setPresenceLocked(
     state: ServerState;
-    userId, presenceValue, statusMsg: string
+    userId, presenceValue, statusMsg: string;
+    currentlyActiveOverride: Option[bool] = none(bool);
+    lastActiveAgoOverride: Option[int64] = none(int64)
 ): PresenceRecord =
   inc state.streamPos
+  let currentMs = nowMs()
+  let currentlyActive =
+    if currentlyActiveOverride.isSome:
+      currentlyActiveOverride.get()
+    else:
+      presenceValue == "online"
+  let lastActiveTs =
+    if lastActiveAgoOverride.isSome:
+      currentMs - max(0'i64, lastActiveAgoOverride.get())
+    else:
+      currentMs
   result = PresenceRecord(
     userId: userId,
     presence: presenceValue,
     statusMsg: statusMsg,
-    currentlyActive: presenceValue == "online",
-    lastActiveTs: nowMs(),
+    currentlyActive: currentlyActive,
+    lastActiveTs: lastActiveTs,
     streamPos: state.streamPos,
   )
   state.presence[userId] = result
@@ -1358,8 +1559,8 @@ proc ssoAuthorizationLocation(provider: SsoProvider; session: SsoSessionRecord):
   result = appendQueryParam(result, "scope", provider.scope.join(" "))
   result = appendQueryParam(result, "response_type", "code")
   result = appendQueryParam(result, "access_type", "online")
-  result = appendQueryParam(result, "code_challenge_method", "plain")
-  result = appendQueryParam(result, "code_challenge", session.codeVerifier)
+  result = appendQueryParam(result, "code_challenge_method", "S256")
+  result = appendQueryParam(result, "code_challenge", pkceS256CodeChallenge(session.codeVerifier))
   if provider.callbackUrl.len > 0:
     result = appendQueryParam(result, "redirect_uri", provider.callbackUrl)
 
@@ -1813,6 +2014,14 @@ proc toPersistentJson(state: ServerState): JsonNode =
     })
   root["cross_signing_keys"] = crossSigningKeys
 
+  var deviceListUpdates = newJArray()
+  for _, record in state.deviceListUpdates:
+    deviceListUpdates.add(%*{
+      "user_id": record.userId,
+      "stream_pos": record.streamPos,
+    })
+  root["device_list_updates"] = deviceListUpdates
+
   var toDeviceEvents = newJArray()
   for _, record in state.toDeviceEvents:
     toDeviceEvents.add(%*{
@@ -1902,6 +2111,7 @@ proc loadPersistentState(path: string): tuple[
     fallbackKeys: Table[string, FallbackKeyRecord],
     dehydratedDevices: Table[string, DehydratedDeviceRecord],
     crossSigningKeys: Table[string, CrossSigningKeyRecord],
+    deviceListUpdates: Table[string, DeviceListUpdateRecord],
     toDeviceEvents: Table[string, ToDeviceEventRecord],
     toDeviceTxnIds: HashSet[string],
     openIdTokens: Table[string, OpenIdTokenRecord],
@@ -1933,6 +2143,7 @@ proc loadPersistentState(path: string): tuple[
     fallbackKeys: initTable[string, FallbackKeyRecord](),
     dehydratedDevices: initTable[string, DehydratedDeviceRecord](),
     crossSigningKeys: initTable[string, CrossSigningKeyRecord](),
+    deviceListUpdates: initTable[string, DeviceListUpdateRecord](),
     toDeviceEvents: initTable[string, ToDeviceEventRecord](),
     toDeviceTxnIds: initHashSet[string](),
     openIdTokens: initTable[string, OpenIdTokenRecord](),
@@ -2324,6 +2535,22 @@ proc loadPersistentState(path: string): tuple[
         if record.streamPos > result.streamPos:
           result.streamPos = record.streamPos
 
+    if root.hasKey("device_list_updates") and root["device_list_updates"].kind == JArray:
+      for node in root["device_list_updates"]:
+        if node.kind != JObject:
+          continue
+        let userId = node{"user_id"}.getStr("")
+        let streamPos = node{"stream_pos"}.getInt(0).int64
+        if userId.len == 0 or streamPos <= 0:
+          continue
+        let record = DeviceListUpdateRecord(
+          userId: userId,
+          streamPos: streamPos,
+        )
+        result.deviceListUpdates[userId] = record
+        if record.streamPos > result.streamPos:
+          result.streamPos = record.streamPos
+
     if root.hasKey("to_device_events") and root["to_device_events"].kind == JArray:
       for node in root["to_device_events"]:
         if node.kind != JObject:
@@ -2438,10 +2665,17 @@ proc parseRegistrationYaml(content: string): Option[AppserviceRegistration] =
     hsToken: "",
     senderLocalpart: "",
     userRegexes: @[],
-    aliasRegexes: @[]
+    exclusiveUserRegexes: @[],
+    aliasRegexes: @[],
+    exclusiveAliasRegexes: @[],
+    roomRegexes: @[],
+    exclusiveRoomRegexes: @[],
+    receiveEphemeral: false
   )
 
   var currentNamespace = ""
+  var lastNamespace = ""
+  var lastRegex = ""
   for raw in content.splitLines():
     let line = raw.strip()
     if line.len == 0 or line.startsWith("#"):
@@ -2462,6 +2696,8 @@ proc parseRegistrationYaml(content: string): Option[AppserviceRegistration] =
       currentNamespace = "aliases"
     elif line.startsWith("rooms:"):
       currentNamespace = "rooms"
+    elif line.startsWith("receive_ephemeral:"):
+      reg.receiveEphemeral = trimQuotes(line.split(":", 1)[1]).toLowerAscii() == "true"
     elif line.startsWith("- regex:") or line.startsWith("regex:"):
       let regexRaw = if ":" in line: trimQuotes(line.split(":", 1)[1]) else: ""
       if regexRaw.len == 0:
@@ -2470,6 +2706,20 @@ proc parseRegistrationYaml(content: string): Option[AppserviceRegistration] =
         reg.userRegexes.add(regexRaw)
       elif currentNamespace == "aliases":
         reg.aliasRegexes.add(regexRaw)
+      elif currentNamespace == "rooms":
+        reg.roomRegexes.add(regexRaw)
+      lastNamespace = currentNamespace
+      lastRegex = regexRaw
+    elif line.startsWith("exclusive:") and lastRegex.len > 0:
+      let exclusive = trimQuotes(line.split(":", 1)[1]).toLowerAscii() == "true"
+      if not exclusive:
+        continue
+      if lastNamespace == "users":
+        reg.exclusiveUserRegexes.add(lastRegex)
+      elif lastNamespace == "aliases":
+        reg.exclusiveAliasRegexes.add(lastRegex)
+      elif lastNamespace == "rooms":
+        reg.exclusiveRoomRegexes.add(lastRegex)
 
   if reg.id.len == 0 or reg.url.len == 0 or reg.asToken.len == 0 or reg.hsToken.len == 0:
     return none(AppserviceRegistration)
@@ -2561,12 +2811,12 @@ proc loadAppserviceRegistrations(cfg: FlatConfig): seq[AppserviceRegistration] =
       result.add(reg)
       seen.incl(reg.id)
 
-proc userRegexMatches(reg: AppserviceRegistration; userId: string): bool =
-  if reg.userRegexes.len == 0:
+proc regexListMatches(regexes: openArray[string]; value: string): bool =
+  if regexes.len == 0:
     return false
-  for rawRegex in reg.userRegexes:
+  for rawRegex in regexes:
     try:
-      if userId.match(re(rawRegex)):
+      if value.match(re(rawRegex)):
         return true
     except CatchableError:
       discard
@@ -2575,6 +2825,23 @@ proc userRegexMatches(reg: AppserviceRegistration; userId: string): bool =
 proc resolveAppserviceSender(reg: AppserviceRegistration; serverName: string): string =
   let localpart = if reg.senderLocalpart.len > 0: reg.senderLocalpart else: reg.id & "bot"
   "@" & localpart & ":" & serverName
+
+proc appserviceUserMatches(reg: AppserviceRegistration; userId, serverName: string): bool =
+  userId == resolveAppserviceSender(reg, serverName) or
+    (serverNameFromUserId(userId) == serverName and regexListMatches(reg.userRegexes, userId))
+
+proc appserviceExclusiveUserMatches(reg: AppserviceRegistration; userId, serverName: string): bool =
+  userId == resolveAppserviceSender(reg, serverName) or
+    (
+      serverNameFromUserId(userId) == serverName and
+      regexListMatches(reg.exclusiveUserRegexes, userId)
+    )
+
+proc appserviceAliasMatches(reg: AppserviceRegistration; alias: string): bool =
+  regexListMatches(reg.aliasRegexes, alias)
+
+proc appserviceRoomMatches(reg: AppserviceRegistration; roomId: string): bool =
+  regexListMatches(reg.roomRegexes, roomId)
 
 proc newServerState(cfg: FlatConfig; serverName: string): ServerState =
   let statePath = statePathFromConfig(cfg)
@@ -2606,6 +2873,7 @@ proc newServerState(cfg: FlatConfig; serverName: string): ServerState =
     fallbackKeys: loaded.fallbackKeys,
     dehydratedDevices: loaded.dehydratedDevices,
     crossSigningKeys: loaded.crossSigningKeys,
+    deviceListUpdates: loaded.deviceListUpdates,
     toDeviceEvents: loaded.toDeviceEvents,
     toDeviceTxnIds: loaded.toDeviceTxnIds,
     openIdTokens: loaded.openIdTokens,
@@ -2625,7 +2893,8 @@ proc newServerState(cfg: FlatConfig; serverName: string): ServerState =
     deliveryMaxInflight: max(1, getConfigInt(cfg, ["appservice.delivery.max_inflight", "global.appservice.delivery.max_inflight"], 4)),
     deliverySent: 0,
     deliveryFailed: 0,
-    deliveryDeadLetters: 0
+    deliveryDeadLetters: 0,
+    typingFederationTimeoutMs: max(0, getConfigInt(cfg, ["typing_federation_timeout_s", "global.typing_federation_timeout_s"], 30)).int64 * 1000'i64
   )
   initLock(result.lock)
   result.rebuildJoinedRooms()
@@ -3000,7 +3269,7 @@ proc getSessionFromToken(
       appserviceId: reg.id
     )
     if impersonateUserId.len > 0:
-      if userRegexMatches(reg, impersonateUserId):
+      if appserviceUserMatches(reg, impersonateUserId, state.serverName):
         session.userId = impersonateUserId
       else:
         return (false, AccessSession(), "M_FORBIDDEN", "Appservice token cannot masquerade as " & impersonateUserId)
@@ -4574,6 +4843,15 @@ proc storeCrossSigningKeyLocked(
     streamPos: state.streamPos,
   )
 
+proc markDeviceListUpdateLocked(state: ServerState; userId: string) =
+  if userId.len == 0:
+    return
+  inc state.streamPos
+  state.deviceListUpdates[userId] = DeviceListUpdateRecord(
+    userId: userId,
+    streamPos: state.streamPos,
+  )
+
 proc uploadSigningKeysLocked(
     state: ServerState;
     userId: string;
@@ -4920,6 +5198,9 @@ proc keyChangesPayloadLocked(state: ServerState; fromToken, toToken: string): Js
     if inWindow(record.streamPos):
       changedSet.incl(record.userId)
   for _, record in state.crossSigningKeys:
+    if inWindow(record.streamPos):
+      changedSet.incl(record.userId)
+  for _, record in state.deviceListUpdates:
     if inWindow(record.streamPos):
       changedSet.incl(record.userId)
 
@@ -5314,14 +5595,46 @@ proc queryAccessToken(req: Request): string =
 proc resolveImpersonationUser(req: Request): string =
   queryParam(req, "user_id")
 
-proc matchesAppserviceInterest(reg: AppserviceRegistration; ev: MatrixEventRecord; room: RoomData): bool =
-  if reg.userRegexes.len == 0:
-    return true
-  if userRegexMatches(reg, ev.sender):
+proc matchesAppserviceInterest(
+    reg: AppserviceRegistration;
+    ev: MatrixEventRecord;
+    room: RoomData;
+    serverName: string
+): bool =
+  if appserviceUserMatches(reg, ev.sender, serverName):
     return true
   for memberId, membership in room.members:
-    if membership == "join" and userRegexMatches(reg, memberId):
+    if membership == "join" and appserviceUserMatches(reg, memberId, serverName):
       return true
+  if ev.eventType == "m.room.member" and ev.stateKey.len > 0 and
+      appserviceUserMatches(reg, ev.stateKey, serverName):
+    return true
+  let aliases = room.roomAliasesPayload()
+  if aliases.hasKey("aliases") and aliases["aliases"].kind == JArray:
+    for aliasNode in aliases["aliases"]:
+      if reg.appserviceAliasMatches(aliasNode.getStr("")):
+        return true
+  if reg.appserviceRoomMatches(room.roomId):
+    return true
+  false
+
+proc matchesAppserviceEphemeralInterest(
+    reg: AppserviceRegistration;
+    room: RoomData;
+    serverName: string
+): bool =
+  if not reg.receiveEphemeral:
+    return false
+  if reg.appserviceRoomMatches(room.roomId):
+    return true
+  for memberId, membership in room.members:
+    if membership == "join" and appserviceUserMatches(reg, memberId, serverName):
+      return true
+  let aliases = room.roomAliasesPayload()
+  if aliases.hasKey("aliases") and aliases["aliases"].kind == JArray:
+    for aliasNode in aliases["aliases"]:
+      if reg.appserviceAliasMatches(aliasNode.getStr("")):
+        return true
   false
 
 proc pathJoin(base, suffix: string): string =
@@ -5335,7 +5648,7 @@ proc enqueueEventDeliveries(state: ServerState; ev: MatrixEventRecord) {.gcsafe.
     return
   let room = state.rooms[ev.roomId]
   for reg in state.appserviceRegs:
-    if not matchesAppserviceInterest(reg, ev, room):
+    if not matchesAppserviceInterest(reg, ev, room, state.serverName):
       continue
     state.deliveryCounter += 1
     let txnId = "t" & $state.deliveryCounter
@@ -5353,6 +5666,32 @@ proc enqueueEventDeliveries(state: ServerState; ev: MatrixEventRecord) {.gcsafe.
       hsToken: reg.hsToken,
       txnId: txnId,
       payload: payload,
+      attempt: 0
+    ))
+
+proc enqueueEphemeralDeliveries(
+    state: ServerState;
+    roomId: string;
+    ephemeralEvent: JsonNode
+) {.gcsafe.} =
+  if roomId notin state.rooms:
+    return
+  let room = state.rooms[roomId]
+  for reg in state.appserviceRegs:
+    if not matchesAppserviceEphemeralInterest(reg, room, state.serverName):
+      continue
+    state.deliveryCounter += 1
+    let txnId = "t" & $state.deliveryCounter
+    state.pendingDeliveries.add(AppserviceDelivery(
+      registrationId: reg.id,
+      registrationUrl: reg.url,
+      hsToken: reg.hsToken,
+      txnId: txnId,
+      payload: %*{
+        "events": [],
+        "ephemeral": [ephemeralEvent],
+        "to_device": []
+      },
       attempt: 0
     ))
 
@@ -5438,7 +5777,12 @@ proc runDeliveryLoop(state: ServerState): Future[void] {.async.} =
       withLock state.lock:
         inc state.deliverySent
         dec state.deliveryInFlight
-      let evt = next.payload{"events"}[0]
+      let events = next.payload{"events"}
+      let evt =
+        if events.kind == JArray and events.len > 0:
+          events[0]
+        else:
+          newJNull()
       if evt.kind == JObject and evt{"type"}.getStr("") == "m.room.redaction":
         info("Appservice redaction delivered registration=" & next.registrationId &
           " txn=" & next.txnId &
@@ -6473,14 +6817,185 @@ proc appendFederationPduLocked(
   state.enqueueEventDeliveries(ev)
   (true, ev, "", "")
 
+proc roomHasMemberFromServer(state: ServerState; roomId, serverName: string): bool =
+  if roomId notin state.rooms:
+    return false
+  for userId, membership in state.rooms[roomId].members:
+    if membership == "join" and serverNameFromUserId(userId) == serverName:
+      return true
+  false
+
+proc handleFederationReceiptUpdateLocked(
+    state: ServerState;
+    origin, roomId, userId: string;
+    update: JsonNode
+) =
+  if update.kind != JObject:
+    return
+  if roomId.len == 0 or userId.len == 0:
+    return
+  if roomId notin state.rooms:
+    return
+  if serverNameFromUserId(userId) != origin:
+    return
+  if not state.roomHasMemberFromServer(roomId, origin):
+    return
+
+  let data =
+    if update.hasKey("data") and update["data"].kind == JObject:
+      update["data"]
+    else:
+      update
+  let ts = data{"ts"}.getInt(0).int64
+  let threadId = data{"thread_id"}.getStr("")
+  let eventIds = update{"event_ids"}
+  if eventIds.kind == JArray:
+    for eventIdNode in eventIds:
+      let eventId = eventIdNode.getStr("")
+      if eventId.len > 0:
+        discard state.setReceiptLocked(roomId, eventId, "m.read", userId, threadId, ts)
+  else:
+    let eventId = update{"event_id"}.getStr("")
+    if eventId.len > 0:
+      discard state.setReceiptLocked(roomId, eventId, "m.read", userId, threadId, ts)
+
+proc handleFederationReceiptEduLocked(
+    state: ServerState;
+    origin: string;
+    content: JsonNode
+) =
+  if content.kind != JObject:
+    return
+
+  let receiptsByRoom =
+    if content.hasKey("receipts") and content["receipts"].kind == JObject:
+      content["receipts"]
+    else:
+      newJNull()
+  if receiptsByRoom.kind == JObject:
+    for roomId, roomUpdates in receiptsByRoom:
+      if roomUpdates.kind != JObject:
+        continue
+      let readUpdates =
+        if roomUpdates.hasKey("m.read") and roomUpdates["m.read"].kind == JObject:
+          roomUpdates["m.read"]
+        elif roomUpdates.hasKey("read") and roomUpdates["read"].kind == JObject:
+          roomUpdates["read"]
+        else:
+          newJNull()
+      if readUpdates.kind != JObject:
+        continue
+      for userId, update in readUpdates:
+        state.handleFederationReceiptUpdateLocked(origin, roomId, userId, update)
+    return
+
+  let roomId = content{"room_id"}.getStr("")
+  let eventContent =
+    if content.hasKey("content") and content["content"].kind == JObject:
+      content["content"]
+    else:
+      content
+  if roomId.len == 0 or eventContent.kind != JObject:
+    return
+  for eventId, receiptTypes in eventContent:
+    if receiptTypes.kind != JObject:
+      continue
+    let readUsers =
+      if receiptTypes.hasKey("m.read") and receiptTypes["m.read"].kind == JObject:
+        receiptTypes["m.read"]
+      else:
+        newJNull()
+    if readUsers.kind != JObject:
+      continue
+    for userId, data in readUsers:
+      var update = newJObject()
+      var eventIds = newJArray()
+      eventIds.add(%eventId)
+      update["event_ids"] = eventIds
+      update["data"] =
+        if data.kind == JObject:
+          data
+        else:
+          newJObject()
+      state.handleFederationReceiptUpdateLocked(origin, roomId, userId, update)
+
+proc handleFederationDirectToDeviceEduLocked(
+    state: ServerState;
+    origin: string;
+    content: JsonNode
+) =
+  if content.kind != JObject:
+    return
+  let sender = content{"sender"}.getStr("")
+  let eventType = content{"type"}.getStr(content{"event_type"}.getStr(""))
+  let messageId = content{"message_id"}.getStr(content{"txn_id"}.getStr(""))
+  if sender.len == 0 or eventType.len == 0 or messageId.len == 0:
+    return
+  if serverNameFromUserId(sender) != origin:
+    return
+  let transactionKey = toDeviceTxnKey(sender, "", messageId)
+  if transactionKey in state.toDeviceTxnIds:
+    return
+
+  let messages = content{"messages"}
+  if messages.kind == JObject:
+    for targetUserId, deviceMap in messages:
+      if targetUserId.len == 0 or deviceMap.kind != JObject:
+        continue
+      for rawDeviceId, eventContent in deviceMap:
+        if rawDeviceId.len == 0:
+          continue
+        for targetDeviceId in state.toDeviceTargetDeviceIds(targetUserId, rawDeviceId):
+          state.storeToDeviceEventLocked(
+            targetUserId,
+            targetDeviceId,
+            sender,
+            eventType,
+            messageId,
+            eventContent,
+          )
+
+  state.toDeviceTxnIds.incl(transactionKey)
+
+proc handleFederationSigningKeyUpdateLocked(
+    state: ServerState;
+    origin: string;
+    content: JsonNode
+) =
+  if content.kind != JObject:
+    return
+  let userId = content{"user_id"}.getStr("")
+  if userId.len == 0 or serverNameFromUserId(userId) != origin:
+    return
+  let masterKey = content{"master_key"}
+  if masterKey.kind == JObject:
+    state.storeCrossSigningKeyLocked(userId, "master", masterKey)
+  let selfSigningKey = content{"self_signing_key"}
+  if selfSigningKey.kind == JObject:
+    state.storeCrossSigningKeyLocked(userId, "self_signing", selfSigningKey)
+
+proc handleFederationDeviceListUpdateLocked(
+    state: ServerState;
+    origin: string;
+    content: JsonNode
+) =
+  if content.kind != JObject:
+    return
+  let userId = content{"user_id"}.getStr("")
+  if userId.len == 0 or serverNameFromUserId(userId) != origin:
+    return
+  state.markDeviceListUpdateLocked(userId)
+
 proc federationSendTransactionLocked(
     state: ServerState;
     origin, txnId: string;
     body: JsonNode
 ): JsonNode =
   var pduResults = newJObject()
-  let pdus = body{"pdus"}
-  if pdus.kind == JArray:
+  let pdus =
+    if body != nil and body.kind == JObject and body.hasKey("pdus"): body["pdus"]
+    else: nil
+  if pdus != nil and pdus.kind == JArray:
     for pdu in pdus:
       let fallbackId = pdu{"event_id"}.getStr("$txn_" & txnId & "_" & $pduResults.len)
       let appended = state.appendFederationPduLocked(pdu, "", fallbackId, "", "", "")
@@ -6489,8 +7004,10 @@ proc federationSendTransactionLocked(
       else:
         pduResults[fallbackId] = matrixError(appended.errcode, appended.message)
 
-  let edus = body{"edus"}
-  if edus.kind == JArray:
+  let edus =
+    if body != nil and body.kind == JObject and body.hasKey("edus"): body["edus"]
+    else: nil
+  if edus != nil and edus.kind == JArray:
     for edu in edus:
       if edu.kind != JObject:
         continue
@@ -6504,16 +7021,42 @@ proc federationSendTransactionLocked(
       of "m.typing":
         let roomId = content{"room_id"}.getStr("")
         let userId = content{"user_id"}.getStr("")
-        if roomId.len > 0 and userId.len > 0 and roomId in state.rooms:
-          state.setTypingLocked(roomId, userId, content{"typing"}.getBool(false), 30000)
+        if roomId.len > 0 and userId.len > 0 and serverNameFromUserId(userId) == origin and
+            roomId in state.rooms and state.rooms[roomId].members.getOrDefault(userId, "") == "join":
+          state.setTypingExpiryLocked(
+            roomId,
+            userId,
+            content{"typing"}.getBool(false),
+            nowMs() + max(0'i64, state.typingFederationTimeoutMs),
+          )
+      of "m.receipt":
+        state.handleFederationReceiptEduLocked(origin, content)
+      of "m.direct_to_device":
+        state.handleFederationDirectToDeviceEduLocked(origin, content)
+      of "m.signing_key_update":
+        state.handleFederationSigningKeyUpdateLocked(origin, content)
+      of "m.device_list_update":
+        state.handleFederationDeviceListUpdateLocked(origin, content)
       of "m.presence":
         let push = content{"push"}
         if push.kind == JArray:
           for update in push:
             let userId = update{"user_id"}.getStr("")
             let presence = update{"presence"}.getStr("online").toLowerAscii()
-            if userId.len > 0 and isValidPresenceValue(presence):
-              discard state.setPresenceLocked(userId, presence, update{"status_msg"}.getStr(""))
+            if userId.len > 0 and serverNameFromUserId(userId) == origin and
+                isValidPresenceValue(presence):
+              let lastActiveAgo =
+                if update.hasKey("last_active_ago"):
+                  some(max(0'i64, update{"last_active_ago"}.getInt(0).int64))
+                else:
+                  none(int64)
+              discard state.setPresenceLocked(
+                userId,
+                presence,
+                update{"status_msg"}.getStr(""),
+                some(update{"currently_active"}.getBool(presence == "online")),
+                lastActiveAgo,
+              )
       else:
         discard
 
