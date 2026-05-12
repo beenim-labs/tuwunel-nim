@@ -8,6 +8,8 @@ proc newCompatState(statePath: string): ServerState =
   result = ServerState(
     statePath: statePath,
     serverName: "localhost",
+    serverKeyId: "",
+    serverSigningSeed: "",
     streamPos: 0,
     deliveryCounter: 0,
     roomCounter: 0,
@@ -1512,7 +1514,10 @@ suite "entrypoint compat helpers":
     check wellKnownClientPayload(wellKnownCfg).payload["org.matrix.msc4143.rtc_foci"][0]["livekit_service_url"].getStr("") == "https://rtc.example"
     check wellKnownSupportPayload(wellKnownCfg).payload["contacts"][0]["email_address"].getStr("") == "admin@example.test"
     check wellKnownServerPayload(wellKnownCfg).payload["m.server"].getStr("") == "matrix.example:443"
-    check serverKeysPayload("localhost")["verify_keys"].len == 1
+    let serverKeys = serverKeysPayload(state)
+    check serverKeys.ok
+    check serverKeys.payload["verify_keys"].len == 1
+    check not ($serverKeys.payload).contains("native-nim-placeholder-signature")
 
     var turnCfg = initFlatConfig()
     check not turnServerPayload(turnCfg, "localhost", "@alice:localhost").ok

@@ -1,4 +1,4 @@
-import std/[algorithm, asynchttpserver, asyncdispatch, base64, httpclient, json, locks, options, os, random, re, sets, sha1, strformat, strutils, tables, times, uri]
+import std/[algorithm, asynchttpserver, asyncdispatch, httpclient, json, locks, options, os, random, re, sets, strformat, strutils, tables, times, uri]
 import main/args
 import core/logging
 import core/config_loader
@@ -9,6 +9,9 @@ import api/client/tuwunel as tuwunel_api
 import api/client/voip as client_voip
 import api/client/rtc as client_rtc
 import api/server/edu_types as server_edu_types
+import api/server/key as server_key_api
+import core/crypto/ed25519
+import core/matrix/server_signing
 
 proc boolEnv(name: string; defaultValue = false): bool =
   let raw = getEnv(name)
@@ -829,6 +832,8 @@ type
     lock: Lock
     statePath: string
     serverName: string
+    serverKeyId: string
+    serverSigningSeed: string
     streamPos: int64
     deliveryCounter: int64
     roomCounter: int64
@@ -1925,6 +1930,11 @@ proc toPersistentJson(state: ServerState): JsonNode =
   root["stream_pos"] = %state.streamPos
   root["delivery_counter"] = %state.deliveryCounter
   root["room_counter"] = %state.roomCounter
+  if state.serverKeyId.len > 0 and state.serverSigningSeed.len > 0:
+    root["server_signing_key"] = %*{
+      "key_id": state.serverKeyId,
+      "seed": state.serverSigningSeed,
+    }
 
   var users = newJArray()
   for _, user in state.users:
@@ -2381,7 +2391,9 @@ proc loadPersistentState(path: string): tuple[
     reports: seq[ReportRecord],
     streamPos: int64,
     deliveryCounter: int64,
-    roomCounter: int64
+    roomCounter: int64,
+    serverKeyId: string,
+    serverSigningSeed: string
 ] =
   result = (
     usersByName: initTable[string, string](),
@@ -2418,7 +2430,9 @@ proc loadPersistentState(path: string): tuple[
     reports: @[],
     streamPos: 0'i64,
     deliveryCounter: 0'i64,
-    roomCounter: 0'i64
+    roomCounter: 0'i64,
+    serverKeyId: "",
+    serverSigningSeed: ""
   )
 
   if not fileExists(path):
@@ -2430,6 +2444,9 @@ proc loadPersistentState(path: string): tuple[
     result.deliveryCounter = root{"delivery_counter"}.getInt(0).int64
     result.roomCounter = root{"room_counter"}.getInt(0).int64
     result.backupCounter = root{"backup_counter"}.getInt(0).int64
+    if root.hasKey("server_signing_key") and root["server_signing_key"].kind == JObject:
+      result.serverKeyId = root["server_signing_key"]{"key_id"}.getStr("")
+      result.serverSigningSeed = root["server_signing_key"]{"seed"}.getStr("")
 
     if root.hasKey("users") and root["users"].kind == JArray:
       for node in root["users"]:
@@ -3300,6 +3317,8 @@ proc newServerState(cfg: FlatConfig; serverName: string): ServerState =
   result = ServerState(
     statePath: statePath,
     serverName: serverName,
+    serverKeyId: loaded.serverKeyId,
+    serverSigningSeed: loaded.serverSigningSeed,
     streamPos: loaded.streamPos,
     deliveryCounter: loaded.deliveryCounter,
     roomCounter: loaded.roomCounter,
@@ -5582,30 +5601,56 @@ proc wellKnownServerPayload(cfg: FlatConfig): tuple[ok: bool, payload: JsonNode]
     return (false, newJObject())
   (true, %*{"m.server": server})
 
-proc sha1DigestBytes(data: string): string =
-  let digest = Sha1Digest(secureHash(data))
-  result = newString(digest.len)
-  for idx, value in digest:
-    result[idx] = char(value)
+proc generateServerKeyId(): string =
+  "ed25519:" & randomString("", 8)
 
-proc serverKeysPayload(serverName: string): JsonNode =
-  let keyId = "ed25519:nim"
-  let key = encode(sha1DigestBytes("tuwunel-nim:" & serverName)).strip(trailing = true, chars = {'='})
-  %*{
-    "server_name": serverName,
-    "valid_until_ts": nowMs() + 604800000'i64,
-    "verify_keys": {
-      keyId: {
-        "key": key
-      }
-    },
-    "old_verify_keys": {},
-    "signatures": {
-      serverName: {
-        keyId: "native-nim-placeholder-signature"
-      }
-    }
-  }
+proc ensureServerSigningKeyLocked(
+    state: ServerState
+): tuple[ok: bool, keyId: string, seed: seq[byte], publicKey: seq[byte], created: bool, err: string] =
+  if state.serverSigningSeed.len > 0:
+    let decoded = decodeUnpaddedBase64(state.serverSigningSeed)
+    if decoded.ok and decoded.data.len == Ed25519PrivateSeedLen:
+      let publicKey = publicKeyFromSeed(decoded.data)
+      if publicKey.ok:
+        if state.serverKeyId.len == 0 or not state.serverKeyId.startsWith("ed25519:"):
+          state.serverKeyId = generateServerKeyId()
+          return (true, state.serverKeyId, decoded.data, publicKey.publicKey, true, "")
+        return (true, state.serverKeyId, decoded.data, publicKey.publicKey, false, "")
+      warn("Persisted server signing key is invalid: " & publicKey.err)
+    else:
+      warn("Persisted server signing key is invalid or has the wrong length.")
+
+  let generated = generateKeypair()
+  if not generated.ok:
+    return (false, "", @[], @[], false, generated.err)
+
+  state.serverKeyId = generateServerKeyId()
+  state.serverSigningSeed = encodeUnpaddedBase64(generated.keypair.seed)
+  (true, state.serverKeyId, generated.keypair.seed, generated.keypair.publicKey, true, "")
+
+proc serverKeysPayload(
+    state: ServerState
+): tuple[ok: bool, payload: JsonNode, err: string] =
+  var keyId = ""
+  var seed: seq[byte] = @[]
+  var publicKey: seq[byte] = @[]
+  withLock state.lock:
+    let key = state.ensureServerSigningKeyLocked()
+    if not key.ok:
+      return (false, newJObject(), key.err)
+    keyId = key.keyId
+    seed = key.seed
+    publicKey = key.publicKey
+    if key.created:
+      state.savePersistentState()
+
+  server_key_api.serverKeysPayload(
+    state.serverName,
+    keyId,
+    seed,
+    publicKey,
+    nowMs() + 604800000'i64,
+  )
 
 proc turnServerPayload(
     cfg: FlatConfig;
@@ -12256,7 +12301,11 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if not allowFederation:
         await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Federation is disabled."))
         return
-      await respondJson(req, Http200, serverKeysPayload(serverName))
+      let payloadResult = serverKeysPayload(state)
+      if not payloadResult.ok:
+        await respondJson(req, Http500, matrixError("M_UNKNOWN", "Server signing key unavailable: " & payloadResult.err))
+        return
+      await respondJson(req, Http200, payloadResult.payload)
       return
 
     if path.startsWith("/_matrix/federation/"):
