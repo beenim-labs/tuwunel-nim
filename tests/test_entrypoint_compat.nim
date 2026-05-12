@@ -15,6 +15,9 @@ proc newCompatState(statePath: string): ServerState =
     users: initTable[string, UserProfile](),
     tokens: initTable[string, AccessSession](),
     userTokens: initTable[string, seq[string]](),
+    loginTokens: initTable[string, LoginTokenRecord](),
+    refreshTokens: initTable[string, RefreshTokenRecord](),
+    ssoSessions: initTable[string, SsoSessionRecord](),
     devices: initTable[string, DeviceRecord](),
     rooms: initTable[string, RoomData](),
     accountData: initTable[string, AccountDataRecord](),
@@ -53,6 +56,106 @@ proc newCompatState(statePath: string): ServerState =
   initLock(result.lock)
 
 suite "entrypoint compat helpers":
+  test "federation auth origin parser accepts standard X-Matrix headers":
+    check federationAuthOriginHeader("X-Matrix origin=remote.example,key=ed25519:1,sig=abc") == "remote.example"
+    check federationAuthOriginHeader("X-Matrix origin=\"remote.example\",key=ed25519:1,sig=abc") == "remote.example"
+    check federationAuthOriginHeader("X-Matrix,origin=remote.example,key=ed25519:1,sig=abc") == "remote.example"
+    check federationAuthOriginHeader("Bearer token") == ""
+
+  test "session token helpers issue consume and rotate native tokens":
+    let statePath = getTempDir() / "tuwunel-entrypoint-session-tokens.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.users["@alice:localhost"] = UserProfile(
+      userId: "@alice:localhost",
+      username: "alice",
+      password: "old",
+      displayName: "Alice",
+      avatarUrl: "",
+      blurhash: "",
+      timezone: "",
+      profileFields: initTable[string, JsonNode]()
+    )
+
+    let accessToken = state.addTokenForUser("@alice:localhost", "DEV1", "Device 1")
+    let login = state.createLoginTokenLocked("@alice:localhost", 120000)
+    let consumed = state.consumeLoginTokenLocked(login.loginToken)
+    check consumed.ok
+    check consumed.userId == "@alice:localhost"
+    check state.consumeLoginTokenLocked(login.loginToken).errcode == "M_FORBIDDEN"
+
+    let refresh = state.createRefreshTokenLocked("@alice:localhost", "DEV1", 604800000)
+    let rotated = state.refreshAccessTokenLocked(refresh.refreshToken, "Device 1", 604800000)
+    check rotated.ok
+    check rotated.accessToken.len > 0
+    check rotated.refreshToken.startsWith("refresh_")
+    check accessToken notin state.tokens
+    check rotated.accessToken in state.tokens
+    check refresh.refreshToken notin state.refreshTokens
+    check rotated.refreshToken in state.refreshTokens
+
+  test "SSO provider helpers create sessions redirects and login tokens":
+    var cfg = initFlatConfig()
+    cfg["global.identity_provider.client_id"] = newStringValue("test-idp")
+    cfg["global.identity_provider.brand"] = newStringValue("Example")
+    cfg["global.identity_provider.name"] = newStringValue("Example Login")
+    cfg["global.identity_provider.authorization_url"] = newStringValue("https://idp.example/authorize")
+    cfg["global.identity_provider.callback_url"] = newStringValue("https://matrix.example/_matrix/client/unstable/login/sso/callback/test-idp")
+    cfg["global.identity_provider.scope"] = newArrayValue(@[newStringValue("openid"), newStringValue("profile")])
+
+    let providerOpt = ssoProviderFromConfig(cfg)
+    check providerOpt.isSome
+    let provider = providerOpt.get()
+    check provider.id == "test-idp"
+    check provider.providerMatches("Example")
+    let loginFlows = loginTypesResponseWithSso(cfg)
+    check loginFlows["flows"][^1]["type"].getStr("") == "m.login.sso"
+    check loginFlows["flows"][^1]["identity_providers"][0]["id"].getStr("") == "test-idp"
+
+    let barePath = ssoLoginPathParts("/_matrix/client/v3/login/sso/redirect")
+    check barePath.ok
+    check barePath.providerId == ""
+    let providerPath = ssoLoginPathParts("/_matrix/client/v3/login/sso/redirect/test-idp")
+    check providerPath.ok
+    check providerPath.providerId == "test-idp"
+    check ssoCallbackProviderId("/_matrix/client/unstable/login/sso/callback/test-idp") == "test-idp"
+
+    let statePath = getTempDir() / "tuwunel-entrypoint-sso.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+    state.users["@alice:localhost"] = UserProfile(
+      userId: "@alice:localhost",
+      username: "alice",
+      password: "pw",
+      displayName: "Alice",
+      avatarUrl: "",
+      blurhash: "",
+      timezone: "",
+      profileFields: initTable[string, JsonNode]()
+    )
+    let loginToken = state.createLoginTokenLocked("@alice:localhost", 120000)
+    let session = state.createSsoSessionLocked(provider, "https://client.example/done", loginToken.loginToken)
+    check session.userId == "@alice:localhost"
+    check session.sessionId in state.ssoSessions
+    let location = ssoAuthorizationLocation(provider, session)
+    check location.startsWith("https://idp.example/authorize?")
+    check location.contains("client_id=test-idp")
+    check location.contains("state=" & encodeUrl(session.sessionId))
+    check ssoCookie(session, provider).contains("tuwunel_grant_session=")
+
+    let completed = state.ensureSsoUserLocked(provider, session, newJObject())
+    check completed.ok
+    check completed.userId == "@alice:localhost"
+    let callbackToken = state.createLoginTokenLocked(completed.userId, 120000)
+    check callbackToken.loginToken in state.loginTokens
+
   test "joinedMembersPayload includes only joined users with profile data":
     let statePath = getTempDir() / "tuwunel-entrypoint-compat-state.json"
     var state = newCompatState(statePath)
@@ -124,13 +227,30 @@ suite "entrypoint compat helpers":
     check meta.contentType == "text/plain"
     check meta.fileName == "hello.txt"
     check readFile(mediaDataPath(state.statePath, mediaId)) == "hello"
+    let loaded = loadStoredMedia(state, mediaId)
+    check loaded.ok
+    check loaded.body == "hello"
+    check loaded.contentType == "text/plain"
+    check mediaContentDisposition(loaded.fileName) == "inline; filename=\"hello.txt\""
 
   test "media path helpers recognize upload and download aliases":
     check isMediaUploadPath("/_matrix/media/v3/upload")
     check isMediaUploadPath("/_matrix/client/v1/media/upload")
+    check isMediaPreviewPath("/_matrix/client/v1/media/preview_url")
     let parsed = mediaDownloadParts("/_matrix/client/v1/media/download/localhost/abc123/test.png")
     check parsed.ok
     check parsed.mediaId == "abc123"
+    let thumb = mediaDownloadParts("/_matrix/media/v3/thumbnail/localhost/thumb123")
+    check thumb.ok
+    check thumb.mediaId == "thumb123"
+    let fedDownload = federationMediaPathParts("/_matrix/federation/v1/media/download/fed123")
+    check fedDownload.ok
+    check not fedDownload.thumbnail
+    check fedDownload.mediaId == "fed123"
+    let fedThumbnail = federationMediaPathParts("/_matrix/federation/v1/media/thumbnail/fedthumb")
+    check fedThumbnail.ok
+    check fedThumbnail.thumbnail
+    check fedThumbnail.mediaId == "fedthumb"
 
   test "entrypoint only has one sync route handler":
     check EntrypointSource.count("if isSyncPath(path):") == 1
@@ -144,7 +264,7 @@ suite "entrypoint compat helpers":
     defer:
       deinitLock(state.lock)
 
-    discard state.appendEventLocked(
+    let ev = state.appendEventLocked(
       "!room:localhost",
       "@creator:localhost",
       "m.room.power_levels",
@@ -152,6 +272,30 @@ suite "entrypoint compat helpers":
       defaultPowerLevelsContent("@creator:localhost")
     )
     check stateKey("m.room.power_levels", "") in state.rooms["!room:localhost"].stateByKey
+    check stateEventResponsePayload(ev, "")["users"]["@creator:localhost"].getInt(0) == 100
+    let formatted = stateEventResponsePayload(ev, "event")
+    check formatted["event_id"].getStr("").len > 0
+    check formatted["state_key"].getStr("missing") == ""
+    check formatted["content"]["users"]["@creator:localhost"].getInt(0) == 100
+
+  test "empty-key state aliases parse stable and trailing-slash routes":
+    let v3 = roomAndStateEventFromPath("/_matrix/client/v3/rooms/!room%3Alocalhost/state/m.room.power_levels")
+    check v3.ok
+    check v3.roomId == "!room:localhost"
+    check v3.eventType == "m.room.power_levels"
+    check v3.stateKeyValue == ""
+
+    let v3Slash = roomAndStateEventFromPath("/_matrix/client/v3/rooms/!room%3Alocalhost/state/m.room.power_levels/")
+    check v3Slash.ok
+    check v3Slash.stateKeyValue == ""
+
+    let r0 = roomAndStateEventFromPath("/_matrix/client/r0/rooms/!room%3Alocalhost/state/m.room.name")
+    check r0.ok
+    check r0.eventType == "m.room.name"
+
+    let r0Slash = roomAndStateEventFromPath("/_matrix/client/r0/rooms/!room%3Alocalhost/state/m.room.name/")
+    check r0Slash.ok
+    check r0Slash.stateKeyValue == ""
 
   test "appendEventLocked stores top-level redacts for redaction events":
     let statePath = getTempDir() / "tuwunel-entrypoint-redact.json"
@@ -425,6 +569,57 @@ suite "entrypoint compat helpers":
     check notifications["notifications"][0]["event"]["event_id"].getStr("") == bobMessage.eventId
     check notifications["notifications"][0]["actions"][0].getStr("") == "notify"
     check state.notificationsPayload("@alice:localhost", "0", "highlight", 10)["notifications"].len == 0
+
+  test "sliding sync v5 returns native room windows and extension state":
+    let statePath = getTempDir() / "tuwunel-entrypoint-sync-v5.json"
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+
+    check isSyncV5Path("/_matrix/client/unstable/org.matrix.simplified_msc3575/sync")
+    state.users["@alice:localhost"] = UserProfile(
+      userId: "@alice:localhost",
+      username: "alice",
+      password: "pw",
+      displayName: "Alice",
+      avatarUrl: "",
+      blurhash: "",
+      timezone: "",
+      profileFields: initTable[string, JsonNode]()
+    )
+    state.rooms["!room:localhost"] = RoomData(
+      roomId: "!room:localhost",
+      creator: "@alice:localhost",
+      isDirect: false,
+      members: initTable[string, string](),
+      timeline: @[],
+      stateByKey: initTable[string, MatrixEventRecord]()
+    )
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.member", "@alice:localhost", membershipContent("join"))
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.name", "", %*{"name": "Sync V5"})
+    discard state.appendEventLocked("!room:localhost", "@alice:localhost", "m.room.message", "", %*{"msgtype": "m.text", "body": "hello v5"})
+
+    let payload = state.slidingSyncV5Payload(
+      "@alice:localhost",
+      "DEV1",
+      %*{
+        "txn_id": "txn-v5",
+        "lists": {
+          "main": {
+            "ranges": [[0, 0]]
+          }
+        }
+      },
+      0
+    )
+    check payload["txn_id"].getStr("") == "txn-v5"
+    check payload["pos"].getStr("").len > 0
+    check payload["lists"]["main"]["count"].getInt(0) == 1
+    check payload["lists"]["main"]["ops"][0]["room_ids"][0].getStr("") == "!room:localhost"
+    check payload["rooms"]["!room:localhost"]["name"].getStr("") == "Sync V5"
+    check payload["rooms"]["!room:localhost"]["timeline"].len >= 3
+    check payload["rooms"]["!room:localhost"]["required_state"].len >= 2
+    check payload["extensions"]["e2ee"].hasKey("device_one_time_keys_count")
 
   test "relations and threads return persisted timeline relations":
     let statePath = getTempDir() / "tuwunel-entrypoint-relations.json"
@@ -1003,6 +1198,20 @@ suite "entrypoint compat helpers":
 
     check thirdPartyProtocolsPayload().len == 0
     check accountThreepidsPayload()["threepids"].len == 0
+
+    var wellKnownCfg = initFlatConfig()
+    check not wellKnownClientPayload(wellKnownCfg).ok
+    check not wellKnownSupportPayload(wellKnownCfg).ok
+    check not wellKnownServerPayload(wellKnownCfg).ok
+    wellKnownCfg["well_known.client"] = newStringValue("https://client.example")
+    wellKnownCfg["support_page"] = newStringValue("https://support.example")
+    wellKnownCfg["support_role"] = newStringValue("m.role.admin")
+    wellKnownCfg["support_email"] = newStringValue("admin@example.test")
+    wellKnownCfg["well_known.server"] = newStringValue("matrix.example:443")
+    check wellKnownClientPayload(wellKnownCfg).payload["m.homeserver"]["base_url"].getStr("") == "https://client.example"
+    check wellKnownSupportPayload(wellKnownCfg).payload["contacts"][0]["email_address"].getStr("") == "admin@example.test"
+    check wellKnownServerPayload(wellKnownCfg).payload["m.server"].getStr("") == "matrix.example:443"
+    check serverKeysPayload("localhost")["verify_keys"].len == 1
 
     var turnCfg = initFlatConfig()
     check not turnServerPayload(turnCfg, "localhost", "@alice:localhost").ok

@@ -2,9 +2,9 @@
   "summary": {
     "total_routes": 207,
     "registered_routes": 207,
-    "behavioral_routes": 173,
+    "behavioral_routes": 204,
     "compatibility_shell_routes": 0,
-    "fallback_routes": 34
+    "fallback_routes": 3
   },
   "behavioral_slices": [
     {
@@ -343,7 +343,96 @@
         "create_invite_route"
       ],
       "evidence": [
-        "tests/test_entrypoint_compat.nim: federation transaction and membership helpers mutate native room state"
+        "tests/test_entrypoint_compat.nim: federation auth origin parser accepts standard X-Matrix headers",
+        "tests/test_entrypoint_compat.nim: federation transaction and membership helpers mutate native room state",
+        "manual HTTP smoke: real tuwunel binary accepted X-Matrix authenticated make_join, send_join, send transaction, make_knock, send_knock, make_leave, send_leave, and invite, then exposed the federated event and invite through client APIs"
+      ]
+    },
+    {
+      "description": "Client session and account mutation routes backed by native Nim user, device, access-token, login-token, refresh-token, and registration-token state.",
+      "routes": [
+        "login_token_route",
+        "refresh_token_route",
+        "change_password_route",
+        "deactivate_route",
+        "request_3pid_management_token_via_email_route",
+        "request_3pid_management_token_via_msisdn_route",
+        "check_registration_token_validity"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: session token helpers issue consume and rotate native tokens",
+        "manual HTTP smoke: real tuwunel binary validated registration tokens, rotated refresh tokens, issued and consumed login tokens, changed passwords, denied unsupported 3PID management tokens, invalidated logout/logout-all tokens, and deactivated a user"
+      ]
+    },
+    {
+      "description": "Well-known discovery, server key publication, and Tuwunel local-count routes backed by native Nim config and user state.",
+      "routes": [
+        "well_known_support",
+        "well_known_client",
+        "well_known_server",
+        "/_matrix/key/v2/server",
+        "/_matrix/key/v2/server/{key_id}",
+        "/_tuwunel/local_user_count"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: client compatibility payloads return Matrix-shaped empty or local state",
+        "manual HTTP smoke: real tuwunel binary served configured .well-known client, support, server discovery, key v2 server responses, deprecated key lookup, and local_user_count from native Nim state"
+      ]
+    },
+    {
+      "description": "Client media upload, config, preview, download, filename download, thumbnail, and legacy media routes backed by native Nim media files and metadata.",
+      "routes": [
+        "create_content_route",
+        "get_media_config_route",
+        "get_media_preview_route",
+        "get_content_route",
+        "get_content_as_filename_route",
+        "get_content_thumbnail_route",
+        "get_media_config_legacy_route",
+        "get_media_preview_legacy_route",
+        "get_content_legacy_route",
+        "get_content_as_filename_legacy_route",
+        "get_content_thumbnail_legacy_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: media upload helpers persist data and metadata",
+        "tests/test_entrypoint_compat.nim: media path helpers recognize upload and download aliases",
+        "manual HTTP smoke: real tuwunel binary served media v3, v1, and client-v1 config, upload, download, thumbnail, and preview_url from native Nim storage"
+      ]
+    },
+    {
+      "description": "Federation authenticated media download and thumbnail routes backed by the same native Nim media file store as client media.",
+      "routes": [
+        "get_content_route",
+        "get_content_thumbnail_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: media upload helpers persist data and metadata",
+        "tests/test_entrypoint_compat.nim: media path helpers recognize upload and download aliases",
+        "manual HTTP smoke: real tuwunel binary served authenticated federation media download and thumbnail responses from native Nim storage"
+      ]
+    },
+    {
+      "description": "Client empty-state-key room state aliases match Rust manual routes, including trailing slash aliases and event-or-content response formatting.",
+      "routes": [
+        "/_matrix/client/r0/rooms/{room_id}/state/{event_type}",
+        "/_matrix/client/v3/rooms/{room_id}/state/{event_type}",
+        "/_matrix/client/r0/rooms/{room_id}/state/{event_type}/",
+        "/_matrix/client/v3/rooms/{room_id}/state/{event_type}/"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: appendEventLocked indexes empty-key state events",
+        "tests/test_entrypoint_compat.nim: empty-key state aliases parse stable and trailing-slash routes"
+      ]
+    },
+    {
+      "description": "Sliding sync v5 route backed by native Nim joined-room windows, room state, timeline events, account data, to-device queues, and E2EE key counters.",
+      "routes": [
+        "sync_events_v5_route"
+      ],
+      "evidence": [
+        "tests/test_entrypoint_compat.nim: sliding sync v5 returns native room windows and extension state",
+        "manual HTTP smoke: real tuwunel binary served simplified sliding sync v5 room windows and extension state from native Nim state"
       ]
     },
     {

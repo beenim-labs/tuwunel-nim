@@ -191,17 +191,29 @@ proc respondJson(req: Request; code: HttpCode; payload: JsonNode): Future[void] 
   })
   req.respond(code, $payload, headers)
 
+proc respondRedirect(req: Request; location: string; cookie = ""): Future[void] =
+  let headers = newHttpHeaders({
+    "Location": location,
+    "Cache-Control": "no-store",
+  })
+  if cookie.len > 0:
+    headers["Set-Cookie"] = cookie
+  req.respond(Http302, "", headers)
+
 proc respondRaw(
     req: Request;
     code: HttpCode;
     body: string;
     contentType = "application/octet-stream";
-    cacheControl = "no-store"
+    cacheControl = "no-store";
+    contentDisposition = ""
 ): Future[void] =
   let headers = newHttpHeaders({
     "Content-Type": contentType,
     "Cache-Control": cacheControl,
   })
+  if contentDisposition.len > 0:
+    headers["Content-Disposition"] = contentDisposition
   req.respond(code, body, headers)
 
 proc hasAccessToken(req: Request): bool =
@@ -218,11 +230,17 @@ proc hasFederationAuth(req: Request): bool =
     return false
   req.headers["Authorization"].strip().toLowerAscii().startsWith("x-matrix")
 
-proc federationAuthOrigin(req: Request): string =
-  if not req.headers.hasKey("Authorization"):
-    return ""
-  let raw = req.headers["Authorization"]
-  for part in raw.split(','):
+proc federationAuthOriginHeader(raw: string): string =
+  var auth = raw.strip()
+  if auth.toLowerAscii().startsWith("x-matrix"):
+    auth =
+      if auth.len > "x-matrix".len:
+        auth["x-matrix".len .. ^1].strip()
+      else:
+        ""
+    if auth.startsWith(","):
+      auth = auth[1 .. ^1].strip()
+  for part in auth.split(','):
     let trimmed = part.strip()
     let eq = trimmed.find('=')
     if eq < 0:
@@ -234,6 +252,11 @@ proc federationAuthOrigin(req: Request): string =
     value = value.strip(chars = {'"'})
     return value
   ""
+
+proc federationAuthOrigin(req: Request): string =
+  if not req.headers.hasKey("Authorization"):
+    return ""
+  federationAuthOriginHeader(req.headers["Authorization"])
 
 proc resolveRouteName(path: string): string =
   case path
@@ -290,6 +313,10 @@ proc routeNeedsAccessToken(routeName: string): bool =
 
 proc isSyncPath(path: string): bool =
   path == "/_matrix/client/v3/sync" or path == "/_matrix/client/r0/sync"
+
+proc isSyncV5Path(path: string): bool =
+  path == "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync" or
+    path == "/_matrix/client/unstable/org.matrix.msc3575/sync"
 
 proc queryParam(req: Request; key: string): string =
   let query = req.url.query
@@ -621,6 +648,43 @@ type
     expiresAtMs: int64
     streamPos: int64
 
+  LoginTokenRecord = object
+    loginToken: string
+    userId: string
+    expiresAtMs: int64
+
+  RefreshTokenRecord = object
+    refreshToken: string
+    userId: string
+    deviceId: string
+    expiresAtMs: int64
+
+  SsoSessionRecord = object
+    sessionId: string
+    idpId: string
+    redirectUrl: string
+    codeVerifier: string
+    nonce: string
+    userId: string
+    expiresAtMs: int64
+
+  SsoProvider = object
+    id: string
+    brand: string
+    name: string
+    icon: string
+    clientId: string
+    clientSecret: string
+    authorizationUrl: string
+    tokenUrl: string
+    userInfoUrl: string
+    callbackUrl: string
+    scope: seq[string]
+    defaultProvider: bool
+    registration: bool
+    checkCookie: bool
+    grantSessionTtlMs: int64
+
   RoomData = object
     roomId: string
     creator: string
@@ -663,6 +727,9 @@ type
     users: Table[string, UserProfile]
     tokens: Table[string, AccessSession]
     userTokens: Table[string, seq[string]]
+    loginTokens: Table[string, LoginTokenRecord]
+    refreshTokens: Table[string, RefreshTokenRecord]
+    ssoSessions: Table[string, SsoSessionRecord]
     devices: Table[string, DeviceRecord]
     rooms: Table[string, RoomData]
     accountData: Table[string, AccountDataRecord]
@@ -1098,6 +1165,29 @@ proc loadStoredMediaMeta(
   except CatchableError:
     (false, "application/octet-stream", "")
 
+proc safeHeaderFileName(fileName: string): string =
+  result = ""
+  for ch in fileName:
+    if ch in {'\r', '\n', '"', '\\', ';'}:
+      result.add('_')
+    else:
+      result.add(ch)
+
+proc mediaContentDisposition(fileName: string): string =
+  if fileName.len == 0:
+    return "inline"
+  "inline; filename=\"" & safeHeaderFileName(fileName) & "\""
+
+proc loadStoredMedia(
+    state: ServerState,
+    mediaId: string
+): tuple[ok: bool, body: string, contentType: string, fileName: string] =
+  let mediaPath = mediaDataPath(state.statePath, mediaId)
+  if not fileExists(mediaPath):
+    return (false, "", "application/octet-stream", "")
+  let meta = loadStoredMediaMeta(state, mediaId)
+  (true, readFile(mediaPath), meta.contentType, meta.fileName)
+
 proc getConfigStringArray(cfg: FlatConfig; key: string): seq[string] =
   result = @[]
   if key notin cfg:
@@ -1127,6 +1217,276 @@ proc getConfigStringArray(cfg: FlatConfig; keys: openArray[string]): seq[string]
   for key in keys:
     result.add(getConfigStringArray(cfg, key))
 
+proc ssoConfigString(cfg: FlatConfig; name, fallback: string): string =
+  getConfigString(
+    cfg,
+    [
+      "global.identity_provider." & name,
+      "identity_provider." & name,
+      "global." & name,
+      name,
+    ],
+    fallback,
+  )
+
+proc ssoConfigBool(cfg: FlatConfig; name: string; fallback: bool): bool =
+  getConfigBool(
+    cfg,
+    [
+      "global.identity_provider." & name,
+      "identity_provider." & name,
+      "global." & name,
+      name,
+    ],
+    fallback,
+  )
+
+proc ssoConfigInt(cfg: FlatConfig; name: string; fallback: int): int =
+  getConfigInt(
+    cfg,
+    [
+      "global.identity_provider." & name,
+      "identity_provider." & name,
+      "global." & name,
+      name,
+    ],
+    fallback,
+  )
+
+proc ssoConfigStringArray(cfg: FlatConfig; name: string): seq[string] =
+  getConfigStringArray(
+    cfg,
+    [
+      "global.identity_provider." & name,
+      "identity_provider." & name,
+      "global." & name,
+      name,
+    ],
+  )
+
+proc ssoProviderFromConfig(cfg: FlatConfig): Option[SsoProvider] =
+  let clientId = ssoConfigString(cfg, "client_id", "")
+  let authorizationUrl = ssoConfigString(cfg, "authorization_url", "")
+  if clientId.len == 0 or authorizationUrl.len == 0:
+    return none(SsoProvider)
+  var scope = ssoConfigStringArray(cfg, "scope")
+  if scope.len == 0:
+    scope = @["openid", "email", "profile"]
+  let brand = ssoConfigString(cfg, "brand", clientId).toLowerAscii()
+  let provider = SsoProvider(
+    id: clientId,
+    brand: brand,
+    name: ssoConfigString(cfg, "name", if brand.len > 0: brand else: clientId),
+    icon: ssoConfigString(cfg, "icon", ""),
+    clientId: clientId,
+    clientSecret: ssoConfigString(cfg, "client_secret", ""),
+    authorizationUrl: authorizationUrl,
+    tokenUrl: ssoConfigString(cfg, "token_url", ""),
+    userInfoUrl: ssoConfigString(cfg, "userinfo_url", ""),
+    callbackUrl: ssoConfigString(cfg, "callback_url", ""),
+    scope: scope,
+    defaultProvider: ssoConfigBool(cfg, "default", true),
+    registration: ssoConfigBool(cfg, "registration", true),
+    checkCookie: ssoConfigBool(cfg, "check_cookie", true),
+    grantSessionTtlMs: max(1, ssoConfigInt(cfg, "grant_session_duration", 300)).int64 * 1000'i64,
+  )
+  some(provider)
+
+proc providerMatches(provider: SsoProvider; id: string): bool =
+  id.len == 0 or provider.id == id or provider.clientId == id or
+    (provider.brand.len > 0 and provider.brand.cmpIgnoreCase(id) == 0)
+
+proc ssoProviderPayload(provider: SsoProvider): JsonNode =
+  result = %*{
+    "id": provider.id,
+    "name": provider.name,
+    "brand": provider.brand,
+  }
+  if provider.icon.len > 0:
+    result["icon"] = %provider.icon
+
+proc loginTypesResponseWithSso(cfg: FlatConfig): JsonNode =
+  result = loginTypesResponse()
+  let providerOpt = ssoProviderFromConfig(cfg)
+  if providerOpt.isNone:
+    return
+  var ssoFlow = %*{
+    "type": "m.login.sso",
+    "identity_providers": [ssoProviderPayload(providerOpt.get())],
+  }
+  if getConfigBool(cfg, ["sso_aware_preferred", "global.sso_aware_preferred", "oidc_aware_preferred"], false):
+    ssoFlow["org.matrix.msc3824.oauth_aware"] = %true
+  result["flows"].add(ssoFlow)
+
+proc appendQueryParam(url, key, value: string): string =
+  let sep =
+    if url.contains("?"):
+      if url.endsWith("?") or url.endsWith("&"): "" else: "&"
+    else:
+      "?"
+  url & sep & encodeUrl(key) & "=" & encodeUrl(value)
+
+proc ssoLoginPathParts(path: string): tuple[ok: bool, providerId: string] =
+  const Prefixes = [
+    "/_matrix/client/v3/login/sso/redirect",
+    "/_matrix/client/r0/login/sso/redirect",
+  ]
+  for prefix in Prefixes:
+    if path == prefix:
+      return (true, "")
+    if path.startsWith(prefix & "/"):
+      let providerId = decodeUrl(path[(prefix.len + 1) .. ^1])
+      return (providerId.len > 0, providerId)
+  (false, "")
+
+proc ssoCallbackProviderId(path: string): string =
+  const Prefixes = [
+    "/_matrix/client/unstable/login/sso/callback/",
+    "/_matrix/client/v3/login/sso/callback/",
+    "/_matrix/client/r0/login/sso/callback/",
+  ]
+  for prefix in Prefixes:
+    if path.startsWith(prefix):
+      return decodeUrl(path[prefix.len .. ^1])
+  ""
+
+proc ssoAuthorizationLocation(provider: SsoProvider; session: SsoSessionRecord): string =
+  result = provider.authorizationUrl
+  result = appendQueryParam(result, "client_id", provider.clientId)
+  result = appendQueryParam(result, "state", session.sessionId)
+  result = appendQueryParam(result, "nonce", session.nonce)
+  result = appendQueryParam(result, "scope", provider.scope.join(" "))
+  result = appendQueryParam(result, "response_type", "code")
+  result = appendQueryParam(result, "access_type", "online")
+  result = appendQueryParam(result, "code_challenge_method", "plain")
+  result = appendQueryParam(result, "code_challenge", session.codeVerifier)
+  if provider.callbackUrl.len > 0:
+    result = appendQueryParam(result, "redirect_uri", provider.callbackUrl)
+
+proc ssoCookie(session: SsoSessionRecord; provider: SsoProvider): string =
+  let maxAge = max(1'i64, provider.grantSessionTtlMs div 1000)
+  "tuwunel_grant_session=client_id=" & encodeUrl(provider.clientId) &
+    "&state=" & encodeUrl(session.sessionId) &
+    "&nonce=" & encodeUrl(session.nonce) &
+    "&redirect_uri=" & encodeUrl(session.redirectUrl) &
+    "; Max-Age=" & $maxAge &
+    "; Path=/; SameSite=None; Secure; HttpOnly"
+
+proc createSsoSessionLocked(
+    state: ServerState;
+    provider: SsoProvider;
+    redirectUrl, loginToken: string
+): SsoSessionRecord =
+  var userId = ""
+  if loginToken.len > 0 and loginToken in state.loginTokens:
+    let record = state.loginTokens[loginToken]
+    if record.expiresAtMs > nowMs() and record.userId in state.users:
+      userId = record.userId
+    elif record.expiresAtMs <= nowMs():
+      state.loginTokens.del(loginToken)
+  result = SsoSessionRecord(
+    sessionId: randomString("sso_", 32),
+    idpId: provider.id,
+    redirectUrl: redirectUrl,
+    codeVerifier: randomString("verifier_", 48),
+    nonce: randomString("nonce_", 24),
+    userId: userId,
+    expiresAtMs: nowMs() + provider.grantSessionTtlMs,
+  )
+  state.ssoSessions[result.sessionId] = result
+
+proc userIdFromSsoClaims(state: ServerState; provider: SsoProvider; claims: JsonNode): string =
+  if claims.kind == JObject:
+    for key in ["preferred_username", "username", "login", "email", "name", "sub"]:
+      let raw = claims{key}.getStr("")
+      if raw.len == 0:
+        continue
+      var local = raw
+      let atPos = local.find('@')
+      if atPos > 0:
+        local = local[0 ..< atPos]
+      local = local.toLowerAscii()
+      var cleaned = ""
+      for ch in local:
+        if ch.isAlphaNumeric or ch in {'.', '_', '-', '='}:
+          cleaned.add(ch)
+      if cleaned.len > 0:
+        return "@" & cleaned & ":" & state.serverName
+  "@" & provider.brand & "_" & randomString("", 8).toLowerAscii() & ":" & state.serverName
+
+proc ensureSsoUserLocked(
+    state: ServerState;
+    provider: SsoProvider;
+    session: SsoSessionRecord;
+    claims: JsonNode
+): tuple[ok: bool, userId: string, errcode: string, message: string] =
+  var userId = session.userId
+  if userId.len == 0:
+    userId = state.userIdFromSsoClaims(provider, claims)
+  if userId in state.users:
+    return (true, userId, "", "")
+  if not provider.registration:
+    return (false, "", "M_FORBIDDEN", "Registration from this provider is disabled.")
+  let local = localpartFromUserId(userId)
+  let displayName =
+    if claims.kind == JObject:
+      claims{"name"}.getStr(claims{"preferred_username"}.getStr(local))
+    else:
+      local
+  state.users[userId] = UserProfile(
+    userId: userId,
+    username: local,
+    password: "",
+    displayName: displayName,
+    avatarUrl: if claims.kind == JObject: claims{"picture"}.getStr(claims{"avatar_url"}.getStr("")) else: "",
+    blurhash: "",
+    timezone: "",
+    profileFields: initTable[string, JsonNode](),
+  )
+  if local.len > 0 and local notin state.usersByName:
+    state.usersByName[local] = userId
+  (true, userId, "", "")
+
+{.push warning[Uninit]: off.}
+proc requestSsoUserInfo(
+    provider: SsoProvider;
+    session: SsoSessionRecord;
+    code: string
+): Future[tuple[ok: bool, payload: JsonNode, errcode: string, message: string]] {.async.} =
+  if provider.tokenUrl.len == 0 or provider.userInfoUrl.len == 0:
+    return (false, newJObject(), "M_NOT_IMPLEMENTED", "SSO token and userinfo URLs are not configured.")
+  let tokenBody =
+    "grant_type=authorization_code" &
+    "&code=" & encodeUrl(code) &
+    "&client_id=" & encodeUrl(provider.clientId) &
+    "&code_verifier=" & encodeUrl(session.codeVerifier) &
+    (if provider.clientSecret.len > 0: "&client_secret=" & encodeUrl(provider.clientSecret) else: "") &
+    (if provider.callbackUrl.len > 0: "&redirect_uri=" & encodeUrl(provider.callbackUrl) else: "")
+  try:
+    let client = newAsyncHttpClient()
+    defer:
+      client.close()
+    client.headers = newHttpHeaders({"Content-Type": "application/x-www-form-urlencoded"})
+    let tokenResp = await client.request(provider.tokenUrl, httpMethod = HttpPost, body = tokenBody)
+    if ord(tokenResp.code) < 200 or ord(tokenResp.code) >= 300:
+      return (false, newJObject(), "M_FORBIDDEN", "SSO token exchange failed.")
+    let tokenJson = parseJson(await tokenResp.body)
+    let accessToken = tokenJson{"access_token"}.getStr("")
+    if accessToken.len == 0:
+      return (false, newJObject(), "M_FORBIDDEN", "SSO token response had no access token.")
+    let userClient = newAsyncHttpClient()
+    defer:
+      userClient.close()
+    userClient.headers = newHttpHeaders({"Authorization": "Bearer " & accessToken})
+    let userResp = await userClient.request(provider.userInfoUrl, httpMethod = HttpGet)
+    if ord(userResp.code) < 200 or ord(userResp.code) >= 300:
+      return (false, newJObject(), "M_FORBIDDEN", "SSO userinfo request failed.")
+    let userJson = parseJson(await userResp.body)
+    (true, userJson, "", "")
+  except CatchableError as e:
+    (false, newJObject(), "M_FORBIDDEN", "SSO callback failed: " & e.msg)
+{.pop.}
+
 proc eventToJson(ev: MatrixEventRecord): JsonNode =
   result = %*{
     "event_id": ev.eventId,
@@ -1140,6 +1500,11 @@ proc eventToJson(ev: MatrixEventRecord): JsonNode =
     result["state_key"] = %ev.stateKey
   if ev.redacts.len > 0:
     result["redacts"] = %ev.redacts
+
+proc stateEventResponsePayload(ev: MatrixEventRecord; formatValue: string): JsonNode =
+  if formatValue.strip().toLowerAscii() == "event":
+    return ev.eventToJson()
+  ev.content
 
 proc deviceToJson(device: DeviceRecord): JsonNode =
   result = %*{"device_id": device.deviceId}
@@ -1197,6 +1562,12 @@ proc removeDeviceLocked(state: ServerState; userId, deviceId: string) =
       state.userTokens.del(userId)
     else:
       state.userTokens[userId] = keptTokens
+  var staleRefresh: seq[string] = @[]
+  for token, record in state.refreshTokens:
+    if record.userId == userId and record.deviceId == deviceId:
+      staleRefresh.add(token)
+  for token in staleRefresh:
+    state.refreshTokens.del(token)
 
 proc toPersistentJson(state: ServerState): JsonNode =
   var root = newJObject()
@@ -1232,6 +1603,33 @@ proc toPersistentJson(state: ServerState): JsonNode =
       "issued_at_ms": sess.issuedAtMs
     })
   root["tokens"] = tokens
+
+  var refreshTokens = newJArray()
+  for _, record in state.refreshTokens:
+    if record.expiresAtMs <= nowMs():
+      continue
+    refreshTokens.add(%*{
+      "refresh_token": record.refreshToken,
+      "user_id": record.userId,
+      "device_id": record.deviceId,
+      "expires_at_ms": record.expiresAtMs,
+    })
+  root["refresh_tokens"] = refreshTokens
+
+  var ssoSessions = newJArray()
+  for _, record in state.ssoSessions:
+    if record.expiresAtMs <= nowMs():
+      continue
+    ssoSessions.add(%*{
+      "session_id": record.sessionId,
+      "idp_id": record.idpId,
+      "redirect_url": record.redirectUrl,
+      "code_verifier": record.codeVerifier,
+      "nonce": record.nonce,
+      "user_id": record.userId,
+      "expires_at_ms": record.expiresAtMs,
+    })
+  root["sso_sessions"] = ssoSessions
 
   var openIdTokens = newJArray()
   for _, record in state.openIdTokens:
@@ -1488,6 +1886,8 @@ proc loadPersistentState(path: string): tuple[
     users: Table[string, UserProfile],
     tokens: Table[string, AccessSession],
     userTokens: Table[string, seq[string]],
+    refreshTokens: Table[string, RefreshTokenRecord],
+    ssoSessions: Table[string, SsoSessionRecord],
     devices: Table[string, DeviceRecord],
     rooms: Table[string, RoomData],
     accountData: Table[string, AccountDataRecord],
@@ -1517,6 +1917,8 @@ proc loadPersistentState(path: string): tuple[
     users: initTable[string, UserProfile](),
     tokens: initTable[string, AccessSession](),
     userTokens: initTable[string, seq[string]](),
+    refreshTokens: initTable[string, RefreshTokenRecord](),
+    ssoSessions: initTable[string, SsoSessionRecord](),
     devices: initTable[string, DeviceRecord](),
     rooms: initTable[string, RoomData](),
     accountData: initTable[string, AccountDataRecord](),
@@ -1597,6 +1999,43 @@ proc loadPersistentState(path: string): tuple[
         if userId notin result.userTokens:
           result.userTokens[userId] = @[]
         result.userTokens[userId].add(token)
+
+    if root.hasKey("refresh_tokens") and root["refresh_tokens"].kind == JArray:
+      for node in root["refresh_tokens"]:
+        if node.kind != JObject:
+          continue
+        let refreshToken = node{"refresh_token"}.getStr("")
+        let userId = node{"user_id"}.getStr("")
+        let deviceId = node{"device_id"}.getStr("")
+        let expiresAtMs = node{"expires_at_ms"}.getInt(0).int64
+        if refreshToken.len == 0 or userId.len == 0 or deviceId.len == 0 or expiresAtMs <= nowMs():
+          continue
+        result.refreshTokens[refreshToken] = RefreshTokenRecord(
+          refreshToken: refreshToken,
+          userId: userId,
+          deviceId: deviceId,
+          expiresAtMs: expiresAtMs,
+        )
+
+    if root.hasKey("sso_sessions") and root["sso_sessions"].kind == JArray:
+      for node in root["sso_sessions"]:
+        if node.kind != JObject:
+          continue
+        let sessionId = node{"session_id"}.getStr("")
+        let idpId = node{"idp_id"}.getStr("")
+        let redirectUrl = node{"redirect_url"}.getStr("")
+        let expiresAtMs = node{"expires_at_ms"}.getInt(0).int64
+        if sessionId.len == 0 or idpId.len == 0 or redirectUrl.len == 0 or expiresAtMs <= nowMs():
+          continue
+        result.ssoSessions[sessionId] = SsoSessionRecord(
+          sessionId: sessionId,
+          idpId: idpId,
+          redirectUrl: redirectUrl,
+          codeVerifier: node{"code_verifier"}.getStr(""),
+          nonce: node{"nonce"}.getStr(""),
+          userId: node{"user_id"}.getStr(""),
+          expiresAtMs: expiresAtMs,
+        )
 
     if root.hasKey("openid_tokens") and root["openid_tokens"].kind == JArray:
       for node in root["openid_tokens"]:
@@ -2150,6 +2589,9 @@ proc newServerState(cfg: FlatConfig; serverName: string): ServerState =
     users: loaded.users,
     tokens: loaded.tokens,
     userTokens: loaded.userTokens,
+    loginTokens: initTable[string, LoginTokenRecord](),
+    refreshTokens: loaded.refreshTokens,
+    ssoSessions: loaded.ssoSessions,
     devices: loaded.devices,
     rooms: loaded.rooms,
     accountData: loaded.accountData,
@@ -2212,6 +2654,26 @@ proc addTokenForUser(state: ServerState; userId, deviceId: string; displayName =
     discard state.upsertDeviceLocked(userId, deviceId, displayName)
   token
 
+proc removeTokensForDevice(state: ServerState; userId, deviceId: string; keepToken = "") =
+  var keptTokens: seq[string] = @[]
+  if userId in state.userTokens:
+    for token in state.userTokens[userId]:
+      if token in state.tokens and state.tokens[token].deviceId == deviceId and token != keepToken:
+        state.tokens.del(token)
+      else:
+        keptTokens.add(token)
+    if keptTokens.len == 0:
+      state.userTokens.del(userId)
+    else:
+      state.userTokens[userId] = keptTokens
+
+  var staleRefresh: seq[string] = @[]
+  for token, record in state.refreshTokens:
+    if record.userId == userId and record.deviceId == deviceId:
+      staleRefresh.add(token)
+  for token in staleRefresh:
+    state.refreshTokens.del(token)
+
 proc removeToken(state: ServerState; token: string) =
   if token notin state.tokens:
     return
@@ -2226,14 +2688,87 @@ proc removeToken(state: ServerState; token: string) =
       state.userTokens.del(session.userId)
     else:
       state.userTokens[session.userId] = kept
+  var staleRefresh: seq[string] = @[]
+  for refreshToken, record in state.refreshTokens:
+    if record.userId == session.userId and record.deviceId == session.deviceId:
+      staleRefresh.add(refreshToken)
+  for refreshToken in staleRefresh:
+    state.refreshTokens.del(refreshToken)
 
 proc removeAllTokensForUser(state: ServerState; userId: string) =
   if userId notin state.userTokens:
-    return
-  for token in state.userTokens[userId]:
-    if token in state.tokens:
-      state.tokens.del(token)
-  state.userTokens.del(userId)
+    discard
+  else:
+    for token in state.userTokens[userId]:
+      if token in state.tokens:
+        state.tokens.del(token)
+    state.userTokens.del(userId)
+  var staleRefresh: seq[string] = @[]
+  for refreshToken, record in state.refreshTokens:
+    if record.userId == userId:
+      staleRefresh.add(refreshToken)
+  for refreshToken in staleRefresh:
+    state.refreshTokens.del(refreshToken)
+
+proc createLoginTokenLocked(state: ServerState; userId: string; ttlMs: int64): LoginTokenRecord =
+  let token = randomString("login_", 48)
+  result = LoginTokenRecord(
+    loginToken: token,
+    userId: userId,
+    expiresAtMs: nowMs() + max(1'i64, ttlMs),
+  )
+  state.loginTokens[token] = result
+
+proc consumeLoginTokenLocked(
+    state: ServerState;
+    token: string
+): tuple[ok: bool, userId: string, errcode: string, message: string] =
+  if token.len == 0:
+    return (false, "", "M_MISSING_PARAM", "Missing login token.")
+  if token notin state.loginTokens:
+    return (false, "", "M_FORBIDDEN", "Login token is unrecognized.")
+  let record = state.loginTokens[token]
+  state.loginTokens.del(token)
+  if record.expiresAtMs <= nowMs():
+    return (false, "", "M_FORBIDDEN", "Login token has expired.")
+  if record.userId notin state.users:
+    return (false, "", "M_FORBIDDEN", "Login token user does not exist.")
+  (true, record.userId, "", "")
+
+proc createRefreshTokenLocked(
+    state: ServerState;
+    userId, deviceId: string;
+    ttlMs: int64
+): RefreshTokenRecord =
+  let token = randomString("refresh_", 48)
+  result = RefreshTokenRecord(
+    refreshToken: token,
+    userId: userId,
+    deviceId: deviceId,
+    expiresAtMs: nowMs() + max(1'i64, ttlMs),
+  )
+  state.refreshTokens[token] = result
+
+proc refreshAccessTokenLocked(
+    state: ServerState;
+    refreshToken, displayName: string;
+    refreshTtlMs: int64
+): tuple[ok: bool, accessToken: string, refreshToken: string, expiresInMs: int64, errcode: string, message: string] =
+  if not refreshToken.startsWith("refresh_"):
+    return (false, "", "", 0'i64, "M_FORBIDDEN", "Refresh token is malformed.")
+  if refreshToken notin state.refreshTokens:
+    return (false, "", "", 0'i64, "M_FORBIDDEN", "Refresh token is unrecognized.")
+  let record = state.refreshTokens[refreshToken]
+  if record.expiresAtMs <= nowMs():
+    state.refreshTokens.del(refreshToken)
+    return (false, "", "", 0'i64, "M_FORBIDDEN", "Refresh token has expired.")
+  if record.userId notin state.users:
+    state.refreshTokens.del(refreshToken)
+    return (false, "", "", 0'i64, "M_FORBIDDEN", "Refresh token user does not exist.")
+  state.removeTokensForDevice(record.userId, record.deviceId)
+  let newAccess = state.addTokenForUser(record.userId, record.deviceId, displayName)
+  let newRefresh = state.createRefreshTokenLocked(record.userId, record.deviceId, refreshTtlMs)
+  (true, newAccess, newRefresh.refreshToken, refreshTtlMs, "", "")
 
 proc membershipContent(status: string): JsonNode =
   %*{"membership": status}
@@ -2483,7 +3018,7 @@ proc buildWhoamiPayload(session: AccessSession): JsonNode =
 proc buildCapabilitiesPayload(): JsonNode =
   %*{
     "capabilities": {
-      "m.change_password": {"enabled": false},
+      "m.change_password": {"enabled": true},
       "m.room_versions": {
         "default": "11",
         "available": {
@@ -3445,6 +3980,74 @@ proc thirdPartyProtocolsPayload(): JsonNode =
 proc accountThreepidsPayload(): JsonNode =
   %*{"threepids": []}
 
+proc wellKnownClientPayload(cfg: FlatConfig): tuple[ok: bool, payload: JsonNode] =
+  let baseUrl = getConfigString(
+    cfg,
+    ["well_known.client", "global.well_known.client", "well_known_client"],
+    "",
+  ).strip()
+  if baseUrl.len == 0:
+    return (false, newJObject())
+  (true, %*{
+    "m.homeserver": {
+      "base_url": baseUrl
+    }
+  })
+
+proc wellKnownSupportPayload(cfg: FlatConfig): tuple[ok: bool, payload: JsonNode] =
+  let supportPage = getConfigString(
+    cfg,
+    ["well_known.support_page", "global.well_known.support_page", "support_page", "global.support_page"],
+    "",
+  ).strip()
+  let role = getConfigString(
+    cfg,
+    ["well_known.support_role", "global.well_known.support_role", "support_role", "global.support_role"],
+    "",
+  ).strip()
+  let email = getConfigString(
+    cfg,
+    ["well_known.support_email", "global.well_known.support_email", "support_email", "global.support_email"],
+    "",
+  ).strip()
+  let mxid = getConfigString(
+    cfg,
+    ["well_known.support_mxid", "global.well_known.support_mxid", "support_mxid", "global.support_mxid"],
+    "",
+  ).strip()
+
+  if supportPage.len == 0 and role.len == 0:
+    return (false, newJObject())
+  if role.len > 0 and email.len == 0 and mxid.len == 0:
+    return (false, newJObject())
+
+  var contacts = newJArray()
+  if role.len > 0:
+    var contact = %*{"role": role}
+    if email.len > 0:
+      contact["email_address"] = %email
+    if mxid.len > 0:
+      contact["matrix_id"] = %mxid
+    contacts.add(contact)
+
+  if contacts.len == 0 and supportPage.len == 0:
+    return (false, newJObject())
+
+  var payload = %*{"contacts": contacts}
+  if supportPage.len > 0:
+    payload["support_page"] = %supportPage
+  (true, payload)
+
+proc wellKnownServerPayload(cfg: FlatConfig): tuple[ok: bool, payload: JsonNode] =
+  let server = getConfigString(
+    cfg,
+    ["well_known.server", "global.well_known.server", "well_known_server"],
+    "",
+  ).strip()
+  if server.len == 0:
+    return (false, newJObject())
+  (true, %*{"m.server": server})
+
 proc sha1DigestBytes(data: string): string =
   let digest = Sha1Digest(secureHash(data))
   result = newString(digest.len)
@@ -3466,6 +4069,25 @@ proc hmacSha1Base64(key, message: string): string =
     inner[idx] = char(value xor 0x36)
     outer[idx] = char(value xor 0x5c)
   encode(outer & sha1DigestBytes(inner & message))
+
+proc serverKeysPayload(serverName: string): JsonNode =
+  let keyId = "ed25519:nim"
+  let key = encode(sha1DigestBytes("tuwunel-nim:" & serverName)).strip(trailing = true, chars = {'='})
+  %*{
+    "server_name": serverName,
+    "valid_until_ts": nowMs() + 604800000'i64,
+    "verify_keys": {
+      keyId: {
+        "key": key
+      }
+    },
+    "old_verify_keys": {},
+    "signatures": {
+      serverName: {
+        keyId: "native-nim-placeholder-signature"
+      }
+    }
+  }
 
 proc turnServerPayload(
     cfg: FlatConfig;
@@ -4401,6 +5023,155 @@ proc roomSummaryPayload(room: RoomData; userId = ""): JsonNode =
   if userId.len > 0:
     result["membership"] = %room.members.getOrDefault(userId, "leave")
 
+proc parseSlidingSyncPos(pos: string): int64 =
+  if pos.len == 0:
+    return 0
+  try:
+    return parseInt(pos).int64
+  except ValueError:
+    parseSinceToken(pos)
+
+proc jsonArrayFromStrings(values: seq[string]): JsonNode =
+  result = newJArray()
+  for value in values:
+    result.add(%value)
+
+proc requestedSlidingSyncRange(listReq: JsonNode; maxIndex: int): tuple[first: int, last: int] =
+  result = (0, maxIndex)
+  if maxIndex < 0:
+    return (0, -1)
+  if listReq != nil and listReq.kind == JObject and listReq.hasKey("ranges") and
+      listReq["ranges"].kind == JArray and listReq["ranges"].len > 0:
+    let firstRange = listReq["ranges"][0]
+    if firstRange.kind == JArray and firstRange.len >= 2:
+      result.first = max(0, min(maxIndex, firstRange[0].getInt(0)))
+      result.last = max(result.first, min(maxIndex, firstRange[1].getInt(maxIndex)))
+
+proc slidingSyncV5Payload(
+    state: ServerState;
+    userId, deviceId: string;
+    request: JsonNode;
+    sincePos: int64
+): JsonNode =
+  state.pruneExpiredTypingLocked()
+  let toPos = state.streamPos
+  let joinedRooms = state.joinedRoomsForUser(userId)
+  var roomIds: seq[string] = @[]
+  for roomId in joinedRooms:
+    if roomId in state.rooms:
+      roomIds.add(roomId)
+  roomIds.sort(system.cmp[string])
+
+  var roomsObj = newJObject()
+  for roomId in roomIds:
+    var room = state.rooms[roomId]
+    discard state.ensureDefaultRoomStateLocked(roomId, userId)
+    room = state.rooms[roomId]
+
+    var timeline = newJArray()
+    for ev in room.timeline:
+      if ev.streamPos > sincePos:
+        timeline.add(ev.eventToJson())
+
+    var requiredState = newJArray()
+    var allState: seq[MatrixEventRecord] = @[]
+    for _, ev in room.stateByKey:
+      allState.add(ev)
+    allState.sort(proc(a, b: MatrixEventRecord): int = cmp(a.streamPos, b.streamPos))
+    for ev in allState:
+      requiredState.add(ev.eventToJson())
+
+    var invitedCount = 0
+    for _, membership in room.members:
+      if membership == "invite":
+        inc invitedCount
+
+    roomsObj[roomId] = %*{
+      "name": room.roomDisplayName(),
+      "is_dm": room.isDirect,
+      "initial": sincePos == 0,
+      "joined_count": room.joinedMemberCount(),
+      "invited_count": invitedCount,
+      "notification_count": 0,
+      "highlight_count": 0,
+      "timeline": timeline,
+      "required_state": requiredState,
+      "prev_batch": encodeSinceToken(sincePos),
+      "limited": false,
+      "num_live": timeline.len,
+      "bump_stamp": toPos,
+    }
+  var listsObj = newJObject()
+  let listsReq = if request != nil and request.kind == JObject and request.hasKey("lists") and
+      request["lists"].kind == JObject: request["lists"] else: newJObject()
+  if listsReq.len == 0:
+    let highIndex = roomIds.len - 1
+    let rangeJson = if highIndex >= 0: %*[0, highIndex] else: %*[0, 0]
+    listsObj["main"] = %*{
+      "count": roomIds.len,
+      "ops": [
+        {
+          "op": "SYNC",
+          "range": rangeJson,
+          "room_ids": jsonArrayFromStrings(roomIds)
+        }
+      ]
+    }
+  else:
+    for listId, listReq in listsReq:
+      let selectedRange = requestedSlidingSyncRange(listReq, roomIds.len - 1)
+      var selected: seq[string] = @[]
+      if selectedRange.last >= selectedRange.first:
+        for idx in selectedRange.first .. selectedRange.last:
+          if idx >= 0 and idx < roomIds.len:
+            selected.add(roomIds[idx])
+      listsObj[listId] = %*{
+        "count": roomIds.len,
+        "ops": [
+          {
+            "op": "SYNC",
+            "range": [selectedRange.first, max(selectedRange.first, selectedRange.last)],
+            "room_ids": jsonArrayFromStrings(selected)
+          }
+        ]
+      }
+
+  let removedToDevice = state.removeToDeviceEventsLocked(userId, deviceId, sincePos)
+  let toDeviceEvents = state.toDeviceEventsForSync(userId, deviceId, sincePos, toPos)
+  if removedToDevice:
+    state.savePersistentState()
+
+  let txnId =
+    if request != nil and request.kind == JObject: request{"txn_id"}.getStr("")
+    else: ""
+  result = %*{
+    "pos": $toPos,
+    "lists": listsObj,
+    "rooms": roomsObj,
+    "extensions": {
+      "to_device": {
+        "next_batch": $toPos,
+        "events": toDeviceEvents
+      },
+      "e2ee": {
+        "device_one_time_keys_count": state.oneTimeKeyCountsLocked(userId, deviceId),
+        "device_unused_fallback_key_types": state.unusedFallbackKeyTypesLocked(userId, deviceId)
+      },
+      "account_data": {
+        "global": state.accountDataEventsForSync(userId, "", sincePos, sincePos == 0),
+        "rooms": {}
+      },
+      "receipts": {
+        "rooms": {}
+      },
+      "typing": {
+        "rooms": {}
+      }
+    }
+  }
+  if txnId.len > 0:
+    result["txn_id"] = %txnId
+
 proc roomHierarchyPayload(
     state: ServerState;
     rootRoomId, userId: string
@@ -4790,7 +5561,9 @@ proc isMediaUploadPath(path: string): bool =
 
 proc isMediaPreviewPath(path: string): bool =
   path.startsWith("/_matrix/media/v3/preview_url") or
-    path.startsWith("/_matrix/media/r0/preview_url")
+    path.startsWith("/_matrix/media/r0/preview_url") or
+    path.startsWith("/_matrix/media/v1/preview_url") or
+    path.startsWith("/_matrix/client/v1/media/preview_url")
 
 proc isProfilePath(path: string): bool =
   path.startsWith("/_matrix/client/v3/profile/") or
@@ -5019,9 +5792,13 @@ proc mediaDownloadParts(path: string): tuple[ok: bool, mediaId: string] =
   let normalized = path.strip()
   let markers = [
     "/_matrix/media/v3/download/",
+    "/_matrix/media/v3/thumbnail/",
     "/_matrix/media/r0/download/",
+    "/_matrix/media/r0/thumbnail/",
     "/_matrix/media/v1/download/",
-    "/_matrix/client/v1/media/download/"
+    "/_matrix/media/v1/thumbnail/",
+    "/_matrix/client/v1/media/download/",
+    "/_matrix/client/v1/media/thumbnail/"
   ]
   var tail = ""
   for marker in markers:
@@ -5138,6 +5915,28 @@ proc isTurnServerPath(path: string): bool =
 
 proc isAccount3pidPath(path: string): bool =
   trimClientPath(path) == "account/3pid"
+
+proc isChangePasswordPath(path: string): bool =
+  trimClientPath(path) == "account/password"
+
+proc isDeactivatePath(path: string): bool =
+  trimClientPath(path) == "account/deactivate"
+
+proc isRequest3pidManagementTokenPath(path: string): bool =
+  let trimmed = trimClientPath(path)
+  trimmed == "account/3pid/email/requestToken" or
+    trimmed == "account/3pid/msisdn/requestToken"
+
+proc isRefreshTokenPath(path: string): bool =
+  trimClientPath(path) == "refresh"
+
+proc isRegistrationTokenValidityPath(path: string): bool =
+  path == "/_matrix/client/v1/register/m.login.registration_token/validity" or
+    trimClientPath(path) == "register/m.login.registration_token/validity"
+
+proc isLoginTokenPath(path: string): bool =
+  path == "/_matrix/client/v1/login/get_token" or
+    trimClientPath(path) == "login/get_token"
 
 proc isNotificationsPath(path: string): bool =
   trimClientPath(path) == "notifications"
@@ -5346,6 +6145,12 @@ proc federationPathParts(path: string): seq[string] =
     return
   for part in trimmed.split('/'):
     result.add(decodePath(part))
+
+proc federationMediaPathParts(path: string): tuple[ok: bool, thumbnail: bool, mediaId: string] =
+  let parts = federationPathParts(path)
+  if parts.len == 3 and parts[0] == "media" and parts[1] in ["download", "thumbnail"]:
+    return (parts[2].len > 0, parts[1] == "thumbnail", parts[2])
+  (false, false, "")
 
 proc findEventLocked(
     state: ServerState;
@@ -5788,6 +6593,8 @@ proc runNativeServer(cfg: LoadedConfig): int =
       let cfgKey = getConfigString(cfg.values, ["gifs.giphy_api_key", "global.gifs.giphy_api_key"], "").strip()
       if cfgKey.len > 0: cfgKey else: "LIVDSRZULELA"
   let gifApiBase = getConfigString(cfg.values, ["gifs.giphy_api_base", "global.gifs.giphy_api_base"], "https://api.giphy.com").strip(trailing = true, chars = {'/'})
+  let loginTokenTtlMs = max(1, getConfigInt(cfg.values, ["login_token_ttl", "global.login_token_ttl"], 120000)).int64
+  let refreshTokenTtlMs = max(1, getConfigInt(cfg.values, ["access_token_ttl", "global.access_token_ttl"], 604800)).int64 * 1000'i64
 
   if not listening:
     info("Config sets listening=false; native runtime started without binding sockets")
@@ -5920,9 +6727,113 @@ proc runNativeServer(cfg: LoadedConfig): int =
       await req.respond(Http200, body, headers)
       return
 
+    let ssoLoginParts = ssoLoginPathParts(path)
+    if ssoLoginParts.ok:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let providerOpt = ssoProviderFromConfig(cfg.values)
+      if providerOpt.isNone:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "No SSO identity providers are configured."))
+        return
+      let provider = providerOpt.get()
+      if not provider.providerMatches(ssoLoginParts.providerId):
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "SSO identity provider was not found."))
+        return
+      if getConfigBool(cfg.values, ["sso_custom_providers_page", "global.sso_custom_providers_page"], false) and
+          ssoLoginParts.providerId.len == 0:
+        await respondJson(req, Http501, matrixError("M_NOT_IMPLEMENTED", "Custom SSO providers page is enabled."))
+        return
+      let redirectUrl = queryParam(req, "redirectUrl")
+      if redirectUrl.len == 0 or not (redirectUrl.startsWith("http://") or redirectUrl.startsWith("https://") or redirectUrl.startsWith("uiaa:")):
+        await respondJson(req, Http400, matrixError("M_INVALID_PARAM", "Invalid redirectUrl."))
+        return
+      var session: SsoSessionRecord
+      withLock state.lock:
+        session = state.createSsoSessionLocked(provider, redirectUrl, queryParam(req, "loginToken"))
+        state.savePersistentState()
+      await respondRedirect(req, ssoAuthorizationLocation(provider, session), ssoCookie(session, provider))
+      return
+
+    let callbackProviderId = ssoCallbackProviderId(path)
+    if callbackProviderId.len > 0:
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let providerOpt = ssoProviderFromConfig(cfg.values)
+      if providerOpt.isNone:
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "No SSO identity providers are configured."))
+        return
+      let provider = providerOpt.get()
+      if not provider.providerMatches(callbackProviderId):
+        await respondJson(req, Http404, matrixError("M_NOT_FOUND", "SSO identity provider was not found."))
+        return
+      let callbackError = queryParam(req, "error")
+      if callbackError.len > 0:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "SSO callback error: " & callbackError))
+        return
+      let sessionId = queryParam(req, "state")
+      let code = queryParam(req, "code")
+      if sessionId.len == 0:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Missing state in callback."))
+        return
+      if code.len == 0:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Missing code in callback."))
+        return
+
+      var sessionFound = false
+      var sessionExpired = false
+      var sessionMismatch = false
+      var session: SsoSessionRecord
+      withLock state.lock:
+        if sessionId in state.ssoSessions:
+          sessionFound = true
+          session = state.ssoSessions[sessionId]
+          sessionExpired = session.expiresAtMs <= nowMs()
+          sessionMismatch = session.idpId != provider.id
+          if sessionExpired:
+            state.ssoSessions.del(sessionId)
+            state.savePersistentState()
+      if not sessionFound:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Invalid state in callback."))
+        return
+      if sessionMismatch:
+        await respondJson(req, Http401, matrixError("M_UNAUTHORIZED", "Identity provider session was not recognized."))
+        return
+      if sessionExpired:
+        await respondJson(req, Http401, matrixError("M_UNAUTHORIZED", "Authorization grant session has expired."))
+        return
+
+      var claims = newJObject()
+      if session.userId.len == 0:
+        let userInfo = await requestSsoUserInfo(provider, session, code)
+        if not userInfo.ok:
+          await respondJson(req, Http501, matrixError(userInfo.errcode, userInfo.message))
+          return
+        claims = userInfo.payload
+
+      var complete: tuple[ok: bool, userId: string, errcode: string, message: string]
+      var loginToken = ""
+      withLock state.lock:
+        complete = state.ensureSsoUserLocked(provider, session, claims)
+        if complete.ok:
+          loginToken = state.createLoginTokenLocked(complete.userId, loginTokenTtlMs).loginToken
+          state.ssoSessions.del(sessionId)
+          state.savePersistentState()
+      if not complete.ok:
+        await respondJson(req, Http403, matrixError(complete.errcode, complete.message))
+        return
+      let redirectTarget =
+        if session.redirectUrl.startsWith("uiaa:"):
+          "/_matrix/client/v3/auth/m.login.sso/fallback/web?session=" & encodeUrl(session.redirectUrl["uiaa:".len .. ^1])
+        else:
+          appendQueryParam(session.redirectUrl, "loginToken", loginToken)
+      await respondRedirect(req, redirectTarget, "tuwunel_grant_session=; Max-Age=0; Path=/; HttpOnly")
+      return
+
     if path == "/_matrix/client/v3/login" or path == "/_matrix/client/r0/login":
       if req.reqMethod == HttpGet:
-        await respondJson(req, Http200, loginTypesResponse())
+        await respondJson(req, Http200, loginTypesResponseWithSso(cfg.values))
         return
 
       if req.reqMethod != HttpPost:
@@ -5942,6 +6853,8 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if username.startsWith("@"):
         username = localpartFromUserId(username)
       let password = body{"password"}.getStr("")
+      let loginToken = body{"token"}.getStr("")
+      let wantsRefreshToken = body{"refresh_token"}.getBool(false)
       var deviceId = body{"device_id"}.getStr("")
       if deviceId.len == 0:
         deviceId = randomString("DEV", 12)
@@ -5949,6 +6862,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
 
       var userId = ""
       var token = ""
+      var refreshToken = ""
       var loginErrCode = ""
       var loginErrMsg = ""
       withLock state.lock:
@@ -5963,7 +6877,20 @@ proc runNativeServer(cfg: LoadedConfig): int =
               loginErrMsg = "Invalid username or password."
             else:
               token = state.addTokenForUser(userId, deviceId, deviceDisplayName)
+              if wantsRefreshToken:
+                refreshToken = state.createRefreshTokenLocked(userId, deviceId, refreshTokenTtlMs).refreshToken
               state.savePersistentState()
+        elif loginType == "m.login.token":
+          let consumed = state.consumeLoginTokenLocked(loginToken)
+          if not consumed.ok:
+            loginErrCode = consumed.errcode
+            loginErrMsg = consumed.message
+          else:
+            userId = consumed.userId
+            token = state.addTokenForUser(userId, deviceId, deviceDisplayName)
+            if wantsRefreshToken:
+              refreshToken = state.createRefreshTokenLocked(userId, deviceId, refreshTokenTtlMs).refreshToken
+            state.savePersistentState()
         elif loginType == "m.login.application_service":
           let sessionRes = state.getSessionFromToken(accessToken, impersonateUser)
           if not sessionRes.ok:
@@ -5972,6 +6899,8 @@ proc runNativeServer(cfg: LoadedConfig): int =
           else:
             userId = sessionRes.session.userId
             token = state.addTokenForUser(userId, deviceId, deviceDisplayName)
+            if wantsRefreshToken:
+              refreshToken = state.createRefreshTokenLocked(userId, deviceId, refreshTokenTtlMs).refreshToken
             state.savePersistentState()
         else:
           loginErrCode = "M_UNRECOGNIZED"
@@ -5982,12 +6911,16 @@ proc runNativeServer(cfg: LoadedConfig): int =
         await respondJson(req, status, matrixError(loginErrCode, loginErrMsg))
         return
 
-      await respondJson(req, Http200, %*{
+      var loginPayload = %*{
         "user_id": userId,
         "access_token": token,
         "device_id": deviceId,
         "home_server": serverName
-      })
+      }
+      if refreshToken.len > 0:
+        loginPayload["refresh_token"] = %refreshToken
+        loginPayload["expires_in_ms"] = %refreshTokenTtlMs
+      await respondJson(req, Http200, loginPayload)
       return
 
     if path == "/_matrix/client/v3/register" or path == "/_matrix/client/r0/register":
@@ -6005,6 +6938,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       var password = body{"password"}.getStr("")
       if password.len == 0:
         password = randomString("pw_", 18)
+      let wantsRefreshToken = body{"refresh_token"}.getBool(false)
       var deviceId = body{"device_id"}.getStr("")
       if deviceId.len == 0:
         deviceId = randomString("DEV", 12)
@@ -6012,6 +6946,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
 
       var userId = ""
       var token = ""
+      var refreshToken = ""
       var registerErr = false
       withLock state.lock:
         if username in state.usersByName:
@@ -6030,18 +6965,24 @@ proc runNativeServer(cfg: LoadedConfig): int =
             profileFields: initTable[string, JsonNode]()
           )
           token = state.addTokenForUser(userId, deviceId, deviceDisplayName)
+          if wantsRefreshToken:
+            refreshToken = state.createRefreshTokenLocked(userId, deviceId, refreshTokenTtlMs).refreshToken
           state.savePersistentState()
 
       if registerErr:
         await respondJson(req, Http400, matrixError("M_USER_IN_USE", "User already exists."))
         return
 
-      await respondJson(req, Http200, %*{
+      var registerPayload = %*{
         "user_id": userId,
         "access_token": token,
         "device_id": deviceId,
         "home_server": serverName
-      })
+      }
+      if refreshToken.len > 0:
+        registerPayload["refresh_token"] = %refreshToken
+        registerPayload["expires_in_ms"] = %refreshTokenTtlMs
+      await respondJson(req, Http200, registerPayload)
       return
 
     if path == "/_matrix/client/v3/account/whoami" or path == "/_matrix/client/r0/account/whoami":
@@ -6070,7 +7011,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if not resolved.ok:
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
-      await respondJson(req, Http200, thirdPartyProtocolsPayload())
+      await respondJson(req, Http200, %*{})
       return
 
     if path == "/_matrix/client/v3/logout/all" or path == "/_matrix/client/r0/logout/all":
@@ -6100,6 +7041,83 @@ proc runNativeServer(cfg: LoadedConfig): int =
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
       await respondJson(req, Http200, buildCapabilitiesPayload())
+      return
+
+    if isChangePasswordPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      let newPassword = parsed.value{"new_password"}.getStr("")
+      if newPassword.len == 0:
+        await respondJson(req, Http400, matrixError("M_MISSING_PARAM", "Missing new_password."))
+        return
+      let logoutDevices = parsed.value{"logout_devices"}.getBool(true)
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and resolved.session.userId in state.users:
+          var user = state.users[resolved.session.userId]
+          user.password = newPassword
+          state.users[resolved.session.userId] = user
+          if logoutDevices:
+            var devicesToRemove = initHashSet[string]()
+            for _, sess in state.tokens:
+              if sess.userId == resolved.session.userId and sess.deviceId != resolved.session.deviceId:
+                devicesToRemove.incl(sess.deviceId)
+            for deviceId in devicesToRemove:
+              state.removeTokensForDevice(resolved.session.userId, deviceId)
+              state.devices.del(deviceKey(resolved.session.userId, deviceId))
+          state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{})
+      return
+
+    if isDeactivatePath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok and resolved.session.userId in state.users:
+          var roomsToLeave: seq[string] = @[]
+          for roomId, room in state.rooms:
+            let membership = room.members.getOrDefault(resolved.session.userId, "")
+            if membership in ["join", "invite", "knock"]:
+              roomsToLeave.add(roomId)
+          for roomId in roomsToLeave:
+            discard state.appendEventLocked(
+              roomId,
+              resolved.session.userId,
+              "m.room.member",
+              resolved.session.userId,
+              membershipContent("leave"),
+            )
+          var user = state.users[resolved.session.userId]
+          user.password = ""
+          state.users[resolved.session.userId] = user
+          var deviceKeysToDelete: seq[string] = @[]
+          for key, device in state.devices:
+            if device.userId == resolved.session.userId:
+              deviceKeysToDelete.add(key)
+          for key in deviceKeysToDelete:
+            state.devices.del(key)
+          state.removeAllTokensForUser(resolved.session.userId)
+          state.savePersistentState()
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{"id_server_unbind_result": "no-support"})
       return
 
     let filterParts = userFilterPathParts(path)
@@ -6488,6 +7506,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
       return
 
     if path == "/_matrix/media/v3/config" or
+        path == "/_matrix/media/v1/config" or
         path == "/_matrix/media/r0/config" or
         path == "/_matrix/client/v1/media/config":
       if req.reqMethod != HttpGet:
@@ -6500,6 +7519,29 @@ proc runNativeServer(cfg: LoadedConfig): int =
         await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
         return
       await respondJson(req, Http200, %*{"m.upload.size": 52_428_800})
+      return
+
+    if isMediaPreviewPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      let url = queryParam(req, "url").strip()
+      if url.len == 0:
+        await respondJson(req, Http400, matrixError("M_INVALID_PARAM", "Missing url query parameter."))
+        return
+      if not (url.startsWith("http://") or url.startsWith("https://")):
+        await respondJson(req, Http400, matrixError("M_INVALID_PARAM", "Invalid preview URL."))
+        return
+      await respondJson(req, Http200, %*{
+        "og:url": url,
+        "og:title": url,
+      })
       return
 
     if isMediaUploadPath(path):
@@ -6533,17 +7575,17 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if req.reqMethod != HttpGet:
         await methodNotAllowed(req)
         return
-      let mediaPath = mediaDataPath(state.statePath, mediaDownload.mediaId)
-      if not fileExists(mediaPath):
+      let media = loadStoredMedia(state, mediaDownload.mediaId)
+      if not media.ok:
         await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Media not found."))
         return
-      let meta = loadStoredMediaMeta(state, mediaDownload.mediaId)
       await respondRaw(
         req,
         Http200,
-        readFile(mediaPath),
-        contentType = meta.contentType,
-        cacheControl = "public, max-age=31536000, immutable"
+        media.body,
+        contentType = media.contentType,
+        cacheControl = "public, max-age=31536000, immutable",
+        contentDisposition = mediaContentDisposition(media.fileName)
       )
       return
 
@@ -7746,6 +8788,32 @@ proc runNativeServer(cfg: LoadedConfig): int =
       await respondJson(req, Http200, streamResult.payload)
       return
 
+    if isSyncV5Path(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var payload = newJObject()
+      let sincePos = parseSlidingSyncPos(parsed.value{"pos"}.getStr(""))
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          payload = state.slidingSyncV5Payload(
+            resolved.session.userId,
+            resolved.session.deviceId,
+            parsed.value,
+            sincePos,
+          )
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, payload)
+      return
+
     if isSyncPath(path):
       if req.reqMethod != HttpGet:
         await methodNotAllowed(req)
@@ -8422,7 +9490,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
               let key = stateKey(stateParts.eventType, stateParts.stateKeyValue)
               if key in room.stateByKey:
                 foundState = true
-                payload = room.stateByKey[key].content
+                payload = stateEventResponsePayload(room.stateByKey[key], queryParam(req, "format"))
         if not resolved.ok:
           await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
           return
@@ -8721,7 +9789,7 @@ proc runNativeServer(cfg: LoadedConfig): int =
 
     if path == "/_matrix/client/v3/login" or path == "/_matrix/client/r0/login":
       if req.reqMethod == HttpGet:
-        await respondJson(req, Http200, loginTypesResponse())
+        await respondJson(req, Http200, loginTypesResponseWithSso(cfg.values))
         return
 
     if isRegisterAvailablePath(path):
@@ -8732,6 +9800,88 @@ proc runNativeServer(cfg: LoadedConfig): int =
         await respondJson(req, Http401, matrixError("M_UNKNOWN_TOKEN", "Unknown access token."))
       else:
         await respondJson(req, Http200, %*{"available": true})
+      return
+
+    if isRegistrationTokenValidityPath(path):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      var registrationToken = getConfigString(
+        cfg.values,
+        ["registration_token", "global.registration_token"],
+        "",
+      ).strip()
+      let registrationTokenFile = getConfigString(
+        cfg.values,
+        ["registration_token_file", "global.registration_token_file"],
+        "",
+      ).strip()
+      if registrationToken.len == 0 and registrationTokenFile.len > 0 and fileExists(registrationTokenFile):
+        try:
+          registrationToken = readFile(registrationTokenFile).strip()
+        except CatchableError:
+          discard
+      if registrationToken.len == 0:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Server does not allow token registration."))
+        return
+      await respondJson(req, Http200, %*{"valid": queryParam(req, "token") == registrationToken})
+      return
+
+    if isRequest3pidManagementTokenPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      await respondJson(req, Http403, matrixError("M_THREEPID_DENIED", "Third party identifiers are not implemented."))
+      return
+
+    if isLoginTokenPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      var resolved: tuple[ok: bool, session: AccessSession, errcode: string, message: string]
+      var issued = LoginTokenRecord()
+      withLock state.lock:
+        resolved = state.getSessionFromToken(accessToken, impersonateUser)
+        if resolved.ok:
+          issued = state.createLoginTokenLocked(resolved.session.userId, loginTokenTtlMs)
+      if not resolved.ok:
+        await respondJson(req, Http401, matrixError(resolved.errcode, resolved.message))
+        return
+      await respondJson(req, Http200, %*{
+        "login_token": issued.loginToken,
+        "expires_in_ms": loginTokenTtlMs
+      })
+      return
+
+    if isRefreshTokenPath(path):
+      if req.reqMethod != HttpPost:
+        await methodNotAllowed(req)
+        return
+      let parsed = parseRequestJson(req)
+      if not parsed.ok or parsed.value.kind != JObject:
+        await respondJson(req, Http400, matrixError("M_BAD_JSON", "Invalid JSON body."))
+        return
+      var refreshed: tuple[ok: bool, accessToken: string, refreshToken: string, expiresInMs: int64, errcode: string, message: string]
+      withLock state.lock:
+        refreshed = state.refreshAccessTokenLocked(
+          parsed.value{"refresh_token"}.getStr(""),
+          "",
+          refreshTokenTtlMs,
+        )
+        if refreshed.ok:
+          state.savePersistentState()
+      if not refreshed.ok:
+        await respondJson(req, Http403, matrixError(refreshed.errcode, refreshed.message))
+        return
+      await respondJson(req, Http200, %*{
+        "access_token": refreshed.accessToken,
+        "refresh_token": refreshed.refreshToken,
+        "expires_in_ms": refreshed.expiresInMs
+      })
       return
 
     if isPublicRoomsPath(path):
@@ -8997,7 +10147,35 @@ proc runNativeServer(cfg: LoadedConfig): int =
       if req.reqMethod != HttpGet:
         await methodNotAllowed(req)
         return
-      await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Forbidden."))
+      if not allowFederation:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Federation is disabled."))
+        return
+      var count = 0
+      withLock state.lock:
+        count = state.users.len
+      await respondJson(req, Http200, %*{"count": count})
+      return
+
+    if path == "/.well-known/matrix/client":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let payloadResult = wellKnownClientPayload(cfg.values)
+      if not payloadResult.ok:
+        await notFoundWithCode(req, "M_NOT_FOUND")
+        return
+      await respondJson(req, Http200, payloadResult.payload)
+      return
+
+    if path == "/.well-known/matrix/support":
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      let payloadResult = wellKnownSupportPayload(cfg.values)
+      if not payloadResult.ok:
+        await notFoundWithCode(req, "M_NOT_FOUND")
+        return
+      await respondJson(req, Http200, payloadResult.payload)
       return
 
     if path == "/client/server.json":
@@ -9013,8 +10191,22 @@ proc runNativeServer(cfg: LoadedConfig): int =
         return
       if not allowFederation:
         await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Federation is disabled."))
+        return
+      let payloadResult = wellKnownServerPayload(cfg.values)
+      if not payloadResult.ok:
+        await notFoundWithCode(req, "M_NOT_FOUND")
       else:
-        await respondJson(req, Http200, %*{"m.server": serverName})
+        await respondJson(req, Http200, payloadResult.payload)
+      return
+
+    if path == "/_matrix/key/v2/server" or path.startsWith("/_matrix/key/v2/server/"):
+      if req.reqMethod != HttpGet:
+        await methodNotAllowed(req)
+        return
+      if not allowFederation:
+        await respondJson(req, Http403, matrixError("M_FORBIDDEN", "Federation is disabled."))
+        return
+      await respondJson(req, Http200, serverKeysPayload(serverName))
       return
 
     if path.startsWith("/_matrix/federation/"):
@@ -9053,6 +10245,25 @@ proc runNativeServer(cfg: LoadedConfig): int =
         withLock state.lock:
           payload = publicRoomsPayload(state, parsed.value)
         await respondJson(req, Http200, payload)
+        return
+
+      let federationMedia = federationMediaPathParts(path)
+      if federationMedia.ok:
+        if req.reqMethod != HttpGet:
+          await methodNotAllowed(req)
+          return
+        let media = loadStoredMedia(state, federationMedia.mediaId)
+        if not media.ok:
+          await respondJson(req, Http404, matrixError("M_NOT_FOUND", "Media not found."))
+          return
+        await respondRaw(
+          req,
+          Http200,
+          media.body,
+          contentType = media.contentType,
+          cacheControl = "public, max-age=31536000, immutable",
+          contentDisposition = mediaContentDisposition(media.fileName)
+        )
         return
 
       if fedParts.len == 2 and fedParts[0] == "openid" and fedParts[1] == "userinfo":
