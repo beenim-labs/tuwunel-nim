@@ -439,7 +439,7 @@
       ]
     },
     {
-      "description": "OIDC next-gen auth routes backed by native Nim client registration, auth-request, authorization-code, OIDC access-token, refresh-token, userinfo, and revocation state.",
+      "description": "OIDC next-gen auth routes backed by native Nim client registration, auth-request, authorization-code, OIDC access-token, refresh-token, userinfo, revocation, and account-management session/profile state.",
       "routes": [
         "openid_configuration_route",
         "auth_issuer_route",
@@ -456,7 +456,8 @@
         "account_css_route"
       ],
       "evidence": [
-        "tests/test_entrypoint_compat.nim: OIDC server helpers register clients complete grants and revoke issued devices"
+        "tests/test_entrypoint_compat.nim: OIDC server helpers register clients complete grants and revoke issued devices",
+        "tests/test_entrypoint_compat.nim: OIDC account management callbacks preserve login-token and session semantics"
       ]
     },
     {

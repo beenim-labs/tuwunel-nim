@@ -284,6 +284,156 @@ suite "entrypoint compat helpers":
     check refreshedAccess notin state.tokens
     check state.revokeOidcTokenLocked("missing", "").ok
 
+  test "OIDC account management callbacks preserve login-token and session semantics":
+    var cfg = initFlatConfig()
+    cfg["global.identity_provider.client_id"] = newStringValue("test-idp")
+    cfg["global.identity_provider.brand"] = newStringValue("Example")
+    cfg["global.identity_provider.name"] = newStringValue("Example Login")
+    cfg["global.identity_provider.authorization_url"] = newStringValue("https://idp.example/authorize")
+    cfg["global.identity_provider.callback_url"] = newStringValue("https://matrix.example/_matrix/client/unstable/login/sso/callback/test-idp")
+    cfg["global.identity_provider.scope"] = newArrayValue(@[newStringValue("openid"), newStringValue("profile")])
+    let provider = ssoProviderFromConfig(cfg).get()
+
+    let statePath = getTempDir() / "tuwunel-entrypoint-oidc-account.json"
+    if fileExists(statePath):
+      removeFile(statePath)
+    var state = newCompatState(statePath)
+    defer:
+      deinitLock(state.lock)
+      if fileExists(statePath):
+        removeFile(statePath)
+
+    state.users["@alice:localhost"] = UserProfile(
+      userId: "@alice:localhost",
+      username: "alice",
+      password: "pw",
+      displayName: "Alice",
+      avatarUrl: "mxc://localhost/alice",
+      blurhash: "",
+      timezone: "",
+      profileFields: initTable[string, JsonNode]()
+    )
+    let firstToken = state.addTokenForUser("@alice:localhost", "DEV1", "Laptop")
+    let targetToken = state.addTokenForUser("@alice:localhost", "DEV2", "Phone")
+    let targetRefresh = state.createRefreshTokenLocked("@alice:localhost", "DEV2", 604800000)
+    state.oidcAccessTokens[targetToken] = OidcAccessTokenRecord(
+      accessToken: targetToken,
+      userId: "@alice:localhost",
+      deviceId: "DEV2",
+      clientId: "client-account",
+      scope: "openid",
+      expiresAtMs: nowMs() + 3600000,
+    )
+    state.oidcRefreshTokens[targetRefresh.refreshToken] = OidcRefreshTokenRecord(
+      refreshToken: targetRefresh.refreshToken,
+      userId: "@alice:localhost",
+      deviceId: "DEV2",
+      clientId: "client-account",
+      scope: "openid",
+      expiresAtMs: targetRefresh.expiresAtMs,
+    )
+
+    let accountRedirect = accountSsoRedirectLocation(
+      provider,
+      "https://matrix.example/",
+      "org.matrix.session_view",
+      "DEV2",
+    )
+    check accountRedirect.startsWith("https://matrix.example/_matrix/client/v3/login/sso/redirect/test-idp?")
+    let redirectParams = parseUrlEncodedParams(parseUri(accountRedirect).query)
+    check firstParam(redirectParams, "redirectUrl") ==
+      "https://matrix.example/_tuwunel/oidc/account_callback?action=org.matrix.session_view&device_id=DEV2"
+
+    let invalidLogin = state.createLoginTokenLocked("@alice:localhost", 120000)
+    let invalid = state.completeAccountCallbackLocked(
+      "GET",
+      "org.matrix.unsupported",
+      "",
+      invalidLogin.loginToken,
+      "",
+    )
+    check not invalid.ok
+    check invalid.errcode == "M_INVALID_PARAM"
+    check invalidLogin.loginToken in state.loginTokens
+
+    let sessionsLogin = state.createLoginTokenLocked("@alice:localhost", 120000)
+    let sessions = state.completeAccountCallbackLocked(
+      "GET",
+      "org.matrix.sessions_list",
+      "",
+      sessionsLogin.loginToken,
+      "",
+    )
+    check sessions.ok
+    check sessions.html.contains("Active Sessions")
+    check sessions.html.contains("DEV1")
+    check sessions.html.contains("DEV2")
+    check sessionsLogin.loginToken notin state.loginTokens
+
+    let profileLogin = state.createLoginTokenLocked("@alice:localhost", 120000)
+    let profilePage = state.completeAccountCallbackLocked(
+      "GET",
+      "org.matrix.profile",
+      "",
+      profileLogin.loginToken,
+      "",
+    )
+    check profilePage.ok
+    check profilePage.html.contains("Profile")
+    check profileLogin.loginToken in state.loginTokens
+    let profileSaved = state.completeAccountCallbackLocked(
+      "POST",
+      "org.matrix.profile",
+      "",
+      profileLogin.loginToken,
+      " Alice\nZero ",
+    )
+    check profileSaved.ok
+    check profileSaved.changed
+    check profileLogin.loginToken notin state.loginTokens
+    check state.users["@alice:localhost"].displayName == "AliceZero"
+
+    let viewLogin = state.createLoginTokenLocked("@alice:localhost", 120000)
+    let sessionView = state.completeAccountCallbackLocked(
+      "GET",
+      "org.matrix.session_view",
+      "DEV2",
+      viewLogin.loginToken,
+      "",
+    )
+    check sessionView.ok
+    check sessionView.html.contains("Session Details")
+    check sessionView.html.contains("Phone")
+    check viewLogin.loginToken in state.loginTokens
+    let endConfirm = state.completeAccountCallbackLocked(
+      "GET",
+      "org.matrix.session_end",
+      "DEV2",
+      viewLogin.loginToken,
+      "",
+    )
+    check endConfirm.ok
+    check endConfirm.html.contains("Sign Out Session")
+    check viewLogin.loginToken in state.loginTokens
+
+    let ended = state.completeAccountCallbackLocked(
+      "POST",
+      "org.matrix.session_end",
+      "DEV2",
+      viewLogin.loginToken,
+      "",
+    )
+    check ended.ok
+    check ended.changed
+    check viewLogin.loginToken notin state.loginTokens
+    check deviceKey("@alice:localhost", "DEV2") notin state.devices
+    check targetToken notin state.tokens
+    check targetRefresh.refreshToken notin state.refreshTokens
+    check targetToken notin state.oidcAccessTokens
+    check targetRefresh.refreshToken notin state.oidcRefreshTokens
+    check firstToken in state.tokens
+    check deviceKey("@alice:localhost", "DEV1") in state.devices
+
   test "joinedMembersPayload includes only joined users with profile data":
     let statePath = getTempDir() / "tuwunel-entrypoint-compat-state.json"
     var state = newCompatState(statePath)
