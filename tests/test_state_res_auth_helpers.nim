@@ -1,5 +1,7 @@
-import std/[json, options, sets, strutils, tables, unittest]
+import std/[json, options, sets, tables, unittest]
 
+import core/crypto/ed25519
+import core/matrix/server_signing
 import core/matrix/event/state_key
 import core/matrix/state_res/event_auth
 import core/matrix/state_res/event_format as state_event_format
@@ -114,6 +116,11 @@ proc baseMemberAuthEvents(): Table[EventId, JsonNode] =
     "state_key": "token",
     "content": {"public_key": "key"}
   }
+
+proc fixedSeed(): seq[byte] =
+  result = newSeq[byte](Ed25519PrivateSeedLen)
+  for idx in 0 ..< result.len:
+    result[idx] = byte(idx)
 
 proc memberAuthState(
   eventsById: Table[EventId, JsonNode];
@@ -636,7 +643,7 @@ suite "State resolution event auth helpers":
     }
     check not checkRoomMember(remoteTarget, authorizationRules("11"), roomCreateEvent(remoteCreate), publicFetch).ok
 
-  test "room-member auth covers invite leave ban knock and third-party invite gap":
+  test "room-member auth covers invite leave ban knock and third-party invite signatures":
     var eventsById = baseMemberAuthEvents()
     let createEvent = roomCreateEvent(eventsById["$create"])
     let fetch = memberAuthState(eventsById)
@@ -695,6 +702,25 @@ suite "State resolution event auth helpers":
     check checkRoomMember(knock, authorizationRules("11"), createEvent, knockFetch).ok
     check not checkRoomMember(knock, authorizationRules("6"), createEvent, knockFetch).ok
 
+    let seed = fixedSeed()
+    let publicKey = publicKeyFromSeed(seed)
+    check publicKey.ok
+    let signedInvite = %*{
+      "mxid": "@third:localhost",
+      "token": "token"
+    }
+    let canonical = canonicalSigningString(signedInvite)
+    check canonical.ok
+    let signature = sign(seed, canonical.value)
+    check signature.ok
+    signedInvite["signatures"] = %*{
+      "localhost": {
+        "ed25519:key": encodeUnpaddedBase64(signature.signature)
+      }
+    }
+
+    eventsById["$third-party"]["content"]["public_key"] = %encodeUnpaddedBase64(publicKey.publicKey)
+
     let thirdPartyInvite = %*{
       "event_id": "$3pid-invite",
       "type": "m.room.member",
@@ -702,15 +728,13 @@ suite "State resolution event auth helpers":
       "state_key": "@third:localhost",
       "content": {
         "membership": "invite",
-        "third_party_invite": {
-          "signed": {
-            "mxid": "@third:localhost",
-            "token": "token",
-            "signatures": {"localhost": {"ed25519:key": "sig"}}
-          }
-        }
+        "third_party_invite": {"signed": signedInvite}
       }
     }
     let thirdPartyCheck = checkRoomMember(thirdPartyInvite, authorizationRules("11"), createEvent, fetch)
-    check not thirdPartyCheck.ok
-    check thirdPartyCheck.message.contains("signature verification is not implemented")
+    check thirdPartyCheck.ok
+
+    var tamperedThirdParty = thirdPartyInvite.copy()
+    tamperedThirdParty["content"]["third_party_invite"]["signed"]["mxid"] = %"@other:localhost"
+    let tamperedCheck = checkRoomMember(tamperedThirdParty, authorizationRules("11"), createEvent, fetch)
+    check not tamperedCheck.ok

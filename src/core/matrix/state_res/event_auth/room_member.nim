@@ -4,6 +4,8 @@ const
 
 import std/[json, options, strutils]
 
+import core/crypto/ed25519
+import core/matrix/server_signing
 import core/matrix/state_res/event_format
 import core/matrix/state_res/events/create
 import core/matrix/state_res/events/join_rules
@@ -95,7 +97,25 @@ proc checkThirdPartyInvite(
   if signatures.value.len == 0 or publicKeys.keys.len == 0:
     return reject("third-party invite signature or public key is missing")
 
-  reject("third-party invite signature verification is not implemented in tuwunel-nim yet")
+  let canonical = invite.signedCanonicalJson()
+  if not canonical.ok:
+    return reject(canonical.message)
+
+  for _, entitySignatures in signatures.value:
+    if entitySignatures.kind != JObject:
+      return reject("unexpected format of `signatures` field in `third_party_invite.signed`")
+    for keyId, signatureNode in entitySignatures:
+      if not keyId.startsWith("ed25519:") or signatureNode.kind != JString:
+        continue
+      let signature = decodeUnpaddedBase64(signatureNode.getStr(""))
+      if not signature.ok:
+        continue
+      for encodedPublicKey in publicKeys.keys:
+        let publicKey = decodeUnpaddedBase64(encodedPublicKey)
+        if publicKey.ok and ed25519.verify(publicKey.data, canonical.value, signature.data):
+          return allow()
+
+  reject("no signature on third-party invite matches a public key in `m.room.third_party_invite` event")
 
 proc checkRoomMemberJoin(
   roomMemberEvent: JsonNode;

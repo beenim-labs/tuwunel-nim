@@ -4,8 +4,8 @@ const
 
 import std/[json, options]
 
+import core/matrix/server_signing
 import core/matrix/state_res/json_helpers
-import core/utils/json as json_utils
 
 type
   MembershipState* = enum
@@ -132,7 +132,7 @@ proc signatures*(invite: ThirdPartyInvite): tuple[ok: bool, value: JsonNode, mes
   (true, value, "")
 
 proc signedCanonicalJson*(invite: ThirdPartyInvite): tuple[ok: bool, value: string, message: string] =
-  let canonical = json_utils.toCanonicalObject(invite.signed)
+  let canonical = canonicalSigningString(invite.signed)
   if not canonical.ok:
-    return (false, "", canonical.message)
-  (true, $canonical.value, "")
+    return (false, "", canonical.err)
+  (true, canonical.value, "")
