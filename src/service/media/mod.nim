@@ -208,6 +208,7 @@ proc delete*(service: var MediaService; mxc: string): MediaResult =
   okResult()
 
 proc deleteFromUser*(service: var MediaService; userId: string): int =
+  result = 0
   let mxcs = getAllUserMxcs(service.db, userId)
   for mxc in mxcs:
     if service.delete(mxc).ok:

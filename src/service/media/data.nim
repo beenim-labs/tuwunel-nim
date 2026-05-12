@@ -1,4 +1,4 @@
-import std/[algorithm, options, tables]
+import std/[algorithm, options, strutils, tables]
 
 import service/media/preview
 import service/media/thumbnail
@@ -132,6 +132,7 @@ proc searchFileMetadata*(
   (false, Metadata())
 
 proc getAllUserMxcs*(data: MediaData; userId: string): seq[string] =
+  result = @[]
   var seen = initTable[string, bool]()
   for key, value in data.mediaidUser:
     if value != userId:
@@ -146,10 +147,12 @@ proc getAllUserMxcs*(data: MediaData; userId: string): seq[string] =
   result.sort(system.cmp[string])
 
 proc getAllMediaKeys*(data: MediaData): seq[string] =
+  result = @[]
   for key in data.mediaidFile.keys:
     result.add(key)
 
 proc getAllMxcs*(data: MediaData): seq[string] =
+  result = @[]
   var seen = initTable[string, bool]()
   for metadata in data.mediaidFile.values:
     if metadata.mxc.len > 0 and metadata.mxc notin seen:

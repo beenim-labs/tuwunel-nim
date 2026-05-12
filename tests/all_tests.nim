@@ -50,9 +50,12 @@ import test_service_auth_state
 import test_service_presence
 import test_service_pusher
 import test_service_globals
+import test_service_key_backups
 import test_service_media
+import test_service_users
 import test_service_sync
 import test_service_sending
+import test_service_typing
 import test_math_utils
 import test_native_runtime_policy
 import test_rand_utils

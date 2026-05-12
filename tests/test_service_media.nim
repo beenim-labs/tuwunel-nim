@@ -1,8 +1,9 @@
-import std/[options, unittest]
+import std/[options, strutils, unittest]
 
 import "service/media/mod" as media_service
 
 proc bytes(value: string): seq[byte] =
+  result = @[]
   for ch in value:
     result.add(byte(ord(ch)))
 

@@ -12,8 +12,8 @@ type
     height*: uint32
     methodKind*: ThumbnailMethod
 
-proc initDim*(width, height: uint32; method = tmScale): Dim =
-  Dim(width: width, height: height, methodKind: method)
+proc initDim*(width, height: uint32; methodKind = tmScale): Dim =
+  Dim(width: width, height: height, methodKind: methodKind)
 
 proc defaultDim*(): Dim =
   initDim(0'u32, 0'u32, tmScale)
@@ -22,16 +22,15 @@ proc crop*(dim: Dim): bool =
   dim.methodKind == tmCrop
 
 proc normalized*(dim: Dim): Dim =
-  case (dim.width, dim.height)
-  of (0'u32 .. 32'u32, 0'u32 .. 32'u32):
+  if dim.width <= 32'u32 and dim.height <= 32'u32:
     initDim(32'u32, 32'u32, tmCrop)
-  of (0'u32 .. 96'u32, 0'u32 .. 96'u32):
+  elif dim.width <= 96'u32 and dim.height <= 96'u32:
     initDim(96'u32, 96'u32, tmCrop)
-  of (0'u32 .. 320'u32, 0'u32 .. 240'u32):
+  elif dim.width <= 320'u32 and dim.height <= 240'u32:
     initDim(320'u32, 240'u32, tmScale)
-  of (0'u32 .. 640'u32, 0'u32 .. 480'u32):
+  elif dim.width <= 640'u32 and dim.height <= 480'u32:
     initDim(640'u32, 480'u32, tmScale)
-  of (0'u32 .. 800'u32, 0'u32 .. 600'u32):
+  elif dim.width <= 800'u32 and dim.height <= 600'u32:
     initDim(800'u32, 600'u32, tmScale)
   else:
     defaultDim()
