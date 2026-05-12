@@ -27,6 +27,7 @@ import test_hash_argon
 import test_info_utils
 import test_json_utils
 import test_matrix_event_pdu
+import test_state_res_auth_helpers
 import test_federation_discovery
 import test_federation_event_api
 import test_federation_membership_api

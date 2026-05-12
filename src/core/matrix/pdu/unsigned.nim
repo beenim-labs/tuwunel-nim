@@ -27,7 +27,7 @@ proc addAge*(event: var JsonNode; nowMs = -1'i64) =
 
 proc addRelation*(event: var JsonNode; name: string; relatedPdu: JsonNode = nil) =
   ensureUnsignedObject(event)
-  if event["unsigned"]{"m.relations"}.kind != JObject:
+  if not event["unsigned"].hasKey("m.relations") or event["unsigned"]["m.relations"].kind != JObject:
     event["unsigned"]["m.relations"] = newJObject()
   event["unsigned"]["m.relations"][name] =
     if relatedPdu.isNil:
